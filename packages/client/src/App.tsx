@@ -8,11 +8,10 @@ import geckos, { Data } from '@geckos.io/client'
 
 import { Game, CommandPacket, IdentificationPacket } from 'server/types'
 
-// or add a minified version to your index.html file
-// https://github.com/geckosio/geckos.io/tree/master/bundles
-
 let channel = geckos({ port: 9208 });
 let geckosSetUp = false;
+
+const playerId = 1;
 
 function App() {
   const [msgs, setMsgs] = useState([] as Data[]);
@@ -23,14 +22,22 @@ function App() {
       return;
     geckosSetUp = true;
 
-    console.log("setting onconnect")
-
     channel.onConnect((error: any) => {
       if (error) {
         console.error(error.message)
         return
       }
 
+      console.log('Channel set up correctly')
+
+      // rejoin
+      const matchId = localStorage.getItem('matchId');
+      if (matchId) {
+        console.log(`Rejoining match ${matchId}`)
+        channel.emit('rejoin', { matchId, playerId });
+      }
+
+      // set up handlers
       channel.on('chat message', (data: Data) => {
         msgs.push(data);
         setMsgs(msgs);
@@ -40,11 +47,23 @@ function App() {
         setServerState(() => data as Game);
       })
 
-      channel.emit('chat message', 'a short message sent to the server')
+      channel.on('joined', (data: Data) => {
+        console.log("server confirmed match join");
+        localStorage.setItem('matchId', String(data));
+      });
     })
   }, []);
 
   const lines = msgs.map((m: Data, i: number) => <li key={i}>{String(m)}</li>);
+
+  const joinMatch = (matchId: string) => {
+    const data : IdentificationPacket = {
+      playerId,
+      matchId
+    };
+
+    channel.emit('join', data);
+  };
 
   return (
     <div className="App">
@@ -71,16 +90,7 @@ function App() {
           }}
         >command</button>
 
-        <MatchList />
-
-        <button onClick={ () => {
-          const data : IdentificationPacket = {
-            playerId: 1,
-            matchId: '1'
-          };
-
-          channel.emit('join', data);
-        }}>Join</button>
+        <MatchList joinMatch={joinMatch} />
 
         <button onClick={ () => {
           fetch('http://localhost:9208/create', {
@@ -88,6 +98,7 @@ function App() {
           });
         }}>Create</button>
 
+        <br />
         <span>{serverState ? JSON.stringify(serverState) : ""}</span>
 
         <ul>

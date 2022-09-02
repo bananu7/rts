@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { MatchInfo } from 'server/types'
 
-export function MatchList() {
+type Props = {
+    joinMatch: (matchId: string) => void;
+}
+
+export function MatchList(props: Props) {
     const [matches, setMatches] = useState([] as MatchInfo[]);
 
     useEffect(() => {
@@ -14,6 +18,7 @@ export function MatchList() {
         <tr key={m.matchId}>
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
+            <td><button onClick={() => props.joinMatch(m.matchId)}>Join</button></td>
         </tr>
     );
 

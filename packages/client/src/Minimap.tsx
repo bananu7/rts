@@ -26,8 +26,8 @@ export function Minimap(props: Props) {
             key={u.id}
             x={u.position.x}
             y={u.position.y}
-            width="3"
-            height="3"
+            width="10"
+            height="10"
             style={unitStyle}
         />
     );

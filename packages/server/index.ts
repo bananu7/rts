@@ -49,6 +49,8 @@ app.post('/create', (req, res) => {
         // TODO - fog of war
         io.room(matchId).emit('tick', game);
     }, 100);
+
+    console.log(`Match ${matchId} created`);
 })
 
 // channel is a new RTC connection (i.e. one browser)
@@ -60,33 +62,60 @@ io.onConnection(channel => {
 
     channel.on('join', (data: Data) => {
         // TODO properly validate data format
-        const p = data as IdentificationPacket;
-        p.matchId = String(p.matchId);
+        const packet = data as IdentificationPacket;
 
-        const m = matches.find(m => m.matchId === p.matchId);
+        const m = matches.find(m => m.matchId === packet.matchId);
         if (!m) {
             console.error("Received a join request to a match that doesn't exist");
             return;
         }
 
-        m.players.push(p.playerId);
+        m.players.push(packet.playerId);
 
-        channel.join(String(p.matchId));
+        channel.join(String(packet.matchId));
 
         channel.userData = {
-            playerId: p.playerId,
-            matchId: p.matchId
+            playerId: packet.playerId,
+            matchId: packet.matchId
         };
 
-        console.log(`Channel ${p.playerId} joined the match ${p.matchId}`);
+        console.log(`Channel of player ${packet.playerId} joined the match ${packet.matchId}`);
 
-        channel.emit('chat message', "Successfully joined the match")
+        channel.emit('joined', packet.matchId);
+        channel.emit('chat message', `Successfully joined the match ${packet.matchId}!`);
 
         // check if the game can start
         // TODO - wait for all players, not just two
         if (m.players.length === 2) {
             startGame(m.game);
             io.room(m.matchId).emit('chat message', "Game starting")
+        }
+    });
+
+    channel.on('rejoin', (data: Data) => {
+        try {
+            const packet = data as IdentificationPacket;
+            packet.matchId = String(packet.matchId);
+
+            const m = matches.find(m => m.matchId === packet.matchId);
+            if (!m) {
+                throw "Received a rejoin request to a match that doesn't exist";
+            }
+
+            if (!m.players.find(p => p === packet.playerId)) {
+                throw "Received a rejoin request but player isn't in this match";
+            }
+
+            channel.join(packet.matchId);
+
+            channel.userData = {
+                playerId: packet.playerId,
+                matchId: packet.matchId
+            };
+            console.log(`Channel of player ${packet.playerId} rejoined the match ${packet.matchId}`);
+        }
+        catch (e) {
+            console.error(e);
         }
     });
 
