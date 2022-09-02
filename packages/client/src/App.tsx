@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
 import './App.css'
+
+import { MatchList } from './MatchList';
 
 import geckos, { Data } from '@geckos.io/client'
 
@@ -11,7 +12,6 @@ let channel = geckos({ port: 9208 });
 let geckosSetUp = false;
 
 function App() {
-  const [count, setCount] = useState(0)
   const [msgs, setMsgs] = useState([] as Data[]);
   const [serverState, setServerState] = useState("");
  
@@ -45,24 +45,16 @@ function App() {
 
   return (
     <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
+      <h1>RTS</h1>
       <div className="card">
+
         <button onClick={
           () => {
-            setCount((count) => count + 1)
             channel.emit('chat message', 'a short message sent to the server')
           }}
-        >
-          count is {count}
-        </button>
+        >Chat</button>
+
+        <MatchList />
 
         <button onClick={ () => {
           const data = {
@@ -78,12 +70,6 @@ function App() {
             method: 'POST',
           });
         }}>create</button>
-
-        <button onClick={ () => {
-          fetch('http://localhost:9208/listMatches')
-            .then(d => { return d.text() })
-            .then(d => console.log(d));
-        }}>list</button>
 
         <pre>{serverState}</pre>
 

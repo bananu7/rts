@@ -4,23 +4,20 @@ import express from 'express'
 import cors from 'cors'
 
 import {Game, newGame, startGame, tick} from './game.js';
-
-const app = express()
-app.use(cors())
-const server = http.createServer(app)
-const io = geckos()
+import {MatchInfo, IdentificationPacket} from './types.js';
 
 type Match = {
     game: Game,
     matchId: string,
     players: number[],
 }
-const matches : Match[] = [];
 
-type IdentificationPacket = {
-  playerId: number,
-  matchId: string, 
-}
+const app = express()
+app.use(cors())
+const server = http.createServer(app)
+const io = geckos()
+
+const matches : Match[] = [];
 
 io.addServer(server)
 
@@ -29,8 +26,12 @@ app.get('/', (req, res) => {
 })
 
 app.get('/listMatches', (req, res) => {
-    const ids = JSON.stringify(matches.map(m => m.matchId));
-    res.send(ids);
+    const matchInfos : MatchInfo[] = matches.map(m => { return {
+        matchId: m.matchId,
+        playerCount: m.players.length,
+    }});
+
+    res.send(JSON.stringify(matchInfos));
 })
 
 let lastMatchId = 0;
