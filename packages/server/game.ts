@@ -18,6 +18,7 @@ export type Building = {
 
 export type Game = {
     state: GameState
+    tickNumber: number,
     players: Player[],
     board: Board,
 }
@@ -50,6 +51,7 @@ export type GameState = {
 export function newGame(map: GameMap): Game {
     return {
         state: {id: 'Fresh'},
+        tickNumber: 0,
         players: [],
         board: {
             map: map,
@@ -59,11 +61,15 @@ export function newGame(map: GameMap): Game {
     }
 }
 
+export function startGame(g: Game) {
+    g.state = {id: 'Precount', count: 0};
+}
+
 export function tick(dt: number, g: Game) {
     switch (g.state.id) {
     case 'Precount':
         g.state.count -= dt;
-        if (g.state.count <= 0) {
+        if (g.state.count <= 1000) {
             g.state = {id: 'Play'};
         }
         break;
@@ -73,6 +79,7 @@ export function tick(dt: number, g: Game) {
         if (e.length > 0) {
             g.state = {id: 'GameEnded'};
         }
+        g.tickNumber += 1;
     }
 }
 

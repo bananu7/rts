@@ -3,7 +3,7 @@ import http from 'http'
 import express from 'express'
 import cors from 'cors'
 
-import {Game, newGame, tick} from './game.js';
+import {Game, newGame, startGame, tick} from './game.js';
 
 const app = express()
 app.use(cors())
@@ -13,6 +13,7 @@ const io = geckos()
 type Match = {
     game: Game,
     matchId: string,
+    players: number[],
 }
 const matches : Match[] = [];
 
@@ -40,12 +41,11 @@ app.post('/create', (req, res) => {
 
     const game = newGame(map);
     const matchId = String(++lastMatchId); // TODO
-    matches.push({ game, matchId });
+    matches.push({ game, matchId, players: [] });
 
     setInterval(() => {
         tick(100, game)
         io.room(matchId).emit('tick', game.state);
-        //io.emit('tick', game.state);
     }, 100);
 })
 
@@ -57,20 +57,48 @@ io.onConnection(channel => {
   })
 
   channel.on('join', (data: Data) => {
+    // TODO properly validate data format
     const p = data as IdentificationPacket;
-    console.log(channel.roomId)
+    p.matchId = String(p.matchId);
+
+    const m = matches.find(m => m.matchId === p.matchId);
+    if (!m) {
+        console.error("Received a join request to a match that doesn't exist");
+        return;
+    }
+
+    m.players.push(p.playerId);
+
     channel.join(String(p.matchId));
-    console.log(channel.roomId)
+
     channel.userData = {
         playerId: p.playerId,
         matchId: p.matchId
     };
 
     console.log(`Channel ${p.playerId} joined the match ${p.matchId}`);
+
+    channel.emit('chat message', "Successfully joined the match")
+
+    // check if the game can start
+    // TODO - wait for all players, not just two
+    if (m.players.length === 2) {
+        startGame(m.game);
+        io.room(m.matchId).emit('chat message', "Game starting")
+    }
   });
 
   channel.on('command', (data: Data) => {
-      console.log('got a command');
+      if (!channel.userData.playerId) {
+          console.error("Received a command from an unidentified channel");
+      }
+
+      if (!channel.userData.matchId) {
+          console.error("Received a command from a channel that's not in a match");
+      }
+
+      let m = matches.find(m => m.matchId === channel.userData.matchId)
+      channel.userData.matchId
   });
 
   channel.on('chat message', (data: Data) => {
