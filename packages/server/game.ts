@@ -59,7 +59,7 @@ export function newGame(map: GameMap): Game {
     }
 }
 
-export function tick(dt: number, g: Game): Game {
+export function tick(dt: number, g: Game) {
     switch (g.state.id) {
     case 'Precount':
         g.state.count -= dt;
@@ -74,8 +74,6 @@ export function tick(dt: number, g: Game): Game {
             g.state = {id: 'GameEnded'};
         }
     }
-
-    return g;   
 }
 
 function eliminated(g: Game): Player[] {

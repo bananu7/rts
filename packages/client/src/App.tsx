@@ -13,7 +13,7 @@ let geckosSetUp = false;
 function App() {
   const [count, setCount] = useState(0)
   const [msgs, setMsgs] = useState([] as Data[]);
-
+  const [serverState, setServerState] = useState("");
  
   useEffect(() => {
     if (geckosSetUp)
@@ -31,6 +31,10 @@ function App() {
       channel.on('chat message', (data: Data) => {
         msgs.push(data);
         setMsgs(msgs);
+      })
+
+      channel.on('tick', (data: Data) => {
+        setServerState(JSON.stringify(data));
       })
 
       channel.emit('chat message', 'a short message sent to the server')
@@ -59,6 +63,30 @@ function App() {
         >
           count is {count}
         </button>
+
+        <button onClick={ () => {
+          const data = {
+            playerId: 0,
+            matchId: 1
+          };
+
+          channel.emit('join', data);
+        }}>join</button>
+
+        <button onClick={ () => {
+          fetch('http://localhost:9208/create', {
+            method: 'POST',
+          });
+        }}>create</button>
+
+        <button onClick={ () => {
+          fetch('http://localhost:9208/listMatches')
+            .then(d => { return d.text() })
+            .then(d => console.log(d));
+        }}>list</button>
+
+        <pre>{serverState}</pre>
+
         <ul>
           {lines}
         </ul>
