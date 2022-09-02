@@ -1,4 +1,6 @@
-import {GameMap, Game, Player, Unit, CommandPacket} from './types';
+import {GameMap, Game, Player, Unit, CommandPacket, Position} from './types';
+
+type Milliseconds = number;
 
 // TODO
 const TEMP_STARTING_UNITS : Unit[] = [
@@ -17,6 +19,24 @@ const TEMP_STARTING_UNITS : Unit[] = [
         position: {x:90, y:90},
     }
 ];
+
+const UNIT_DATA = {
+    'Harvester' : {
+        speed: 10,
+        health: 50,
+        damage: 5,
+    },
+    'Marine' : {
+        speed: 10,
+        health: 50,
+        damage: 10,
+    },
+    'Tank' : {
+        speed: 8,
+        health: 150,
+        damage: 25,
+    },
+}
 
 export function newGame(map: GameMap): Game {
     return {
@@ -46,7 +66,7 @@ export function command(c: CommandPacket, g: Game) {
         u.actionQueue = [c.action];
 }
 
-export function tick(dt: number, g: Game) {
+export function tick(dt: Milliseconds, g: Game) {
     switch (g.state.id) {
     case 'Precount':
         g.state.count -= dt;
@@ -61,7 +81,54 @@ export function tick(dt: number, g: Game) {
             g.state = {id: 'GameEnded'};
         }
         g.tickNumber += 1;
+
+        updateUnits(dt, g);
     }
+}
+
+function updateUnits(dt: Milliseconds, g: Game) {
+    for (const unit of g.board.units) {
+        if (unit.actionQueue.length === 0)
+            continue;
+        const cmd = unit.actionQueue[0];
+        
+        const distancePerTick = UNIT_DATA[unit.kind].speed * (dt / 1000);
+
+        switch (cmd.typ) {
+        case 'Move': {
+            // TODO: moving target
+            // TODO: collisions, pathfinding
+
+            const dst = distance(unit.position, cmd.target as Position);
+            if (dst < distancePerTick) {
+                unit.position = cmd.target as Position;
+                unit.actionQueue.shift();
+            }
+            else {
+                const {x:dx, y:dy} = unitVector(unit.position, cmd.target as Position);
+                unit.position.x += dx * distancePerTick;
+                unit.position.y += dy * distancePerTick;
+            }
+
+            break;
+        }
+        case 'Attack':
+            break;
+        case 'Harvest':
+            break;
+        }
+    }
+}
+
+function distance(a: Position, b: Position) {
+    const x = a.x-b.x;
+    const y = a.y-b.y;
+    return Math.sqrt(x*x+y*y);
+}
+
+function unitVector(a: Position, b: Position) {
+    const angle = Math.atan2(b.y-a.y, b.x-a.x);
+    return {x: Math.cos(angle), y: Math.sin(angle)};
 }
 
 function eliminated(g: Game): Player[] {
