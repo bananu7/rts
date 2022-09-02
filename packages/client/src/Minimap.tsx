@@ -21,9 +21,9 @@ export function Minimap(props: Props) {
         stroke: 'black'
     };
 
-    const contents = props.board.units.map((u, i) => 
+    const contents = props.board.units.map(u => 
         <rect
-            key={i}
+            key={u.id}
             x={u.position.x}
             y={u.position.y}
             width="3"

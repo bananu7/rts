@@ -1,4 +1,6 @@
 
+export type UnitId = number;
+
 export type MatchInfo = {
     matchId: string,
     playerCount: number
@@ -9,10 +11,20 @@ export type IdentificationPacket = {
     matchId: string, 
 }
 
+export type CommandPacket = {
+    action: Action,
+    unitId: UnitId,
+    shift: boolean,
+}
+
 
 // Game
 
-export type Action = 'Move' | 'Attack' | 'Harvest'
+export type ActionType = 'Move' | 'Attack' | 'Harvest'
+export type Action = {
+    typ: ActionType,
+    target: Position | UnitId,
+}
 
 export type Player = number
 
@@ -23,7 +35,8 @@ export type Position = {
 
 export type UnitKind = 'Harvester' | 'Marine' | 'Tank'
 export type Unit = {
-    actionQueue: Action[]
+    id: number,
+    actionQueue: Action[],
     kind: UnitKind,
     owner: Player,
     position: Position,

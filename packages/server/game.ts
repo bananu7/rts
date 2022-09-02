@@ -1,15 +1,17 @@
-import {GameMap, Game, Player, Unit} from './types';
+import {GameMap, Game, Player, Unit, CommandPacket} from './types';
 
 // TODO
 const TEMP_STARTING_UNITS : Unit[] = [
     {
         actionQueue: [],
+        id: 1,
         kind: 'Harvester',
         owner: 0,
         position: {x:10, y:10},
     },
     {
         actionQueue: [],
+        id: 2,
         kind: 'Harvester',
         owner: 0,
         position: {x:90, y:90},
@@ -31,6 +33,17 @@ export function newGame(map: GameMap): Game {
 
 export function startGame(g: Game) {
     g.state = {id: 'Precount', count: 0};
+}
+
+export function command(c: CommandPacket, g: Game) {
+    const u = g.board.units.find(u => c.unitId === u.id);
+    if (!u)
+        return;
+
+    if (c.shift)
+        u.actionQueue.push(c.action);
+    else
+        u.actionQueue = [c.action];
 }
 
 export function tick(dt: number, g: Game) {

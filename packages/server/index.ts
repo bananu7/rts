@@ -3,8 +3,8 @@ import http from 'http'
 import express from 'express'
 import cors from 'cors'
 
-import {newGame, startGame, tick} from './game.js';
-import {Game, MatchInfo, IdentificationPacket} from './types.js';
+import {newGame, startGame, tick, command} from './game.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket} from './types.js';
 
 type Match = {
     game: Game,
@@ -46,67 +46,79 @@ app.post('/create', (req, res) => {
 
     setInterval(() => {
         tick(100, game)
+        // TODO - fog of war
         io.room(matchId).emit('tick', game);
     }, 100);
 })
 
 // channel is a new RTC connection (i.e. one browser)
 io.onConnection(channel => {
-  // first figure out where to join it
-  channel.onDisconnect(() => {
-    console.log(`${channel.id} got disconnected`)
-  })
+    // first figure out where to join it
+    channel.onDisconnect(() => {
+        console.log(`${channel.id} got disconnected`)
+    })
 
-  channel.on('join', (data: Data) => {
-    // TODO properly validate data format
-    const p = data as IdentificationPacket;
-    p.matchId = String(p.matchId);
+    channel.on('join', (data: Data) => {
+        // TODO properly validate data format
+        const p = data as IdentificationPacket;
+        p.matchId = String(p.matchId);
 
-    const m = matches.find(m => m.matchId === p.matchId);
-    if (!m) {
-        console.error("Received a join request to a match that doesn't exist");
-        return;
-    }
+        const m = matches.find(m => m.matchId === p.matchId);
+        if (!m) {
+            console.error("Received a join request to a match that doesn't exist");
+            return;
+        }
 
-    m.players.push(p.playerId);
+        m.players.push(p.playerId);
 
-    channel.join(String(p.matchId));
+        channel.join(String(p.matchId));
 
-    channel.userData = {
-        playerId: p.playerId,
-        matchId: p.matchId
-    };
+        channel.userData = {
+            playerId: p.playerId,
+            matchId: p.matchId
+        };
 
-    console.log(`Channel ${p.playerId} joined the match ${p.matchId}`);
+        console.log(`Channel ${p.playerId} joined the match ${p.matchId}`);
 
-    channel.emit('chat message', "Successfully joined the match")
+        channel.emit('chat message', "Successfully joined the match")
 
-    // check if the game can start
-    // TODO - wait for all players, not just two
-    if (m.players.length === 2) {
-        startGame(m.game);
-        io.room(m.matchId).emit('chat message', "Game starting")
-    }
-  });
+        // check if the game can start
+        // TODO - wait for all players, not just two
+        if (m.players.length === 2) {
+            startGame(m.game);
+            io.room(m.matchId).emit('chat message', "Game starting")
+        }
+    });
 
-  channel.on('command', (data: Data) => {
-      if (!channel.userData.playerId) {
-          console.error("Received a command from an unidentified channel");
-      }
+    channel.on('command', (data: Data) => {
+        try {
+            if (!channel.userData.playerId) {
+                throw "Received a command from an unidentified channel";
+            }
 
-      if (!channel.userData.matchId) {
-          console.error("Received a command from a channel that's not in a match");
-      }
+            if (!channel.userData.matchId) {
+                throw "Received a command from a channel that's not in a match";
+            }
 
-      let m = matches.find(m => m.matchId === channel.userData.matchId)
-      channel.userData.matchId
-  });
+            let m = matches.find(m => m.matchId === channel.userData.matchId)
+            if (!m) {
+                throw "Match associated with this channel doesn't exist";
+            }
 
-  channel.on('chat message', (data: Data) => {
-    console.log(`got ${data} from "chat message"`)
-    // emit the "chat message" data to all channels in the same room
-    io.room(channel.roomId).emit('chat message', data)
-  })
+            // TODO - validate
+            command(data as CommandPacket, m.game);
+        }
+        catch(e) {
+            console.error(e);
+            console.error('userdata:', channel.userData)
+        }
+    });
+
+    channel.on('chat message', (data: Data) => {
+        console.log(`got ${data} from "chat message"`)
+        // emit the "chat message" data to all channels in the same room
+        io.room(channel.roomId).emit('chat message', data)
+    })
 })
 
 server.listen(9208)

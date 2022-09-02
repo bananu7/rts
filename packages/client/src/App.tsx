@@ -6,7 +6,7 @@ import { Minimap } from './Minimap';
 
 import geckos, { Data } from '@geckos.io/client'
 
-import { Game } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket } from 'server/types'
 
 // or add a minified version to your index.html file
 // https://github.com/geckosio/geckos.io/tree/master/bundles
@@ -57,24 +57,38 @@ function App() {
           }}
         >Chat</button>
 
+        <button onClick={
+          () => {
+            const cmd : CommandPacket = {
+              action: {
+                typ: 'Move',
+                target: {x: 100, y: 100}
+              },
+              unitId: 1,
+              shift: false,
+            };
+            channel.emit('command', cmd)
+          }}
+        >command</button>
+
         <MatchList />
 
         <button onClick={ () => {
-          const data = {
-            playerId: 0,
-            matchId: 1
+          const data : IdentificationPacket = {
+            playerId: 1,
+            matchId: '1'
           };
 
           channel.emit('join', data);
-        }}>join</button>
+        }}>Join</button>
 
         <button onClick={ () => {
           fetch('http://localhost:9208/create', {
             method: 'POST',
           });
-        }}>create</button>
+        }}>Create</button>
 
-        <pre>{serverState ? JSON.stringify(serverState.state) : ""}</pre>
+        <span>{serverState ? JSON.stringify(serverState) : ""}</span>
 
         <ul>
           {lines}
