@@ -3,8 +3,8 @@ import http from 'http'
 import express from 'express'
 import cors from 'cors'
 
-import {Game, newGame, startGame, tick} from './game.js';
-import {MatchInfo, IdentificationPacket} from './types.js';
+import {newGame, startGame, tick} from './game.js';
+import {Game, MatchInfo, IdentificationPacket} from './types.js';
 
 type Match = {
     game: Game,
@@ -46,7 +46,7 @@ app.post('/create', (req, res) => {
 
     setInterval(() => {
         tick(100, game)
-        io.room(matchId).emit('tick', game.state);
+        io.room(matchId).emit('tick', game);
     }, 100);
 })
 

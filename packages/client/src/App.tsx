@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 import { MatchList } from './MatchList';
+import { Minimap } from './Minimap';
 
 import geckos, { Data } from '@geckos.io/client'
+
+import { Game } from 'server/types'
 
 // or add a minified version to your index.html file
 // https://github.com/geckosio/geckos.io/tree/master/bundles
@@ -13,7 +16,7 @@ let geckosSetUp = false;
 
 function App() {
   const [msgs, setMsgs] = useState([] as Data[]);
-  const [serverState, setServerState] = useState("");
+  const [serverState, setServerState] = useState<Game | null>(null);
  
   useEffect(() => {
     if (geckosSetUp)
@@ -34,7 +37,7 @@ function App() {
       })
 
       channel.on('tick', (data: Data) => {
-        setServerState(JSON.stringify(data));
+        setServerState(() => data as Game);
       })
 
       channel.emit('chat message', 'a short message sent to the server')
@@ -71,12 +74,16 @@ function App() {
           });
         }}>create</button>
 
-        <pre>{serverState}</pre>
+        <pre>{serverState ? JSON.stringify(serverState.state) : ""}</pre>
 
         <ul>
           {lines}
         </ul>
       </div>
+
+      { serverState &&
+          <Minimap board={serverState.board} />
+      }
     </div>
   )
 }
