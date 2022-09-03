@@ -31,6 +31,12 @@
   background-color: #555;
 }
 
+@media (prefers-color-scheme: light) {
+  .card {
+    background-color: #eee;
+  }
+}
+
 .read-the-docs {
   color: #888;
 }

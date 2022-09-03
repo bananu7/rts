@@ -13,6 +13,7 @@ export function Minimap(props: Props) {
         border: '5px solid black',
         width: '300px',
         height: '300px',
+        backgroundColor: 'white',
     };
 
     const unitStyle = {
@@ -33,8 +34,10 @@ export function Minimap(props: Props) {
     );
 
     return (
-        <svg style={style}>
-            {contents}
-        </svg>
+        <div style={style}>
+            <svg style={{width: '100%', height: '100%'}}>
+                {contents}
+            </svg>
+        </div>
     );
 }
