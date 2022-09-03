@@ -6,13 +6,15 @@ import {
     ReactThreeFiber
 } from '@react-three/fiber'
 
+import * as THREE from 'three';
+
 //import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 //import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
 
 import { Board, Unit } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 
-import * as THREE from 'three';
+import { UnitId, Position } from 'server/types'
 
 type Unit3DProps = {
     unit: Unit,
@@ -54,14 +56,20 @@ export function Unit3D(props: Unit3DProps) {
     );
 }
 
-export function Map3D() {
+export function Map3D(props: { click: (p: Position) => void }) {
     const xSize = 100;
     const ySize = 100;
+
+    const click = e => {
+        // turn the 3D position into the 2D map position
+        props.click({x: e.point.x, y: e.point.z});
+    };
 
     return (
         <group>
             <mesh
                 position={[xSize/2, 0, ySize/2]}
+                onClick={click}
             >
                 <boxGeometry args={[xSize, 1, ySize]} />
                 <meshBasicMaterial
@@ -77,24 +85,18 @@ export function Map3D() {
 
 export interface Props {
     board: Board;
-    select?: (id: number | undefined) => void;
-    selectedPartId?: number | undefined;
+    select: (id: UnitId) => void;
+    selectedUnits: Set<UnitId>;
+    mapClick: (p: Position) => void;
 }
 
 export function Board3D(props: Props) {
-
-    const [selectedId, setSelectedId] = useState(null);
-    const select = (id) => {
-        console.log("selecting", id)
-        setSelectedId(id);
-    }
-
     const units = props.board.units.map(u => 
         (<Unit3D
             key={u.id}
             unit={u}
-            click={select}
-            selected={selectedId === u.id}
+            click={props.select}
+            selected={props.selectedUnits.has(u.id)}
         />));
 
     const groupRef = useRef<THREE.Group>();
@@ -113,7 +115,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D />
+            <Map3D click={props.mapClick} />
             { units }
         </group>
     );

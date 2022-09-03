@@ -9,7 +9,7 @@ import { Board3D } from './gfx/Board3D';
 
 import geckos, { Data } from '@geckos.io/client'
 
-import { Game, CommandPacket, IdentificationPacket } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UnitId, Position } from 'server/types'
 
 let channel = geckos({ port: 9208 });
 let geckosSetUp = false;
@@ -68,6 +68,28 @@ function App() {
     channel.emit('join', data);
   };
 
+  const moveCommand = (target: Position, unitId: UnitId) => {
+    const cmd : CommandPacket = {
+      action: {
+        typ: 'Move',
+        target
+      },
+      unitId: 1,
+      shift: false,
+    };
+    channel.emit('command', cmd)
+  };
+
+  const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
+  const select = (id: UnitId) => {
+    setSelectedUnits(units => units.add(id));
+  };
+  const mapClick = (p: Position) => {
+    selectedUnits.forEach(u => {
+      moveCommand(p, u);
+    });
+  };
+
   return (
     <div className="App">
       <div className="card">
@@ -95,25 +117,18 @@ function App() {
 
       { serverState && 
         <div className="CommandPalette">
-          <button onClick={
-              () => {
-                const cmd : CommandPacket = {
-                  action: {
-                    typ: 'Move',
-                    target: {x: 100, y: 100}
-                  },
-                  unitId: 1,
-                  shift: false,
-                };
-                channel.emit('command', cmd)
-              }}
-            >command</button>
+          <button onClick={() => moveCommand({x:50, y:50}, 1)}>command</button>
         </div>
       }
 
       { serverState &&
         <View3D>
-          <Board3D board={serverState.board} />
+          <Board3D
+            board={serverState.board}
+            selectedUnits={selectedUnits}
+            select={select}
+            mapClick={mapClick}
+          />
         </View3D>
       }
 
