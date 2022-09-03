@@ -30,7 +30,10 @@ export function Unit3D(props: Unit3DProps) {
         e.stopPropagation();
         if (props.click)
             props.click(props.unit.id);
-    } 
+    }
+
+    // TODO better color choices
+    const color = props.unit.owner === 1 ? 0x1111ee : 0xee1111;
 
     return (
         <group 
@@ -42,7 +45,7 @@ export function Unit3D(props: Unit3DProps) {
             >
                 <boxGeometry args={[10, 10, 10]} />
                 <meshBasicMaterial
-                    color={0x0000ff}
+                    color={color}
                     opacity={1.0}
                     transparent={false}
                 />
@@ -74,7 +77,7 @@ export function Map3D(props: { click: (p: Position, button: number) => void }) {
             >
                 <boxGeometry args={[xSize, 1, ySize]} />
                 <meshBasicMaterial
-                    color={0xcc1111}
+                    color={0x11cc11}
                     opacity={1.0}
                     transparent={false}
                 />
@@ -107,13 +110,10 @@ export function Board3D(props: Props) {
     const groupRef = useRef<THREE.Group>();
 
     const mapClick = (p: Position, button: number) => {
-        console.log(button)
         if (button === 2) {
-            console.log('triggering mapClick')
             props.mapClick(p);
         }
         else if (button === 0) {
-            console.log('triggering deselect')
             props.select(new Set());
         }
     };

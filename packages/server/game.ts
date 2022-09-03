@@ -8,14 +8,14 @@ const TEMP_STARTING_UNITS : Unit[] = [
         actionQueue: [],
         id: 1,
         kind: 'Harvester',
-        owner: 0,
+        owner: 1,
         position: {x:10, y:10},
     },
     {
         actionQueue: [],
         id: 2,
         kind: 'Harvester',
-        owner: 0,
+        owner: 2,
         position: {x:90, y:90},
     }
 ];

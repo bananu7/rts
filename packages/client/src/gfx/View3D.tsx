@@ -14,7 +14,7 @@ function CameraControls() {
     useEffect (() => {
         const c = new MapControls( camera, domElement );
 
-        c.minDistance = 50;
+        c.minDistance = 200;
         c.maxDistance = 300;
 
         c.minAzimuthAngle = -horiz;

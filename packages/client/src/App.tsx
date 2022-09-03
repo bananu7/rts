@@ -83,7 +83,6 @@ function App() {
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
   const mapClick = (p: Position) => {
     selectedUnits.forEach(u => {
-      console.log("moveCommand", p, u)
       moveCommand(p, u);
     });
   };

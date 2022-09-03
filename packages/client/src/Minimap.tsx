@@ -13,7 +13,7 @@ export function Minimap(props: Props) {
         border: '5px solid black',
         width: '300px',
         height: '300px',
-        backgroundColor: 'white',
+        backgroundColor: '#11cc11',
     };
 
     const unitStyle = {
@@ -22,16 +22,17 @@ export function Minimap(props: Props) {
         stroke: 'black'
     };
 
-    const contents = props.board.units.map(u => 
-        <rect
+    const contents = props.board.units.map(u => {
+        const color = u.owner === 1 ? '#1111ee' : '#ee1111';
+        return (<rect
             key={u.id}
             x={u.position.x}
             y={u.position.y}
             width="10"
             height="10"
-            style={unitStyle}
-        />
-    );
+            style={{...unitStyle, fill: color}}
+        />);
+    });
 
     return (
         <div style={style}>
