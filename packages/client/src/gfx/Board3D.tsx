@@ -32,7 +32,7 @@ export function Unit3D(props: Unit3DProps) {
 
     return (
         <group 
-            position={[props.unit.position.x, 0, props.unit.position.y]}
+            position={[props.unit.position.x, 10, props.unit.position.y]}
             name={`Unit_${props.unit.id}`}
         >
             <mesh
@@ -82,12 +82,19 @@ export interface Props {
 }
 
 export function Board3D(props: Props) {
+
+    const [selectedId, setSelectedId] = useState(null);
+    const select = (id) => {
+        console.log("selecting", id)
+        setSelectedId(id);
+    }
+
     const units = props.board.units.map(u => 
         (<Unit3D
             key={u.id}
             unit={u}
-            click={props.select}
-            selected={props.selectedPartId === u.id}
+            click={select}
+            selected={selectedId === u.id}
         />));
 
     const groupRef = useRef<THREE.Group>();
