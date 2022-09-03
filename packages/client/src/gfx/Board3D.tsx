@@ -54,6 +54,27 @@ export function Unit3D(props: Unit3DProps) {
     );
 }
 
+export function Map3D() {
+    const xSize = 100;
+    const ySize = 100;
+
+    return (
+        <group>
+            <mesh
+                position={[xSize/2, 0, ySize/2]}
+            >
+                <boxGeometry args={[xSize, 1, ySize]} />
+                <meshBasicMaterial
+                    color={0xcc1111}
+                    opacity={1.0}
+                    transparent={false}
+                />
+
+            </mesh>
+        </group>
+    );
+}
+
 export interface Props {
     board: Board;
     select?: (id: number | undefined) => void;
@@ -85,6 +106,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
+            <Map3D />
             { units }
         </group>
     );
