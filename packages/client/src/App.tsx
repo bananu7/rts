@@ -4,6 +4,9 @@ import './App.css'
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
 
+import { View3D } from './gfx/View3D';
+import { Board3D } from './gfx/Board3D';
+
 import geckos, { Data } from '@geckos.io/client'
 
 import { Game, CommandPacket, IdentificationPacket } from 'server/types'
@@ -67,28 +70,12 @@ function App() {
 
   return (
     <div className="App">
-      <h1>RTS</h1>
       <div className="card">
-
         <button onClick={
           () => {
             channel.emit('chat message', 'a short message sent to the server')
           }}
         >Chat</button>
-
-        <button onClick={
-          () => {
-            const cmd : CommandPacket = {
-              action: {
-                typ: 'Move',
-                target: {x: 100, y: 100}
-              },
-              unitId: 1,
-              shift: false,
-            };
-            channel.emit('command', cmd)
-          }}
-        >command</button>
 
         <MatchList joinMatch={joinMatch} />
 
@@ -105,6 +92,30 @@ function App() {
           {lines}
         </ul>
       </div>
+
+      { serverState && 
+        <div className="CommandPalette">
+          <button onClick={
+              () => {
+                const cmd : CommandPacket = {
+                  action: {
+                    typ: 'Move',
+                    target: {x: 100, y: 100}
+                  },
+                  unitId: 1,
+                  shift: false,
+                };
+                channel.emit('command', cmd)
+              }}
+            >command</button>
+        </div>
+      }
+
+      { serverState &&
+        <View3D>
+          <Board3D board={serverState.board} />
+        </View3D>
+      }
 
       { serverState &&
           <Minimap board={serverState.board} />

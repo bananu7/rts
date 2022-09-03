@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@geckos.io/client": "^2.2.3",
+    "@types/three": "^0.144.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-three-fiber": "^6.0.13",
+    "three": "^0.144.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.17",
