@@ -1,6 +1,6 @@
 #root {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   margin: 0 auto;
   padding: 0;
 }
@@ -31,12 +31,25 @@
   background-color: #555;
 }
 
-@media (prefers-color-scheme: light) {
-  .card {
-    background-color: #eee;
-  }
-}
 
 .read-the-docs {
   color: #888;
+}
+
+.CommandPalette {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  height: 200px;
+  z-index: 2;
+  padding: 10px;
+  display: flex;
+  background-color: #555;
+}
+
+@media (prefers-color-scheme: light) {
+  .card, .CommandPalette {
+    background-color: #eee;
+  }
 }
