@@ -1,8 +1,9 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useEffect, useLayoutEffect, useState } from 'react'
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 import * as THREE from 'three';
+
+import { MapControls } from './MapControls'
 
 function CameraControls() {
     const { camera, gl: { domElement } } = useThree();
@@ -11,21 +12,15 @@ function CameraControls() {
     const horiz = Math.PI * 1.0;
 
     useEffect (() => {
-        const c = new OrbitControls( camera, domElement );
+        const c = new MapControls( camera, domElement );
 
-        c.minDistance = 10;
-        c.maxDistance = 50;
-
-        c.minPolarAngle = (Math.PI / 2) - vert;
-        c.maxPolarAngle = (Math.PI / 2) + vert;
+        c.minDistance = 50;
+        c.maxDistance = 300;
 
         c.minAzimuthAngle = -horiz;
         c.maxAzimuthAngle = horiz;
 
-        c.enablePan = true;
-        c.enableRotate = true;
-
-        c.target = new THREE.Vector3(90,0,90);
+        c.enableRotate = false;
 
         return () => {
             c.dispose();
@@ -58,7 +53,7 @@ export function View3D(props: Props) {
         <Suspense fallback={null}>
             <div style={style} >
                 <Canvas
-                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position:[100,100,100] }}
+                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position: [100, 200, 100] }}
                     gl={{
                         physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,
