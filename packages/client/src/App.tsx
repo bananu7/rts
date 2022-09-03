@@ -74,18 +74,16 @@ function App() {
         typ: 'Move',
         target
       },
-      unitId: 1,
+      unitId: unitId,
       shift: false,
     };
     channel.emit('command', cmd)
   };
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
-  const select = (id: UnitId) => {
-    setSelectedUnits(units => units.add(id));
-  };
   const mapClick = (p: Position) => {
     selectedUnits.forEach(u => {
+      console.log("moveCommand", p, u)
       moveCommand(p, u);
     });
   };
@@ -126,7 +124,7 @@ function App() {
           <Board3D
             board={serverState.board}
             selectedUnits={selectedUnits}
-            select={select}
+            select={setSelectedUnits}
             mapClick={mapClick}
           />
         </View3D>

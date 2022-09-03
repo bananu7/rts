@@ -19,7 +19,7 @@ import { UnitId, Position } from 'server/types'
 type Unit3DProps = {
     unit: Unit,
     selected: boolean,
-    click?: (id: number) => void,
+    click?: (id: UnitId) => void,
 }
 
 export function Unit3D(props: Unit3DProps) {
@@ -56,13 +56,13 @@ export function Unit3D(props: Unit3DProps) {
     );
 }
 
-export function Map3D(props: { click: (p: Position) => void }) {
+export function Map3D(props: { click: (p: Position, button: number) => void }) {
     const xSize = 100;
     const ySize = 100;
 
     const click = e => {
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z});
+        props.click({x: e.point.x, y: e.point.z}, e.button);
     };
 
     return (
@@ -70,6 +70,7 @@ export function Map3D(props: { click: (p: Position) => void }) {
             <mesh
                 position={[xSize/2, 0, ySize/2]}
                 onClick={click}
+                onContextMenu={click}
             >
                 <boxGeometry args={[xSize, 1, ySize]} />
                 <meshBasicMaterial
@@ -85,21 +86,37 @@ export function Map3D(props: { click: (p: Position) => void }) {
 
 export interface Props {
     board: Board;
-    select: (id: UnitId) => void;
+    select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     mapClick: (p: Position) => void;
 }
 
 export function Board3D(props: Props) {
+    const addSelectOne = (u: UnitId) => {
+        props.select(props.selectedUnits.add(u));
+    }
+
     const units = props.board.units.map(u => 
         (<Unit3D
             key={u.id}
             unit={u}
-            click={props.select}
+            click={addSelectOne}
             selected={props.selectedUnits.has(u.id)}
         />));
 
     const groupRef = useRef<THREE.Group>();
+
+    const mapClick = (p: Position, button: number) => {
+        console.log(button)
+        if (button === 2) {
+            console.log('triggering mapClick')
+            props.mapClick(p);
+        }
+        else if (button === 0) {
+            console.log('triggering deselect')
+            props.select(new Set());
+        }
+    };
 
     useEffect(() => {
         if (!groupRef.current)
@@ -115,7 +132,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D click={props.mapClick} />
+            <Map3D click={mapClick} />
             { units }
         </group>
     );

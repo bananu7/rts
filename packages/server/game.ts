@@ -60,6 +60,8 @@ export function command(c: CommandPacket, g: Game) {
     if (!u)
         return;
 
+    console.log(`Adding action ${c.action} => ${c.unitId} for unit ${u.id}`)
+
     if (c.shift)
         u.actionQueue.push(c.action);
     else

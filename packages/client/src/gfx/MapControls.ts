@@ -5,6 +5,7 @@ export class MapControls extends OrbitControls {
     constructor(camera : THREE.Camera, domElement?: HTMLElement) {
         super(camera, domElement);
 
+        this.mouseButtons.RIGHT = undefined;
         this.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
 
         this.touches.ONE = THREE.TOUCH.PAN;
