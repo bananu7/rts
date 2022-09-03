@@ -24,12 +24,13 @@ export function Minimap(props: Props) {
 
     const contents = props.board.units.map(u => {
         const color = u.owner === 1 ? '#1111ee' : '#ee1111';
+        const size = u.kind === 'Base' ? '20' : '10';
         return (<rect
             key={u.id}
             x={u.position.x}
             y={u.position.y}
-            width="10"
-            height="10"
+            width={size}
+            height={size}
             style={{...unitStyle, fill: color}}
         />);
     });

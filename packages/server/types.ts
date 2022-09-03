@@ -33,19 +33,13 @@ export type Position = {
     y: number,
 }
 
-export type UnitKind = 'Harvester' | 'Marine' | 'Tank'
+export type UnitKind = 'Harvester' | 'Marine' | 'Tank' | 'Base' | 'Barracks'
 export type Unit = {
     id: number,
     actionQueue: Action[],
     kind: UnitKind,
     owner: Player,
     position: Position,
-}
-
-export type BuildingKind = 'Base' | 'Barracks'
-export type Building = {
-    kind: BuildingKind,
-    owner: Player,
 }
 
 export type Game = {
@@ -64,7 +58,6 @@ export type GameMap = {
 export type Board = {
     map: GameMap,
     units: Unit[],
-    buildings: Building[],
 }
 
 export type GameState = {

@@ -1,4 +1,4 @@
-import {GameMap, Game, Player, Unit, CommandPacket, Position} from './types';
+import {GameMap, Game, Player, Unit, UnitKind, CommandPacket, Position} from './types';
 
 type Milliseconds = number;
 
@@ -9,15 +9,29 @@ const TEMP_STARTING_UNITS : Unit[] = [
         id: 1,
         kind: 'Harvester',
         owner: 1,
-        position: {x:10, y:10},
+        position: {x:30, y:30},
     },
     {
         actionQueue: [],
         id: 2,
         kind: 'Harvester',
         owner: 2,
-        position: {x:90, y:90},
-    }
+        position: {x:150, y:150},
+    },
+    {
+        actionQueue: [],
+        id: 3,
+        kind: 'Base',
+        owner: 1,
+        position: {x:10, y:10},
+    },
+    {
+        actionQueue: [],
+        id: 4,
+        kind: 'Base',
+        owner: 2,
+        position: {x:190, y:190},
+    },
 ];
 
 const UNIT_DATA = {
@@ -36,6 +50,12 @@ const UNIT_DATA = {
         health: 150,
         damage: 25,
     },
+    'Base' : {
+        speed: 0,
+    },
+    'Barracks' : {
+        speed: 0,
+    }
 }
 
 export function newGame(map: GameMap): Game {
@@ -46,7 +66,6 @@ export function newGame(map: GameMap): Game {
         board: {
             map: map,
             units: TEMP_STARTING_UNITS,
-            buildings: [],
         }
     }
 }
@@ -134,7 +153,8 @@ function unitVector(a: Position, b: Position) {
 }
 
 function eliminated(g: Game): Player[] {
-    const buildingsByPlayer = (p: Player) => g.board.buildings.filter(b => b.owner === p);
+    const isBuildingKind = (k: UnitKind) => k === 'Base' || k === 'Barracks';
+    const buildingsByPlayer = (p: Player) => g.board.units.filter(u => u.owner === p && isBuildingKind(u.kind));
 
     const buildingCounts = g.players.map(p => [p, buildingsByPlayer(p).length]);
 

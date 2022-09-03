@@ -3,7 +3,8 @@ import { useEffect, useState, useRef, Suspense, useLayoutEffect, useMemo } from 
 import {
     useLoader, Canvas, useFrame,
     useThree,
-    ReactThreeFiber
+    ReactThreeFiber,
+    ThreeEvent
 } from '@react-three/fiber'
 
 import * as THREE from 'three';
@@ -19,21 +20,27 @@ import { UnitId, Position } from 'server/types'
 type Unit3DProps = {
     unit: Unit,
     selected: boolean,
-    click?: (id: UnitId) => void,
+    click?: (id: UnitId, button: number) => void,
 }
 
 export function Unit3D(props: Unit3DProps) {
     //const [catalog] = useState(() => require('../../assets/catalog.json'));
     //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
 
-    const onClick = (e:any) => {
+    const onClick = (e: ThreeEvent<MouseEvent>) => {
+        console.log('unit click', props.unit.id)
         e.stopPropagation();
+
         if (props.click)
-            props.click(props.unit.id);
+            props.click(props.unit.id, e.button);
     }
 
     // TODO better color choices
     const color = props.unit.owner === 1 ? 0x1111ee : 0xee1111;
+
+    // TODO proper unit catalog
+    const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
+    const unitSize = isBuilding ? 40 : 10;
 
     return (
         <group 
@@ -42,28 +49,26 @@ export function Unit3D(props: Unit3DProps) {
         >
             <mesh
                 onClick={ onClick }
+                onContextMenu={ onClick }
             >
-                <boxGeometry args={[10, 10, 10]} />
+                <boxGeometry args={[unitSize, 10, unitSize]} />
                 <meshBasicMaterial
                     color={color}
                     opacity={1.0}
                     transparent={false}
                 />
-
             </mesh>
-            {/*<primitive
-                onClick={ onClick }
-            />*/}
-            { props.selected && <SelectionCircle size={10} /> }
+            { props.selected && <SelectionCircle size={unitSize} /> }
         </group>
     );
 }
 
 export function Map3D(props: { click: (p: Position, button: number) => void }) {
-    const xSize = 100;
-    const ySize = 100;
+    const xSize = 500;
+    const ySize = 500;
 
-    const click = e => {
+    const click = (e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
         // turn the 3D position into the 2D map position
         props.click({x: e.point.x, y: e.point.z}, e.button);
     };
@@ -81,7 +86,6 @@ export function Map3D(props: { click: (p: Position, button: number) => void }) {
                     opacity={1.0}
                     transparent={false}
                 />
-
             </mesh>
         </group>
     );
@@ -95,8 +99,9 @@ export interface Props {
 }
 
 export function Board3D(props: Props) {
-    const addSelectOne = (u: UnitId) => {
-        props.select(props.selectedUnits.add(u));
+    const addSelectOne = (u: UnitId, b: number) => {
+        if (b === 0)
+            props.select(props.selectedUnits.add(u));
     }
 
     const units = props.board.units.map(u => 

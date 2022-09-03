@@ -114,7 +114,7 @@ function App() {
 
       { serverState && 
         <div className="CommandPalette">
-          <button onClick={() => moveCommand({x:50, y:50}, 1)}>command</button>
+          <button onClick={() => moveCommand({x:50, y:50}, 1)}>Move</button>
         </div>
       }
 
