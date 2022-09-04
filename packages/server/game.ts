@@ -9,7 +9,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         id: 1,
         kind: 'Harvester',
         owner: 1,
-        position: {x:30, y:30},
+        position: {x:50, y:50},
     },
     {
         actionQueue: [],
@@ -23,7 +23,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         id: 3,
         kind: 'Base',
         owner: 1,
-        position: {x:10, y:10},
+        position: {x:30, y:30},
     },
     {
         actionQueue: [],

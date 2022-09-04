@@ -85,16 +85,16 @@ io.onConnection(channel => {
         channel.emit('chat message', `Successfully joined the match ${packet.matchId}!`);
 
         // check if the game can start
-        // TODO - wait for all players, not just two
-        if (m.players.length === 2) {
+        // TODO - wait for all players, not just one
+        if (m.players.length >= 1) {
             startGame(m.game);
             io.room(m.matchId).emit('chat message', "Game starting")
         }
     });
 
     channel.on('rejoin', (data: Data) => {
+        const packet = data as IdentificationPacket;
         try {
-            const packet = data as IdentificationPacket;
             packet.matchId = String(packet.matchId);
 
             const m = matches.find(m => m.matchId === packet.matchId);
@@ -115,6 +115,7 @@ io.onConnection(channel => {
             console.log(`Channel of player ${packet.playerId} rejoined the match ${packet.matchId}`);
         }
         catch (e) {
+            channel.emit('join failure', packet.matchId, {reliable: true});
             console.error(e);
         }
     });

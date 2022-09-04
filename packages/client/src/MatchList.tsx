@@ -8,10 +8,17 @@ type Props = {
 export function MatchList(props: Props) {
     const [matches, setMatches] = useState([] as MatchInfo[]);
 
-    useEffect(() => {
+    const refresh = () => {
         fetch('http://localhost:9208/listMatches')
             .then(d => { return d.json() })
             .then(d => setMatches(d));
+    };
+
+    useEffect(() => {
+        refresh();
+        // TODO - only do when open?
+        // TODO - move match create button here
+        setInterval(refresh, 1000);
     }, []);
 
     const matchRows = matches.map(m => 

@@ -54,6 +54,11 @@ function App() {
         console.log("server confirmed match join");
         localStorage.setItem('matchId', String(data));
       });
+
+      channel.on('join failure', (data: Data) => {
+        console.log("server refused join or rejoin, clearing match association");
+        localStorage.removeItem('matchId');
+      });
     })
   }, []);
 
