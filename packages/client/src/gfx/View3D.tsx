@@ -1,5 +1,5 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
-import { Suspense, useRef, useEffect, useLayoutEffect, useState } from 'react'
+import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties } from 'react'
 
 import * as THREE from 'three';
 
@@ -40,7 +40,7 @@ export interface Props {
 
 export function View3D(props: Props) {
     const enablePan = props.enablePan ?? false;
-    const style = {
+    const style : CSSProperties = {
         width: '100%',
         height: '100%',
         position: 'absolute',

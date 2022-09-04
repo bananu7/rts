@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, CSSProperties } from 'react'
 import { Board } from 'server/types'
 
 type Props = {
@@ -6,7 +6,7 @@ type Props = {
 }
 
 export function Minimap(props: Props) {
-    const style = {
+    const style : CSSProperties = {
         position: 'absolute',
         left: 0,
         bottom: 0,
