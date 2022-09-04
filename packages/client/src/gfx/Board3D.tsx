@@ -12,10 +12,8 @@ import * as THREE from 'three';
 //import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 //import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
 
-import { Board, Unit } from 'server/types'
+import { Board, Unit, GameMap, UnitId, Position } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
-
-import { UnitId, Position } from 'server/types'
 
 type Unit3DProps = {
     unit: Unit,
@@ -63,30 +61,50 @@ export function Unit3D(props: Unit3DProps) {
     );
 }
 
-export function Map3D(props: { click: (p: Position, button: number) => void }) {
-    const xSize = 500;
-    const ySize = 500;
+type Click = (p: Position, button: number) => void;
+type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 
-    const click = (e: ThreeEvent<MouseEvent>) => {
+function Tile (props : {x: number, y: number, color: number, click: RawClick}) {
+    const xSize = 10;
+    const ySize = 10;
+
+    return (
+        <mesh
+            position={[xSize/2 + props.x * xSize, 0, ySize/2 + props.y * ySize]}
+            onClick={props.click}
+            onContextMenu={props.click}
+         >
+            <boxGeometry args={[xSize, 1, ySize]} />
+            <meshBasicMaterial
+                color={props.color}
+                opacity={1.0}
+                transparent={false}
+            />
+        </mesh>
+    );
+}
+
+export function Map3D(props: { map: GameMap, click: Click } ) {
+    const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
         props.click({x: e.point.x, y: e.point.z}, e.button);
     };
 
+    let tiles = [];
+    for (let y = 0; y < 20; y++){
+        for (let x = 0; x < 20; x++) {
+            const ix = x*props.map.w+y;
+            const color = props.map.tiles[ix] === 0 ? 0x11ee11 : 0x111111;
+            tiles.push(
+                <Tile key={ix} x={x} y={y} color={color} click={rawClick} />
+            )
+        }
+    }
+
     return (
-        <group>
-            <mesh
-                position={[xSize/2, 0, ySize/2]}
-                onClick={click}
-                onContextMenu={click}
-            >
-                <boxGeometry args={[xSize, 1, ySize]} />
-                <meshBasicMaterial
-                    color={0x11cc11}
-                    opacity={1.0}
-                    transparent={false}
-                />
-            </mesh>
+        <group name="Game Map">
+            {tiles}
         </group>
     );
 }
@@ -137,7 +155,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D click={mapClick} />
+            <Map3D map={props.board.map} click={mapClick} />
             { units }
         </group>
     );
