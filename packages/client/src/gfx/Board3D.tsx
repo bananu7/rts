@@ -64,26 +64,6 @@ export function Unit3D(props: Unit3DProps) {
 type Click = (p: Position, button: number) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 
-function Tile (props : {x: number, y: number, color: number, click: RawClick}) {
-    const xSize = 10;
-    const ySize = 10;
-
-    return (
-        <mesh
-            position={[xSize/2 + props.x * xSize, 0, ySize/2 + props.y * ySize]}
-            onClick={props.click}
-            onContextMenu={props.click}
-         >
-            <boxGeometry args={[xSize, 1, ySize]} />
-            <meshBasicMaterial
-                color={props.color}
-                opacity={1.0}
-                transparent={false}
-            />
-        </mesh>
-    );
-}
-
 export function Map3D(props: { map: GameMap, click: Click } ) {
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
@@ -91,20 +71,54 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
         props.click({x: e.point.x, y: e.point.z}, e.button);
     };
 
-    let tiles = [];
-    for (let y = 0; y < 20; y++){
-        for (let x = 0; x < 20; x++) {
-            const ix = x*props.map.w+y;
-            const color = props.map.tiles[ix] === 0 ? 0x11ee11 : 0x111111;
-            tiles.push(
-                <Tile key={ix} x={x} y={y} color={color} click={rawClick} />
-            )
+    const w = props.map.w;
+    const h = props.map.h;
+
+    const xSize = 3;
+    const ySize = 3;
+
+    const ref = useRef<THREE.InstancedMesh>()
+    useLayoutEffect(() => {
+        if (!ref.current)
+            return;
+
+        const mat4Pos = new THREE.Matrix4();
+        const vec3Color = new THREE.Color();
+
+        for (let y = 0; y < w; y++){
+            for (let x = 0; x < h; x++) {
+                const ix = x*props.map.w+y;
+                const color = props.map.tiles[ix] === 0 ? 0x11cc11 : 0x111111;
+                
+                mat4Pos.makeTranslation((x + 0.5) * xSize, 0, (y + 0.5) * ySize);
+                vec3Color.set(color);
+
+                ref.current.setMatrixAt(ix, mat4Pos);
+                ref.current.setColorAt(ix, vec3Color);
+            }
         }
-    }
+        ref.current.instanceMatrix.needsUpdate = true
+        ref.current.instanceColor.needsUpdate = true
+
+        console.log(ref.current)
+    }, [props.map])
 
     return (
         <group name="Game Map">
-            {tiles}
+            <mesh 
+                name="Click Mesh"
+                onClick={rawClick}
+                onContextMenu={rawClick}
+                position={[xSize*0.5*w, 0, ySize*0.5*h]}
+            >
+                <boxGeometry args={[xSize*w, 2, ySize*h]} />
+            </mesh>
+
+            <instancedMesh ref={ref} args={[undefined, undefined, w*h]}>
+                {/*<planeGeometry args={[xSize, ySize]} />*/}
+                <boxGeometry args={[xSize, 10, ySize]} />
+                <meshBasicMaterial />
+            </instancedMesh>
         </group>
     );
 }

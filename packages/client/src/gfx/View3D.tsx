@@ -15,7 +15,7 @@ function CameraControls() {
         const c = new MapControls( camera, domElement );
 
         c.minDistance = 200;
-        c.maxDistance = 500;
+        c.maxDistance = 1000;
 
         c.minAzimuthAngle = -horiz;
         c.maxAzimuthAngle = horiz;
