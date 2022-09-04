@@ -17,7 +17,7 @@ export function SelectionCircle(props: { size: number }) {
     return (
         <mesh
             name="SelectionRing"
-            position={[0, 1, 0]}
+            position={[0, 0, 0]}
         >
             <ringGeometry
                 ref={ref}

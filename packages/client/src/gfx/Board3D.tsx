@@ -38,18 +38,18 @@ export function Unit3D(props: Unit3DProps) {
 
     // TODO proper unit catalog
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
-    const unitSize = isBuilding ? 40 : 10;
+    const unitSize = isBuilding ? 5 : 1;
 
     return (
         <group 
-            position={[props.unit.position.x, 10, props.unit.position.y]}
+            position={[props.unit.position.x, 1, props.unit.position.y]}
             name={`Unit_${props.unit.id}`}
         >
             <mesh
                 onClick={ onClick }
                 onContextMenu={ onClick }
             >
-                <boxGeometry args={[unitSize, 10, unitSize]} />
+                <boxGeometry args={[unitSize, 2, unitSize]} />
                 <meshBasicMaterial
                     color={color}
                     opacity={1.0}
@@ -74,8 +74,8 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
     const w = props.map.w;
     const h = props.map.h;
 
-    const xSize = 3;
-    const ySize = 3;
+    const xSize = 1;
+    const ySize = 1;
 
     const ref = useRef<THREE.InstancedMesh>()
     useLayoutEffect(() => {
@@ -87,7 +87,7 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
 
         for (let y = 0; y < w; y++){
             for (let x = 0; x < h; x++) {
-                const ix = x*props.map.w+y;
+                const ix = y*props.map.w+x;
                 const color = props.map.tiles[ix] === 0 ? 0x11cc11 : 0x111111;
                 
                 mat4Pos.makeTranslation((x + 0.5) * xSize, 0, (y + 0.5) * ySize);
@@ -111,12 +111,13 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
                 onContextMenu={rawClick}
                 position={[xSize*0.5*w, 0, ySize*0.5*h]}
             >
-                <boxGeometry args={[xSize*w, 2, ySize*h]} />
+                <boxGeometry args={[xSize*w, 1, ySize*h]} />
+                <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
             <instancedMesh ref={ref} args={[undefined, undefined, w*h]}>
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
-                <boxGeometry args={[xSize, 10, ySize]} />
+                <boxGeometry args={[xSize, 1, ySize]} />
                 <meshBasicMaterial />
             </instancedMesh>
         </group>

@@ -56,7 +56,11 @@ export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
         if (explodedB === current)
             break;
 
-        const options = getSurroundingPos(unexplode(current)).map(explode);
+        const options = 
+            getSurroundingPos(unexplode(current))
+            .map(explode)
+            .filter(e => m.tiles[e] === 0);
+
         for (let next of options) {
             const newCost = costSoFar.get(current) + 1 // cost of moving one tile
 
@@ -69,6 +73,9 @@ export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
             }
         }
     }
+
+    if (q.isEmpty())
+        throw "Failed to find path";
 
     // Reconstruct the path from the chained map
     const path = [] as TilePos[];
