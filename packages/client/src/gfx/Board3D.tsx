@@ -89,13 +89,35 @@ export function Unit3D(props: Unit3DProps) {
 
 type Click = (p: Position, button: number) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
+type Box = { x1: number, y1: number, x2: number, y2: number };
 
-export function Map3D(props: { map: GameMap, click: Click } ) {
+type Map3DProps = {
+    map: GameMap,
+    click: Click,
+    selectInBox: (box: Box) => void;
+}
+
+export function Map3D(props: Map3DProps) {
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
         props.click({x: e.point.x, y: e.point.z}, e.button);
     };
+
+    // selection box
+    const [drag, setDrag] = useState<{x:number, y:number}|undefined>(undefined);
+    const pointerDown = e => {
+        setDrag({x: e.point.x, y: e.point.z});
+    };
+    const pointerUp = e => {
+        if (e.button !== 0)
+            return;
+        if (drag) {
+            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
+        }
+        setDrag(undefined);
+    };
+
 
     const w = props.map.w;
     const h = props.map.h;
@@ -125,16 +147,15 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
         }
         ref.current.instanceMatrix.needsUpdate = true
         ref.current.instanceColor.needsUpdate = true
-
-        console.log(ref.current)
     }, [props.map])
 
     return (
         <group name="Game Map">
             <mesh 
                 name="Click Mesh"
-                onClick={rawClick}
                 onContextMenu={rawClick}
+                onPointerDown={pointerDown}
+                onPointerUp={pointerUp}
                 position={[xSize*0.5*w, 0, ySize*0.5*h]}
             >
                 <boxGeometry args={[xSize*w, 1, ySize*h]} />
@@ -160,8 +181,10 @@ export interface Props {
 
 export function Board3D(props: Props) {
     const addSelectOne = (u: UnitId, b: number) => {
-        if (b === 0)
+        // TODO wtf it's a button handler
+        if (b === 0) {
             props.select(props.selectedUnits.add(u));
+        }
     }
 
     const units = props.unitStates.map(u => 
@@ -183,6 +206,18 @@ export function Board3D(props: Props) {
         }
     };
 
+    const selectInBox = (box: Box) => {
+        function isInBox(p: Position, b: Box) {
+            return p.x >= b.x1 && p.x <= b.x2 && p.y >= b.y1 && p.y <= b.y2;
+        }
+
+        const selection = props.unitStates
+            .filter(u => isInBox(u.position, box))
+            .map(u => u.id);
+
+        props.select(new Set(selection));
+    };
+
     useEffect(() => {
         if (!groupRef.current)
             return;
@@ -197,7 +232,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D map={props.board.map} click={mapClick} />
+            <Map3D map={props.board.map} click={mapClick} selectInBox={selectInBox} />
             { units }
         </group>
     );
