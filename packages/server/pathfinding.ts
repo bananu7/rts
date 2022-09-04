@@ -25,48 +25,62 @@ function getSurroundingPos(p: TilePos): TilePos[] {
     ]
 }
 
-function equals(a: TilePos, b: TilePos) {
-    return a.x === b.x && a.y === b.y;
+class HashMap<K,V> {
+    map: Map<number, V>;
+    hash: (key: K) => number;
+
+    constructor(f: (key: K) => number) {
+        this.map = new Map();
+        this.hash = f;
+    }
+
+    get(key: K): V {
+        return this.map.get(this.hash(key));
+    }
+
+    set(key: K, value: V) {
+        return this.map.set(this.hash(key), value);
+    }
 }
 
 // A*
 export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
-    type ExplodedTilePos = number; // js cannot use composite values as keys
-    const explode = (p: TilePos) => p.x+p.y*m.w; // what an absolute garbage
-    const unexplode = (e: number) => { return {x: e % m.w, y: Math.floor(e / m.w) }}
+    // explode converts to linear index for the purposes of map storage
+    // 1-dimensional indexing and comparisons.
+    const explode = (p: TilePos) => p.x+p.y*m.w; 
 
-    const comp = ([a, av]: [ExplodedTilePos, number], [b,bv]: [ExplodedTilePos, number]) => av < bv;
+    const comp = ([a, av]: [TilePos, number], [b,bv]: [TilePos, number]) => av < bv;
     const q = new FastPriorityQueue(comp);
 
     const heuristic = octileDistance;
 
-    q.add([explode(start), 0]);
+    q.add([start, 0]);
 
-    const cameFrom = new Map<ExplodedTilePos, ExplodedTilePos>();
-    const costSoFar = new Map<ExplodedTilePos, number>();
+    const cameFrom = new HashMap<TilePos, TilePos>(explode);
+    const costSoFar = new HashMap<TilePos, number>(explode);
 
-    cameFrom.set(explode(start), null);
-    costSoFar.set(explode(start), 0);
+    cameFrom.set(start, null);
+    costSoFar.set(start, 0);
 
     const explodedB = explode(b);
 
     while (!q.isEmpty()) {
         const [current, v] = q.poll();
 
-        if (explodedB === current)
+        if (explodedB === explode(current))
             break;
 
         const options = 
-            getSurroundingPos(unexplode(current))
-            .map(explode)
-            .filter(e => m.tiles[e] === 0);
+            getSurroundingPos(current)
+            .filter(e => e.x > 0 && e.y > 0 && e.x < m.w && e.y < m.h)
+            .filter(e => m.tiles[explode(e)] === 0);
 
         for (let next of options) {
             const newCost = costSoFar.get(current) + 1 // cost of moving one tile
 
             if (!costSoFar.get(next) || newCost < costSoFar.get(next)) {
                 costSoFar.set(next, newCost);
-                const priority = newCost + heuristic(b, unexplode(next));
+                const priority = newCost + heuristic(b, next);
                 q.add([next, priority]);
 
                 cameFrom.set(next, current);
@@ -80,10 +94,10 @@ export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
     // Reconstruct the path from the chained map
     const path = [] as TilePos[];
     let explodedStart = explode(start);
-    let current = explodedB;
+    let current = b;
 
-    while(current !== explodedStart) {
-        path.push(unexplode(current));
+    while(explode(current) !== explodedStart) {
+        path.push(current);
         current = cameFrom.get(current);
     }
 
