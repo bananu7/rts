@@ -15,12 +15,30 @@ import * as THREE from 'three';
 import { Board, Unit, GameMap, UnitId, Position } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 
+
+type Line3DProps = {
+    points: THREE.Vector3[],
+}
+function Line3D(props: Line3DProps) {
+    const ref = useRef<THREE.Line>()
+    useLayoutEffect(() => {
+        if(!ref.current) return;
+        ref.current.geometry.setFromPoints(props.points);
+    }, [props.points]);
+
+    return (
+        <line ref={ref}>
+            <bufferGeometry />
+            <lineBasicMaterial color="yellow" />
+        </line>
+    )
+}
+
 type Unit3DProps = {
     unit: Unit,
     selected: boolean,
     click?: (id: UnitId, button: number) => void,
 }
-
 export function Unit3D(props: Unit3DProps) {
     //const [catalog] = useState(() => require('../../assets/catalog.json'));
     //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
@@ -40,23 +58,30 @@ export function Unit3D(props: Unit3DProps) {
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
     const unitSize = isBuilding ? 5 : 1;
 
+    const path = props.unit.actionQueue.map(a => {
+        return new THREE.Vector3(a.target.x, 1, a.target.y);
+    })
+
     return (
-        <group 
-            position={[props.unit.position.x, 1, props.unit.position.y]}
-            name={`Unit_${props.unit.id}`}
-        >
-            <mesh
-                onClick={ onClick }
-                onContextMenu={ onClick }
+        <group>
+            <Line3D points={path} /> 
+            <group 
+                position={[props.unit.position.x, 1, props.unit.position.y]}
+                name={`Unit_${props.unit.id}`}
             >
-                <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial
-                    color={color}
-                    opacity={1.0}
-                    transparent={false}
-                />
-            </mesh>
-            { props.selected && <SelectionCircle size={unitSize} /> }
+                <mesh
+                    onClick={ onClick }
+                    onContextMenu={ onClick }
+                >
+                    <boxGeometry args={[unitSize, 2, unitSize]} />
+                    <meshBasicMaterial
+                        color={color}
+                        opacity={1.0}
+                        transparent={false}
+                    />
+                </mesh>
+                { props.selected && <SelectionCircle size={unitSize} /> }    
+            </group>
         </group>
     );
 }
