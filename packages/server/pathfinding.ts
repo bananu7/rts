@@ -1,10 +1,5 @@
-import { GameMap } from './types'
+import { GameMap, TilePos } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
-
-export type TilePos = { x: number, y: number}
-
-// the resolution of the game map is assumed to be 1/3 of the pathfinding grid
-// this means that every pixel of the game map occupies 3 pixels of the grid
 
 function octileDistance(a: TilePos, b: TilePos) {
     const dx = Math.abs(a.x - b.x);
@@ -88,6 +83,7 @@ export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
         }
     }
 
+    // TODO I don't think that's a correct check
     if (q.isEmpty())
         throw "Failed to find path";
 

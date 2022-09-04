@@ -45,6 +45,11 @@ app.get('/getMatchState', (req, res) => {
     }
 });
 
+app.get('/debugGetPath', (req, res) => {
+    // TODO: pull the pathfinding path of a given unit
+    res.sendStatus(500);
+});
+
 let lastMatchId = 0;
 
 app.post('/create', async (req, res) => {

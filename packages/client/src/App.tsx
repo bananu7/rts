@@ -19,6 +19,8 @@ const playerId = 1;
 function App() {
   const [msgs, setMsgs] = useState([] as Data[]);
   const [serverState, setServerState] = useState<Game | null>(null);
+
+  const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
   const getMatchState = (matchId: string) => {
     fetch('http://localhost:9208/getMatchState?' + new URLSearchParams({ matchId }))
@@ -54,13 +56,7 @@ function App() {
 
       channel.on('tick', (data: Data) => {
         const u = data as UpdatePacket;
-        setServerState(state => {
-          if (!state)
-            return null;
-          state.tickNumber = u.tickNumber;
-          state.board.units = u.units;
-          return {...state};
-        });
+        setLastUpdatePacket(u);
       })
 
       channel.on('joined', (data: Data) => {
@@ -125,7 +121,7 @@ function App() {
         }}>Create</button>
 
         <br />
-        <span>{serverState ? JSON.stringify(serverState) : ""}</span>
+        <span>{lastUpdatePacket ? JSON.stringify(lastUpdatePacket) : ""}</span>
 
         <ul>
           {lines}
@@ -142,6 +138,7 @@ function App() {
         <View3D>
           <Board3D
             board={serverState.board}
+            unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
             selectedUnits={selectedUnits}
             select={setSelectedUnits}
             mapClick={mapClick}

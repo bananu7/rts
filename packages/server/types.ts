@@ -19,10 +19,21 @@ export type CommandPacket = {
 
 export type UpdatePacket = {
     tickNumber: number,
-    units: Unit[],
+    units: UnitState[],
+}
+
+export type UnitState = {
+    id: number,
+    kind: UnitKind,
+    status: 'Moving'|'Attacking'|'Idle',
+    position: Position,
+    direction: number,
+    owner: number,
 }
 
 // Game
+
+export type TilePos = { x: number, y: number }
 
 export type ActionType = 'Move' | 'Attack' | 'Harvest'
 export type Action = {
@@ -44,6 +55,9 @@ export type Unit = {
     kind: UnitKind,
     owner: Player,
     position: Position,
+    direction: number,
+
+    pathToNext?: TilePos[],
 }
 
 export type Game = {

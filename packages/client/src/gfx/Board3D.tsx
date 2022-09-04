@@ -12,7 +12,7 @@ import * as THREE from 'three';
 //import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 //import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
 
-import { Board, Unit, GameMap, UnitId, Position } from 'server/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 
 
@@ -35,7 +35,7 @@ function Line3D(props: Line3DProps) {
 }
 
 type Unit3DProps = {
-    unit: Unit,
+    unit: UnitState,
     selected: boolean,
     click?: (id: UnitId, button: number) => void,
 }
@@ -58,13 +58,14 @@ export function Unit3D(props: Unit3DProps) {
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
     const unitSize = isBuilding ? 5 : 1;
 
+    /* TODO - debug path view
     const path = props.unit.actionQueue.map(a => {
         return new THREE.Vector3(a.target.x, 1, a.target.y);
-    })
+    })*/
 
     return (
         <group>
-            <Line3D points={path} /> 
+            {/*<Line3D points={path} />*/}
             <group 
                 position={[props.unit.position.x, 1, props.unit.position.y]}
                 name={`Unit_${props.unit.id}`}
@@ -151,6 +152,7 @@ export function Map3D(props: { map: GameMap, click: Click } ) {
 
 export interface Props {
     board: Board;
+    unitStates: UnitState[];
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     mapClick: (p: Position) => void;
@@ -162,7 +164,7 @@ export function Board3D(props: Props) {
             props.select(props.selectedUnits.add(u));
     }
 
-    const units = props.board.units.map(u => 
+    const units = props.unitStates.map(u => 
         (<Unit3D
             key={u.id}
             unit={u}

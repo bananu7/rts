@@ -1,6 +1,8 @@
-import {GameMap, Game, Player, Unit, UnitKind, CommandPacket, UpdatePacket, Position} from './types';
+import {
+    GameMap, Game, Player, Unit, UnitKind, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+} from './types';
 
-import { gridPathFind, TilePos } from './pathfinding.js'
+import { gridPathFind } from './pathfinding.js'
 
 type Milliseconds = number;
 
@@ -12,6 +14,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Harvester',
         owner: 1,
         position: {x:31, y:25},
+        direction: 0,
     },
     {
         actionQueue: [],
@@ -19,6 +22,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Harvester',
         owner: 2,
         position: {x:64, y:90},
+        direction: 0,
     },
     {
         actionQueue: [],
@@ -26,6 +30,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Base',
         owner: 1,
         position: {x:10, y:10},
+        direction: 0,
     },
     {
         actionQueue: [],
@@ -33,6 +38,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Base',
         owner: 2,
         position: {x:90, y:90},
+        direction: 0,
     },
 ];
 
@@ -89,19 +95,13 @@ export function command(c: CommandPacket, g: Game) {
         const unitTilePos = { x: Math.floor(u.position.x), y: Math.floor(u.position.y) };
         const destTilePos =  { x: Math.floor(targetPos.x), y: Math.floor(targetPos.y) };
 
-        const path = gridPathFind(unitTilePos, destTilePos, g.board.map);
-
-        u.actionQueue = path.map((p: TilePos) => {
-            return {typ:'Move', target: {x:p.x, y:p.y}}
-        });
+        u.pathToNext = gridPathFind(unitTilePos, destTilePos, g.board.map);   
     }
-
-    /*
+    
     if (c.shift)
         u.actionQueue.push(c.action);
     else
         u.actionQueue = [c.action];
-    */
 }
 
 export function tick(dt: Milliseconds, g: Game): UpdatePacket {
@@ -122,13 +122,26 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
 
         updateUnits(dt, g);
     }
-    return { tickNumber: g.tickNumber, units: g.board.units};
+
+    const unitUpdates: UnitState[] = g.board.units
+        .map(u => { return {
+            id: u.id,
+            status: u.actionQueue.length > 0 ? 'Moving' : 'Idle',
+            position: u.position,
+            direction: u.direction,
+            owner: u.owner,
+            kind: u.kind,
+        }});
+
+    return { tickNumber: g.tickNumber, units: unitUpdates};
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
     for (const unit of g.board.units) {
+        // if no actions are queued, the unit is considered idle
         if (unit.actionQueue.length === 0)
             continue;
+
         const cmd = unit.actionQueue[0];
         
         const distancePerTick = UNIT_DATA[unit.kind].speed * (dt / 1000);
@@ -136,17 +149,41 @@ function updateUnits(dt: Milliseconds, g: Game) {
         switch (cmd.typ) {
         case 'Move': {
             // TODO: moving target
-            // TODO: collisions, pathfinding
+            // TODO: collisions
+            if (!unit.pathToNext)
+                throw "This unit has a move command but no path computed";
 
-            const dst = distance(unit.position, cmd.target as Position);
-            if (dst < distancePerTick) {
-                unit.position = cmd.target as Position;
-                unit.actionQueue.shift();
-            }
-            else {
-                const {x:dx, y:dy} = unitVector(unit.position, cmd.target as Position);
-                unit.position.x += dx * distancePerTick;
-                unit.position.y += dy * distancePerTick;
+            let nextPathStep = unit.pathToNext[0];
+            let distanceLeft = distancePerTick;
+
+            while (distanceLeft > 0) {
+                const dst = distance(unit.position, nextPathStep);
+                // can reach next path setp
+                if (dst < distanceLeft) {
+                    // set the unit to the reached path step
+                    unit.position = nextPathStep;
+                    // subtract from distance "budget"
+                    distanceLeft -= dst;
+                    // pop the current path step off
+                    unit.pathToNext.shift();
+
+                    // if there are no more path steps to do, we've reached the destination
+                    if (unit.pathToNext.length === 0) {
+                        // TODO - that will cause stutter at shift-clicked moves
+                        unit.actionQueue.shift();
+                        break;
+                    } else {
+                        nextPathStep = unit.pathToNext[0];
+                        continue;
+                    }
+                }
+                // spent all the distance budget
+                else {
+                    const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
+                    unit.position.x += dx * distancePerTick;
+                    unit.position.y += dy * distancePerTick;
+                    break;
+                }
             }
 
             break;
