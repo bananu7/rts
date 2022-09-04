@@ -4,7 +4,8 @@ import express from 'express'
 import cors from 'cors'
 
 import {newGame, startGame, tick, command} from './game.js';
-import {Game, MatchInfo, IdentificationPacket, CommandPacket} from './types.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket } from './types.js';
+import {getMap} from './map.js';
 
 type Match = {
     game: Game,
@@ -32,22 +33,31 @@ app.get('/listMatches', (req, res) => {
     }});
 
     res.send(JSON.stringify(matchInfos));
-})
+});
+
+app.get('/getMatchState', (req, res) => {
+    const match = matches.find(m => m.matchId === req.query.matchId);
+    if (match) {
+        res.send(JSON.stringify(match.game));
+    }
+    else {
+        res.sendStatus(404);
+    }
+});
 
 let lastMatchId = 0;
 
-app.post('/create', (req, res) => {
+app.post('/create', async (req, res) => {
     // TODO - load or w/e
-    const map = { w: 10, h: 10, tiles: [1,2,3] };
-
+    const map = await getMap('assets/map.png');
     const game = newGame(map);
     const matchId = String(++lastMatchId); // TODO
     matches.push({ game, matchId, players: [] });
 
     setInterval(() => {
-        tick(100, game)
+        const updatePacket = tick(100, game);
         // TODO - fog of war
-        io.room(matchId).emit('tick', game);
+        io.room(matchId).emit('tick', updatePacket);
     }, 100);
 
     console.log(`Match ${matchId} created`);
@@ -107,6 +117,9 @@ io.onConnection(channel => {
             }
 
             channel.join(packet.matchId);
+
+            channel.emit('joined', packet.matchId);
+            channel.emit('chat message', `Successfully re-joined the match ${packet.matchId}!`);
 
             channel.userData = {
                 playerId: packet.playerId,

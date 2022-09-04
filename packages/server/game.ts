@@ -1,4 +1,4 @@
-import {GameMap, Game, Player, Unit, UnitKind, CommandPacket, Position} from './types';
+import {GameMap, Game, Player, Unit, UnitKind, CommandPacket, UpdatePacket, Position} from './types';
 
 type Milliseconds = number;
 
@@ -87,7 +87,7 @@ export function command(c: CommandPacket, g: Game) {
         u.actionQueue = [c.action];
 }
 
-export function tick(dt: Milliseconds, g: Game) {
+export function tick(dt: Milliseconds, g: Game): UpdatePacket {
     switch (g.state.id) {
     case 'Precount':
         g.state.count -= dt;
@@ -105,6 +105,7 @@ export function tick(dt: Milliseconds, g: Game) {
 
         updateUnits(dt, g);
     }
+    return { tickNumber: g.tickNumber, units: g.board.units};
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {

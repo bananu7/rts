@@ -9,7 +9,7 @@ import { Board3D } from './gfx/Board3D';
 
 import geckos, { Data } from '@geckos.io/client'
 
-import { Game, CommandPacket, IdentificationPacket, UnitId, Position } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
 
 let channel = geckos({ port: 9208 });
 let geckosSetUp = false;
@@ -20,6 +20,12 @@ function App() {
   const [msgs, setMsgs] = useState([] as Data[]);
   const [serverState, setServerState] = useState<Game | null>(null);
  
+  const getMatchState = (matchId: string) => {
+    fetch('http://localhost:9208/getMatchState?' + new URLSearchParams({ matchId }))
+      .then(r => r.json())
+      .then(s => setServerState(s));
+  }
+
   useEffect(() => {
     if (geckosSetUp)
       return;
@@ -47,12 +53,21 @@ function App() {
       })
 
       channel.on('tick', (data: Data) => {
-        setServerState(() => data as Game);
+        const u = data as UpdatePacket;
+        setServerState(state => {
+          if (!state)
+            return null;
+          state.tickNumber = u.tickNumber;
+          state.board.units = u.units;
+          return {...state};
+        });
       })
 
       channel.on('joined', (data: Data) => {
-        console.log("server confirmed match join");
-        localStorage.setItem('matchId', String(data));
+        const matchId = String(data);
+        console.log(`server confirmed match join to match ${matchId}`);
+        localStorage.setItem('matchId', matchId);
+        getMatchState(matchId);
       });
 
       channel.on('join failure', (data: Data) => {

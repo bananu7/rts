@@ -17,6 +17,10 @@ export type CommandPacket = {
     shift: boolean,
 }
 
+export type UpdatePacket = {
+    tickNumber: number,
+    units: Unit[],
+}
 
 // Game
 
