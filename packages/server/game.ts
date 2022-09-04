@@ -1,5 +1,7 @@
 import {GameMap, Game, Player, Unit, UnitKind, CommandPacket, UpdatePacket, Position} from './types';
 
+import { gridPathFind, TilePos } from './pathfinding.js'
+
 type Milliseconds = number;
 
 // TODO
@@ -81,10 +83,25 @@ export function command(c: CommandPacket, g: Game) {
 
     console.log(`Adding action ${c.action} => ${c.unitId} for unit ${u.id}`)
 
+    // TODO: disabled for pathfinding test
+    if (c.action.typ == 'Move') {
+        const targetPos = c.action.target as Position; // TODO follow
+        const unitTilePos = { x: Math.floor(u.position.x), y: Math.floor(u.position.y) };
+        const destTilePos =  { x: Math.floor(targetPos.x), y: Math.floor(targetPos.y) };
+
+        const path = gridPathFind(unitTilePos, destTilePos, g.board.map);
+
+        u.actionQueue = path.map((p: TilePos) => {
+            return {typ:'Move', target: {x:p.x, y:p.y}}
+        });
+    }
+
+    /*
     if (c.shift)
         u.actionQueue.push(c.action);
     else
         u.actionQueue = [c.action];
+    */
 }
 
 export function tick(dt: Milliseconds, g: Game): UpdatePacket {
