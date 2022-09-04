@@ -11,16 +11,19 @@ function CameraControls() {
     const vert = Math.PI * 0.2;
     const horiz = Math.PI * 1.0;
 
-    useEffect (() => {
+    useLayoutEffect (() => {
         const c = new MapControls( camera, domElement );
 
-        c.minDistance = 100;
-        c.maxDistance = 1000;
+        c.minDistance = 80;
+        c.maxDistance = 300;
 
         c.minAzimuthAngle = -horiz;
         c.maxAzimuthAngle = horiz;
 
         c.enableRotate = false;
+
+        c.target = new THREE.Vector3(50, 0, 50);
+        c.update();
 
         return () => {
             c.dispose();
@@ -53,7 +56,7 @@ export function View3D(props: Props) {
         <Suspense fallback={null}>
             <div style={style} >
                 <Canvas
-                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position: [0, 200, 200] }}
+                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position: [50, 200, 200] }}
                     gl={{
                         physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,

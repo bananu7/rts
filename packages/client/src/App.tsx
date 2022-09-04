@@ -147,7 +147,7 @@ function App() {
       }
 
       { serverState &&
-          <Minimap board={serverState.board} />
+          <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
       }
     </div>
   )

@@ -1,8 +1,9 @@
 import { useState, useEffect, CSSProperties } from 'react'
-import { Board } from 'server/types'
+import { Board, UnitState } from 'server/types'
 
 type Props = {
-    board: Board
+    board: Board,
+    units: UnitState[],
 }
 
 export function Minimap(props: Props) {
@@ -22,7 +23,7 @@ export function Minimap(props: Props) {
         stroke: 'black'
     };
 
-    const contents = props.board.units.map(u => {
+    const contents = props.units.map(u => {
         const color = u.owner === 1 ? '#1111ee' : '#ee1111';
         const size = u.kind === 'Base' ? '20' : '10';
         return (<rect

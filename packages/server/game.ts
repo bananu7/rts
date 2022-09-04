@@ -73,8 +73,8 @@ export function newGame(map: GameMap): Game {
         players: [],
         board: {
             map: map,
-            units: TEMP_STARTING_UNITS,
-        }
+        },
+        units: TEMP_STARTING_UNITS,
     }
 }
 
@@ -83,7 +83,7 @@ export function startGame(g: Game) {
 }
 
 export function command(c: CommandPacket, g: Game) {
-    const u = g.board.units.find(u => c.unitId === u.id);
+    const u = g.units.find(u => c.unitId === u.id);
     if (!u)
         return;
 
@@ -123,7 +123,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
         updateUnits(dt, g);
     }
 
-    const unitUpdates: UnitState[] = g.board.units
+    const unitUpdates: UnitState[] = g.units
         .map(u => { return {
             id: u.id,
             status: u.actionQueue.length > 0 ? 'Moving' : 'Idle',
@@ -137,7 +137,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
-    for (const unit of g.board.units) {
+    for (const unit of g.units) {
         // if no actions are queued, the unit is considered idle
         if (unit.actionQueue.length === 0)
             continue;
@@ -209,7 +209,7 @@ function unitVector(a: Position, b: Position) {
 
 function eliminated(g: Game): Player[] {
     const isBuildingKind = (k: UnitKind) => k === 'Base' || k === 'Barracks';
-    const buildingsByPlayer = (p: Player) => g.board.units.filter(u => u.owner === p && isBuildingKind(u.kind));
+    const buildingsByPlayer = (p: Player) => g.units.filter(u => u.owner === p && isBuildingKind(u.kind));
 
     const buildingCounts = g.players.map(p => [p, buildingsByPlayer(p).length]);
 

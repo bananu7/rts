@@ -65,6 +65,7 @@ export type Game = {
     tickNumber: number,
     players: Player[],
     board: Board,
+    units: Unit[],
 }
 
 export type GameMap = {
@@ -75,7 +76,6 @@ export type GameMap = {
 
 export type Board = {
     map: GameMap,
-    units: Unit[],
 }
 
 export type GameState = {
