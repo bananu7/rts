@@ -265,6 +265,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
 
     const cmd = unit.actionQueue[0];
 
+    // returns whether the unit is still supposed to move
     const recomputePathToTarget = (action: ActionFollow) => {
         // TODO: duplication with command
         const target = g.units.find(u => u.id === action.target); // TODO Map
@@ -284,10 +285,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
             if (!newPath) {
                 unit.pathToNext = null;
                 unit.actionQueue.shift();
+                return false;
             } else {
                 unit.pathToNext = newPath
+                return true;
             }
         }
+
+        return true;
     };
     
     switch (cmd.typ) {
@@ -297,8 +302,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         }
 
         case 'Follow': {
-            recomputePathToTarget(cmd);
-            move();
+            const shouldMove = recomputePathToTarget(cmd);
+            if (shouldMove) {
+                move();
+            }
             break;
         }
 
