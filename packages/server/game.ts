@@ -1,5 +1,5 @@
 import {
-    GameMap, Game, Player, Unit, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    GameMap, Game, Player, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Mover, Attacker, Harvester,
     ActionFollow, ActionAttack
 } from './types';
@@ -253,14 +253,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
     // requires pulling out the distance traveled so that two moves can't happen
     // one after another
 
-    const move = () => {
-        const mc = getMoveComponent();
-        if (!mc) {
-            // ignore the move command if can't move
-            unit.actionQueue.shift();
-            return;
-        }
-
+    const move = (mc: Mover) => {
         const distancePerTick = mc.speed * (dt / 1000);
         // TODO: moving target
         // TODO: collisions
@@ -303,12 +296,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         }
     }
 
-    const cmd = unit.actionQueue[0];
-
     // returns whether the unit is still supposed to move
-    const recomputePathToTarget = (action: ActionFollow) => {
+    const recomputePathToTarget = (targetId: UnitId) => {
         // TODO: duplication with command
-        const target = g.units.find(u => u.id === action.target); // TODO Map
+        const target = g.units.find(u => u.id === targetId); // TODO Map
         if (!target) {
             // the target unit doesn't exist, end this action
             unit.pathToNext = null;
@@ -335,13 +326,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         return true;
     };
 
-    const attack = (action: ActionAttack) => {
-        const ac = getAttackerComponent();
-        if (!ac) {
-            unit.actionQueue.shift();
-            return;
-        }
-
+    const attack = (ac: Attacker, action: ActionAttack) => {
         const target = g.units.find(u => u.id === action.target); // TODO Map
         if (!target) {
             // the target unit doesn't exist, end this action
@@ -353,38 +338,65 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         // if out of range, just move to target
         // TODO - duplication with follow
         if (distance(unit.position, target.position) > ac.range) {
+            const mc = getMoveComponent();
+            if (!mc) {
+                // if cannot move to the target, then just sit in place
+                return;
+            }
+
+            // TODO - similar to follow only recompute on change
+            // but I'm finding it challenging to build proper abstractions for this
             const newPath = pathFind(unit.position, target.position, g.board.map);
 
             // if target is unobtainable, forfeit navigation
             if (!newPath) {
                 unit.pathToNext = null;
                 unit.actionQueue.shift();
-                return false;
             } else {
                 unit.pathToNext = newPath
-                return true;
+                move(mc);
             }
         } else {
             target.hp -= ac.damage;
         }
     }
     
+    const cmd = unit.actionQueue[0];
     switch (cmd.typ) {
         case 'Move': {
-            move();
+            const mc = getMoveComponent();
+            if (!mc) {
+                // ignore the move command if can't move
+                unit.actionQueue.shift();
+                break;
+            }
+            move(mc);
             break;
         }
 
         case 'Follow': {
-            const shouldMove = recomputePathToTarget(cmd);
+            const mc = getMoveComponent();
+            if (!mc) {
+                // ignore the move command if can't move
+                unit.actionQueue.shift();
+                break;
+            }
+
+            const shouldMove = recomputePathToTarget(cmd.target);
             if (shouldMove) {
-                move();
+                move(mc);
             }
             break;
         }
 
         case 'Attack': {
-            attack(cmd);
+            const ac = getAttackerComponent();
+            if (!ac) {
+                unit.actionQueue.shift();
+                return;
+            }
+
+            attack(ac, cmd);
             break;
         }
         case 'Harvest': {
