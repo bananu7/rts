@@ -70,8 +70,8 @@ export function Unit3D(props: Unit3DProps) {
                 position={[props.unit.position.x, 1, props.unit.position.y]}
                 name={`Unit_${props.unit.id}`}
             >
-                <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, 0]}>
-                    <boxGeometry args={[3, 1, 1]} />
+                <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
+                    <coneGeometry args={[1, 3, 8]} />
                 </mesh>
                 <mesh
                     onClick={ onClick }
