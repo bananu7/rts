@@ -180,6 +180,7 @@ function updateUnits(dt: Milliseconds, g: Game) {
                 // spent all the distance budget
                 else {
                     const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
+                    unit.direction = angleFromTo(unit.position, nextPathStep);
                     unit.position.x += dx * distancePerTick;
                     unit.position.y += dy * distancePerTick;
                     break;
@@ -202,8 +203,12 @@ function distance(a: Position, b: Position) {
     return Math.sqrt(x*x+y*y);
 }
 
+function angleFromTo(a: Position, b: Position) {
+    return Math.atan2(b.y-a.y, b.x-a.x);
+}
+
 function unitVector(a: Position, b: Position) {
-    const angle = Math.atan2(b.y-a.y, b.x-a.x);
+    const angle = angleFromTo(a, b);
     return {x: Math.cos(angle), y: Math.sin(angle)};
 }
 

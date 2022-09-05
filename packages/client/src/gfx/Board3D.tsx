@@ -70,6 +70,9 @@ export function Unit3D(props: Unit3DProps) {
                 position={[props.unit.position.x, 1, props.unit.position.y]}
                 name={`Unit_${props.unit.id}`}
             >
+                <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, 0]}>
+                    <boxGeometry args={[3, 1, 1]} />
+                </mesh>
                 <mesh
                     onClick={ onClick }
                     onContextMenu={ onClick }
@@ -98,6 +101,7 @@ type Map3DProps = {
 }
 
 export function Map3D(props: Map3DProps) {
+    // movement
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
