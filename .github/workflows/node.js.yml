@@ -1,0 +1,35 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Node.js Client + Server build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'yarn'
+    - run: yarn install --frozen-lockfile
+    #- name: Build client
+    #  working-directory: ./packages/client
+    #  run: yarn build
+    - name: Build server
+      working-directory: ./packages/server
+      run: yarn build
+    - name: Upload server artifact
+      uses: actions/upload-artifact@v3.1.0
+      with:
+        name: ./packages/server/dist/
+    #- name: Upload client artifact
+    #  uses: actions/upload-artifact@v3.1.0
+    #  with:
+    #    name: ./packages/client/
