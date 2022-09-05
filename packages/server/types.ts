@@ -15,10 +15,30 @@ export type IdentificationPacket = {
     matchId: string, 
 }
 
-export type ActionType = 'Move' | 'Attack' | 'Harvest'
-export type Action = {
-    typ: ActionType,
-    target: Position | UnitId,
+export type Action = ActionMove | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce;
+export type ActionMove = {
+    typ: 'Move',
+    target: Position,
+}
+export type ActionFollow = {
+    typ: 'Follow',
+    target: UnitId,
+}
+export type ActionAttackMove = {
+    typ: 'AttackMove',
+    target: Position,
+}
+export type ActionAttack = {
+    typ: 'Attack',
+    target: UnitId,
+}
+export type ActionHarvest = {
+    typ: 'Harvest',
+    target: UnitId,
+}
+export type ActionProduce = {
+    typ: 'Produce',
+    unitToProduce: string,
 }
 
 export type CommandPacket = {

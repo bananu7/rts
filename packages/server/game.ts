@@ -1,9 +1,10 @@
 import {
     GameMap, Game, Player, Unit, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
-    Mover, Attacker, Harvester
+    Mover, Attacker, Harvester,
+    ActionFollow
 } from './types';
 
-import { gridPathFind } from './pathfinding.js'
+import { pathFind } from './pathfinding.js'
 
 type Milliseconds = number;
 
@@ -104,13 +105,30 @@ export function command(c: CommandPacket, g: Game) {
 
     console.log(`Adding action ${c.action} => ${c.unitId} for unit ${u.id}`)
 
-    // TODO: disabled for pathfinding test
-    if (c.action.typ == 'Move') {
-        const targetPos = c.action.target as Position; // TODO follow
-        const unitTilePos = { x: Math.floor(u.position.x), y: Math.floor(u.position.y) };
-        const destTilePos =  { x: Math.floor(targetPos.x), y: Math.floor(targetPos.y) };
-
-        u.pathToNext = gridPathFind(unitTilePos, destTilePos, g.board.map);   
+    switch (c.action.typ) {
+        case 'AttackMove': // TODO - implement
+        case 'Move':
+        {
+            const targetPos = c.action.target;
+            u.pathToNext = pathFind(u.position, targetPos, g.board.map);
+            break;
+        }
+        case 'Follow':
+        case 'Attack':
+        case 'Harvest':
+        {
+            const targetId = c.action.target;
+            const target = g.units.find(u => u.id === targetId); // TODO Map
+            if (!target) {
+                // the target unit doesn't exist, ignore this action;
+                return;
+            }
+            const targetPos = target.position;
+            u.pathToNext = pathFind(u.position, targetPos, g.board.map);
+            break;
+        }
+        case 'Produce':
+            break;
     }
     
     if (c.shift)
@@ -180,59 +198,86 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
     // requires pulling out the distance traveled so that two moves can't happen
     // one after another
 
-    const cmd = unit.actionQueue[0];
-    switch (cmd.typ) {
-        case 'Move': {
-            const mc = getMoveComponent();
-            if (!mc) {
-                // ignore the move command if can't move
-                unit.actionQueue.shift();
+    const move = () => {
+        const mc = getMoveComponent();
+        if (!mc) {
+            // ignore the move command if can't move
+            unit.actionQueue.shift();
+            return;
+        }
+
+        const distancePerTick = mc.speed * (dt / 1000);
+        // TODO: moving target
+        // TODO: collisions
+        if (!unit.pathToNext) {
+            throw "This unit has a move command but no path computed";
+        }
+
+        let nextPathStep = unit.pathToNext[0];
+        let distanceLeft = distancePerTick;
+
+        while (distanceLeft > 0) {
+            const dst = distance(unit.position, nextPathStep);
+            // can reach next path setp
+            if (dst < distanceLeft) {
+                // set the unit to the reached path step
+                unit.position = nextPathStep;
+                // subtract from distance "budget"
+                distanceLeft -= dst;
+                // pop the current path step off
+                unit.pathToNext.shift();
+
+                // if there are no more path steps to do, we've reached the destination
+                if (unit.pathToNext.length === 0) {
+                    // TODO - that will cause stutter at shift-clicked moves
+                    unit.actionQueue.shift();
+                    break;
+                } else {
+                    nextPathStep = unit.pathToNext[0];
+                    continue;
+                }
+            }
+            // spent all the distance budget
+            else {
+                const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
+                unit.direction = angleFromTo(unit.position, nextPathStep);
+                unit.position.x += dx * distancePerTick;
+                unit.position.y += dy * distancePerTick;
                 break;
             }
+        }
+    }
 
-            const distancePerTick = mc.speed * (dt / 1000);
-            // TODO: moving target
-            // TODO: collisions
-            if (!unit.pathToNext) {
-                throw "This unit has a move command but no path computed";
-            }
+    const cmd = unit.actionQueue[0];
 
-            let nextPathStep = unit.pathToNext[0];
-            let distanceLeft = distancePerTick;
+    const recomputePathToTarget = (action: ActionFollow) => {
+        // TODO: duplication with command
+        const target = g.units.find(u => u.id === action.target); // TODO Map
+        if (!target) {
+            // the target unit doesn't exist, end this action
+            unit.pathToNext = null;
+            unit.actionQueue.shift();
+            return;
+        }
+        const targetPos = target.position;
 
-            while (distanceLeft > 0) {
-                const dst = distance(unit.position, nextPathStep);
-                // can reach next path setp
-                if (dst < distanceLeft) {
-                    // set the unit to the reached path step
-                    unit.position = nextPathStep;
-                    // subtract from distance "budget"
-                    distanceLeft -= dst;
-                    // pop the current path step off
-                    unit.pathToNext.shift();
-
-                    // if there are no more path steps to do, we've reached the destination
-                    if (unit.pathToNext.length === 0) {
-                        // TODO - that will cause stutter at shift-clicked moves
-                        unit.actionQueue.shift();
-                        break;
-                    } else {
-                        nextPathStep = unit.pathToNext[0];
-                        continue;
-                    }
-                }
-                // spent all the distance budget
-                else {
-                    const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
-                    unit.direction = angleFromTo(unit.position, nextPathStep);
-                    unit.position.x += dx * distancePerTick;
-                    unit.position.y += dy * distancePerTick;
-                    break;
-                }
-            }
-
+        // recompute path if target is more than 3 units away from the original destination
+        if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > 3)
+            unit.pathToNext = pathFind(unit.position, targetPos, g.board.map);
+    };
+    
+    switch (cmd.typ) {
+        case 'Move': {
+            move();
             break;
         }
+
+        case 'Follow': {
+            recomputePathToTarget(cmd);
+            move();
+            break;
+        }
+
         case 'Attack': {
             const ac = getAttackerComponent();
             if (!ac) {

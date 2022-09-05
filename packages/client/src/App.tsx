@@ -96,12 +96,30 @@ function App() {
     channel.emit('command', cmd)
   };
 
+  const followCommand = (unitId: UnitId, target: UnitId) => {
+    const cmd : CommandPacket = {
+      action: {
+        typ: 'Follow',
+        target
+      },
+      unitId,
+      shift: false,
+    };
+    channel.emit('command', cmd)
+  };
+
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
   const mapClick = (p: Position) => {
     selectedUnits.forEach(u => {
       moveCommand(p, u);
     });
   };
+
+  const unitRightClick = (target: UnitId) => {
+    selectedUnits.forEach(u => {
+      followCommand(u, target);
+    });
+  }
 
   return (
     <div className="App">
@@ -142,6 +160,7 @@ function App() {
             selectedUnits={selectedUnits}
             select={setSelectedUnits}
             mapClick={mapClick}
+            unitRightClick={unitRightClick}
           />
         </View3D>
       }

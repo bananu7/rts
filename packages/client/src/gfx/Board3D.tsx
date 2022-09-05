@@ -44,7 +44,6 @@ export function Unit3D(props: Unit3DProps) {
     //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
 
     const onClick = (e: ThreeEvent<MouseEvent>) => {
-        console.log('unit click', props.unit.id)
         e.stopPropagation();
 
         if (props.click)
@@ -187,13 +186,16 @@ export interface Props {
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     mapClick: (p: Position) => void;
+    unitRightClick: (u: UnitId) => void;
 }
 
 export function Board3D(props: Props) {
-    const addSelectOne = (u: UnitId, b: number) => {
-        // TODO wtf it's a button handler
+    const handleUnitClick = (u: UnitId, b: number) => {
+        // Add unit to selection TODO - require shift for that
         if (b === 0) {
             props.select(props.selectedUnits.add(u));
+        } else if (b === 2) {
+            props.unitRightClick(u);
         }
     }
 
@@ -201,7 +203,7 @@ export function Board3D(props: Props) {
         (<Unit3D
             key={u.id}
             unit={u}
-            click={addSelectOne}
+            click={handleUnitClick}
             selected={props.selectedUnits.has(u.id)}
         />));
 

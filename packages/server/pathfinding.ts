@@ -1,4 +1,4 @@
-import { GameMap, TilePos } from './types'
+import { GameMap, TilePos, Position } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
 
 function octileDistance(a: TilePos, b: TilePos) {
@@ -39,7 +39,7 @@ class HashMap<K,V> {
 }
 
 // A*
-export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
+function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
     // explode converts to linear index for the purposes of map storage
     // 1-dimensional indexing and comparisons.
     const explode = (p: TilePos) => p.x+p.y*m.w; 
@@ -101,3 +101,9 @@ export function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
     return path;
 }
+
+export function pathFind(a: Position, b: Position, m: GameMap)  {
+    const unitTilePos = { x: Math.floor(a.x), y: Math.floor(a.y) };
+    const destTilePos =  { x: Math.floor(b.x), y: Math.floor(b.y) };
+    return gridPathFind(unitTilePos, destTilePos, m);
+};
