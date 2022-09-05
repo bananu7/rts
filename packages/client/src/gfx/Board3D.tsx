@@ -63,6 +63,15 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.target.x, 1, a.target.y);
     })*/
 
+    // TODO - this will be replaced with animations etc
+    let indicatorColor = 0xeeeeee;
+    if (props.unit.status === 'Moving')
+        indicatorColor = 0x55ff55;
+    else if (props.unit.status === 'Attacking')
+        indicatorColor = 0xff5555;
+    else if (props.unit.status === 'Harvesting')
+        indicatorColor = 0x5555ff;
+
     return (
         <group>
             {/*<Line3D points={path} />*/}
@@ -72,17 +81,14 @@ export function Unit3D(props: Unit3DProps) {
             >
                 <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
                     <coneGeometry args={[1, 3, 8]} />
+                    <meshBasicMaterial color={indicatorColor} />
                 </mesh>
                 <mesh
                     onClick={ onClick }
                     onContextMenu={ onClick }
                 >
                     <boxGeometry args={[unitSize, 2, unitSize]} />
-                    <meshBasicMaterial
-                        color={color}
-                        opacity={1.0}
-                        transparent={false}
-                    />
+                    <meshBasicMaterial color={color} />
                 </mesh>
                 { props.selected && <SelectionCircle size={unitSize} /> }    
             </group>

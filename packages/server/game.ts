@@ -126,7 +126,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
     const unitUpdates: UnitState[] = g.units
         .map(u => { return {
             id: u.id,
-            status: u.actionQueue.length > 0 ? 'Moving' : 'Idle',
+            status: u.actionQueue.length > 0 ? 'Moving' : 'Idle', // TODO pull actual action that's done
             position: u.position,
             direction: u.direction,
             owner: u.owner,

@@ -25,7 +25,7 @@ export type UpdatePacket = {
 export type UnitState = {
     id: number,
     kind: UnitKind,
-    status: 'Moving'|'Attacking'|'Idle',
+    status: 'Moving'|'Attacking'|'Harvesting'|'Idle',
     position: Position,
     direction: number,
     owner: number,
