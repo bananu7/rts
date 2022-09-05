@@ -1,10 +1,49 @@
 import {
-    GameMap, Game, Player, Unit, UnitKind, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    GameMap, Game, Player, Unit, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    Mover, Attacker, Harvester
 } from './types';
 
 import { gridPathFind } from './pathfinding.js'
 
 type Milliseconds = number;
+
+interface Catalog {
+    [kind: string]: { components: Component[] };
+}
+
+const UNIT_CATALOG : Catalog = {
+    'Harvester': {
+        // owner, position, direction only on instance
+        components: [
+            { type: 'Mover', speed: 10 },
+            { type: 'Attacker', damage: 5, cooldown: 1000 },
+            { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20 }
+        ]
+    },
+    'Base': {
+        components: [
+            { type: 'Building' },
+            { type: 'ProductionFacility', unitsProduced: ['Harvester'] }
+        ]
+    },
+    'ResourceNode':{
+        components: [
+            { type: 'Resource', value: 100 }
+        ]
+    },
+    'Barracks':{
+        components: [
+            { type: 'Building' },
+            { type: 'ProductionFacility', unitsProduced: ['Trooper'] }
+        ]
+    },
+    'Trooper':{
+        components: [
+            { type: 'Mover', speed: 10 },
+            { type: 'Attacker', damage: 10, cooldown: 500 }
+        ]
+    },
+};
 
 // TODO
 const TEMP_STARTING_UNITS : Unit[] = [
@@ -41,30 +80,6 @@ const TEMP_STARTING_UNITS : Unit[] = [
         direction: 0,
     },
 ];
-
-const UNIT_DATA = {
-    'Harvester' : {
-        speed: 10,
-        health: 50,
-        damage: 5,
-    },
-    'Marine' : {
-        speed: 10,
-        health: 50,
-        damage: 10,
-    },
-    'Tank' : {
-        speed: 8,
-        health: 150,
-        damage: 25,
-    },
-    'Base' : {
-        speed: 0,
-    },
-    'Barracks' : {
-        speed: 0,
-    }
-}
 
 export function newGame(map: GameMap): Game {
     return {
@@ -138,20 +153,49 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
 
 function updateUnits(dt: Milliseconds, g: Game) {
     for (const unit of g.units) {
-        // if no actions are queued, the unit is considered idle
-        if (unit.actionQueue.length === 0)
-            continue;
+        updateUnit(dt, g, unit);
+    }
+}
 
-        const cmd = unit.actionQueue[0];
-        
-        const distancePerTick = UNIT_DATA[unit.kind].speed * (dt / 1000);
+function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
+    // if no actions are queued, the unit is considered idle
+    if (unit.actionQueue.length === 0)
+        return;
+    
+    const unitInfo = UNIT_CATALOG[unit.kind];
 
-        switch (cmd.typ) {
+    const getMoveComponent = (): Mover => {
+        return unitInfo.components.find(c => c.type === 'Mover') as Mover;
+    }
+
+    const getAttackerComponent = () => {
+        return unitInfo.components.find(c => c.type === 'Attacker') as Attacker;
+    }
+
+    const getHarvesterComponent = () => {
+        return unitInfo.components.find(c => c.type === 'Harvester') as Harvester;
+    }
+    
+    // TODO - handle more than one action per tick
+    // requires pulling out the distance traveled so that two moves can't happen
+    // one after another
+
+    const cmd = unit.actionQueue[0];
+    switch (cmd.typ) {
         case 'Move': {
+            const mc = getMoveComponent();
+            if (!mc) {
+                // ignore the move command if can't move
+                unit.actionQueue.shift();
+                break;
+            }
+
+            const distancePerTick = mc.speed * (dt / 1000);
             // TODO: moving target
             // TODO: collisions
-            if (!unit.pathToNext)
+            if (!unit.pathToNext) {
                 throw "This unit has a move command but no path computed";
+            }
 
             let nextPathStep = unit.pathToNext[0];
             let distanceLeft = distancePerTick;
@@ -189,9 +233,22 @@ function updateUnits(dt: Milliseconds, g: Game) {
 
             break;
         }
-        case 'Attack':
+        case 'Attack': {
+            const ac = getAttackerComponent();
+            if (!ac) {
+                unit.actionQueue.shift();
+                break;
+            }
+
             break;
-        case 'Harvest':
+        }
+        case 'Harvest': {
+            const hc = getHarvesterComponent();
+            if (!hc) {
+                unit.actionQueue.shift();
+                break;
+            }
+
             break;
         }
     }
@@ -213,8 +270,8 @@ function unitVector(a: Position, b: Position) {
 }
 
 function eliminated(g: Game): Player[] {
-    const isBuildingKind = (k: UnitKind) => k === 'Base' || k === 'Barracks';
-    const buildingsByPlayer = (p: Player) => g.units.filter(u => u.owner === p && isBuildingKind(u.kind));
+    const isBuilding = (u: Unit) => !!UNIT_CATALOG[u.kind].components.find(c => c.type === 'Building');
+    const buildingsByPlayer = (p: Player) => g.units.filter(u => u.owner === p && isBuilding(u));
 
     const buildingCounts = g.players.map(p => [p, buildingsByPlayer(p).length]);
 

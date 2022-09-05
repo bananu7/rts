@@ -1,6 +1,10 @@
 
+// Misc
+export type Milliseconds = number;
+
 export type UnitId = number;
 
+// Network connectivity
 export type MatchInfo = {
     matchId: string,
     playerCount: number
@@ -9,6 +13,12 @@ export type MatchInfo = {
 export type IdentificationPacket = {
     playerId: number,
     matchId: string, 
+}
+
+export type ActionType = 'Move' | 'Attack' | 'Harvest'
+export type Action = {
+    typ: ActionType,
+    target: Position | UnitId,
 }
 
 export type CommandPacket = {
@@ -24,22 +34,43 @@ export type UpdatePacket = {
 
 export type UnitState = {
     id: number,
-    kind: UnitKind,
+    kind: string,
     status: 'Moving'|'Attacking'|'Harvesting'|'Idle',
     position: Position,
     direction: number,
     owner: number,
 }
 
-// Game
-
-export type TilePos = { x: number, y: number }
-
-export type ActionType = 'Move' | 'Attack' | 'Harvest'
-export type Action = {
-    typ: ActionType,
-    target: Position | UnitId,
+// Components
+export type Component = Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Attacker = {
+    type: 'Attacker',
+    damage: number,
+    cooldown: Milliseconds,
 }
+export type Mover = {
+    type: 'Mover',
+    speed: number,
+}
+export type Harvester = {
+    type: 'Harvester',
+    harvestingTime: Milliseconds,
+    harvestingValue: number,
+}
+export type Resource = { 
+    type: 'Resource',
+    value: number,
+}
+export type Building = {
+    type: 'Building'
+}
+export type ProductionFacility = {
+    type: 'ProductionFacility',
+    unitsProduced: string[],    
+}
+
+// Internal Game stuff
+export type TilePos = { x: number, y: number }
 
 export type Player = number
 
@@ -48,11 +79,10 @@ export type Position = {
     y: number,
 }
 
-export type UnitKind = 'Harvester' | 'Marine' | 'Tank' | 'Base' | 'Barracks'
 export type Unit = {
     id: number,
     actionQueue: Action[],
-    kind: UnitKind,
+    kind: string, // TODO should this be in a component
     owner: Player,
     position: Position,
     direction: number,
