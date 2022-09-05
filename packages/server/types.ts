@@ -67,6 +67,7 @@ export type Attacker = {
     type: 'Attacker',
     damage: number,
     cooldown: Milliseconds,
+    range: number,
 }
 export type Mover = {
     type: 'Mover',
@@ -106,6 +107,8 @@ export type Unit = {
     owner: Player,
     position: Position,
     direction: number,
+
+    hp: number,
 
     pathToNext?: TilePos[],
 }

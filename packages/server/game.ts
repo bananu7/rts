@@ -1,47 +1,53 @@
 import {
     GameMap, Game, Player, Unit, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Mover, Attacker, Harvester,
-    ActionFollow
+    ActionFollow, ActionAttack
 } from './types';
 
 import { pathFind } from './pathfinding.js'
 
 type Milliseconds = number;
 
+// TODO - dynamic components that can introduce state, make HP be a state of a component
 interface Catalog {
-    [kind: string]: { components: Component[] };
+    [kind: string]: { hp: number, components: Component[] };
 }
 
 const UNIT_CATALOG : Catalog = {
     'Harvester': {
         // owner, position, direction only on instance
+        hp: 50,
         components: [
             { type: 'Mover', speed: 10 },
-            { type: 'Attacker', damage: 5, cooldown: 1000 },
+            { type: 'Attacker', damage: 5, cooldown: 1000, range: 2 },
             { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20 }
         ]
     },
     'Base': {
+        hp: 1000,
         components: [
             { type: 'Building' },
             { type: 'ProductionFacility', unitsProduced: ['Harvester'] }
         ]
     },
-    'ResourceNode':{
+    'ResourceNode': {
+        hp: 1,
         components: [
             { type: 'Resource', value: 100 }
         ]
     },
-    'Barracks':{
+    'Barracks': {
+        hp: 600,
         components: [
             { type: 'Building' },
             { type: 'ProductionFacility', unitsProduced: ['Trooper'] }
         ]
     },
-    'Trooper':{
+    'Trooper': {
+        hp: 50,
         components: [
             { type: 'Mover', speed: 10 },
-            { type: 'Attacker', damage: 10, cooldown: 500 }
+            { type: 'Attacker', damage: 10, cooldown: 500, range: 6 }
         ]
     },
 };
@@ -55,6 +61,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         owner: 1,
         position: {x:31, y:25},
         direction: 0,
+        hp: UNIT_CATALOG['Harvester'].hp
     },
     {
         actionQueue: [],
@@ -63,6 +70,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         owner: 2,
         position: {x:64, y:90},
         direction: 0,
+        hp: UNIT_CATALOG['Harvester'].hp
     },
     {
         actionQueue: [],
@@ -71,6 +79,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         owner: 1,
         position: {x:10, y:10},
         direction: 0,
+        hp: UNIT_CATALOG['Base'].hp
     },
     {
         actionQueue: [],
@@ -79,8 +88,22 @@ const TEMP_STARTING_UNITS : Unit[] = [
         owner: 2,
         position: {x:90, y:90},
         direction: 0,
+        hp: UNIT_CATALOG['Base'].hp
     },
 ];
+
+let lastId = 4;
+[{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
+    TEMP_STARTING_UNITS.push({
+        actionQueue: [],
+        id: ++lastId,
+        kind: 'Trooper',
+        owner: 1,
+        position: p,
+        direction: 0,
+        hp: UNIT_CATALOG['Trooper'].hp
+    },)
+});
 
 export function newGame(map: GameMap): Game {
     return {
@@ -103,7 +126,7 @@ export function command(c: CommandPacket, g: Game) {
     if (!u)
         return;
 
-    console.log(`Adding action ${c.action} => ${c.unitId} for unit ${u.id}`)
+    console.log(`Adding action ${c.action.typ} for unit ${u.id}`)
 
     switch (c.action.typ) {
         case 'AttackMove': // TODO - implement
@@ -172,14 +195,29 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
     }
 
     const unitUpdates: UnitState[] = g.units
-        .map(u => { return {
-            id: u.id,
-            status: u.actionQueue.length > 0 ? 'Moving' : 'Idle', // TODO pull actual action that's done
-            position: u.position,
-            direction: u.direction,
-            owner: u.owner,
-            kind: u.kind,
-        }});
+        .map(u => {
+            // TODO pull actual action that's done right at the moment
+            // (including cooldowns etc)
+            const actionToStatus = {
+                'Attack': 'Attacking',
+                'AttackMove': 'Attacking',
+                'Follow': 'Moving',
+                'Move': 'Moving',
+                'Harvest': 'Harvesting',
+                'Produce': 'Idle',
+            }
+            type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
+            const status: (US) = u.actionQueue.length > 0 ? (actionToStatus[u.actionQueue[0].typ] as US) : 'Idle';
+
+            return {
+                id: u.id,
+                status,
+                position: u.position,
+                direction: u.direction,
+                owner: u.owner,
+                kind: u.kind,
+            }
+        });
 
     return { tickNumber: g.tickNumber, units: unitUpdates};
 }
@@ -188,6 +226,8 @@ function updateUnits(dt: Milliseconds, g: Game) {
     for (const unit of g.units) {
         updateUnit(dt, g, unit);
     }
+
+    g.units = g.units.filter(u => u.hp > 0);
 }
 
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
@@ -294,6 +334,40 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
 
         return true;
     };
+
+    const attack = (action: ActionAttack) => {
+        const ac = getAttackerComponent();
+        if (!ac) {
+            unit.actionQueue.shift();
+            return;
+        }
+
+        const target = g.units.find(u => u.id === action.target); // TODO Map
+        if (!target) {
+            // the target unit doesn't exist, end this action
+            unit.pathToNext = null;
+            unit.actionQueue.shift();
+            return;
+        }
+
+        // if out of range, just move to target
+        // TODO - duplication with follow
+        if (distance(unit.position, target.position) > ac.range) {
+            const newPath = pathFind(unit.position, target.position, g.board.map);
+
+            // if target is unobtainable, forfeit navigation
+            if (!newPath) {
+                unit.pathToNext = null;
+                unit.actionQueue.shift();
+                return false;
+            } else {
+                unit.pathToNext = newPath
+                return true;
+            }
+        } else {
+            target.hp -= ac.damage;
+        }
+    }
     
     switch (cmd.typ) {
         case 'Move': {
@@ -310,12 +384,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         }
 
         case 'Attack': {
-            const ac = getAttackerComponent();
-            if (!ac) {
-                unit.actionQueue.shift();
-                break;
-            }
-
+            attack(cmd);
             break;
         }
         case 'Harvest': {

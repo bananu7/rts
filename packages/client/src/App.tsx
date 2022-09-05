@@ -56,6 +56,7 @@ function App() {
 
       channel.on('tick', (data: Data) => {
         const u = data as UpdatePacket;
+        // TODO - detect dying units for visualisation purposes
         setLastUpdatePacket(u);
       })
 
@@ -75,6 +76,7 @@ function App() {
 
   const lines = msgs.map((m: Data, i: number) => <li key={i}>{String(m)}</li>);
 
+  // TODO - pull the commands into a proper class
   const joinMatch = (matchId: string) => {
     const data : IdentificationPacket = {
       playerId,
@@ -108,6 +110,18 @@ function App() {
     channel.emit('command', cmd)
   };
 
+  const attackCommand = (unitId: UnitId, target: UnitId) => {
+    const cmd : CommandPacket = {
+      action: {
+        typ: 'Attack',
+        target
+      },
+      unitId,
+      shift: false,
+    };
+    channel.emit('command', cmd)
+  }
+
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
   const mapClick = (p: Position) => {
     selectedUnits.forEach(u => {
@@ -115,9 +129,23 @@ function App() {
     });
   };
 
-  const unitRightClick = (target: UnitId) => {
+  const unitRightClick = (targetId: UnitId) => {
+    if (!lastUpdatePacket)
+      return;
+
+    const target = lastUpdatePacket.units.find(u => u.id === targetId);
+    if (!target) {
+      console.warn("A right click generated on a unit that does not exist");
+      return;
+    }
+
     selectedUnits.forEach(u => {
-      followCommand(u, target);
+      // TODO - handle actual user numbers
+      if (target.owner === 1) {
+        followCommand(u, targetId);
+      } else {
+        attackCommand(u, targetId);
+      }
     });
   }
 

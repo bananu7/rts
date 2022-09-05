@@ -201,17 +201,7 @@ export function Board3D(props: Props) {
         }
     }
 
-    const units = props.unitStates.map(u => 
-        (<Unit3D
-            key={u.id}
-            unit={u}
-            click={handleUnitClick}
-            selected={props.selectedUnits.has(u.id)}
-        />));
-
-    const groupRef = useRef<THREE.Group>();
-
-    const mapClick = (p: Position, button: number) => {
+    const handleMapClick = (p: Position, button: number) => {
         if (button === 2) {
             props.mapClick(p);
         }
@@ -219,6 +209,16 @@ export function Board3D(props: Props) {
             props.select(new Set());
         }
     };
+
+    const units = props.unitStates.map(u => 
+    (<Unit3D
+        key={u.id}
+        unit={u}
+        click={handleUnitClick}
+        selected={props.selectedUnits.has(u.id)}
+    />));
+
+    const groupRef = useRef<THREE.Group>();
 
     const selectInBox = (box: Box) => {
         function isInBox(p: Position, b: Box) {
@@ -246,7 +246,7 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D map={props.board.map} click={mapClick} selectInBox={selectInBox} />
+            <Map3D map={props.board.map} click={handleMapClick} selectInBox={selectInBox} />
             { units }
         </group>
     );
