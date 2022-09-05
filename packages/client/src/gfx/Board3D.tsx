@@ -14,25 +14,7 @@ import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
-
-
-type Line3DProps = {
-    points: THREE.Vector3[],
-}
-function Line3D(props: Line3DProps) {
-    const ref = useRef<THREE.Line>()
-    useLayoutEffect(() => {
-        if(!ref.current) return;
-        ref.current.geometry.setFromPoints(props.points);
-    }, [props.points]);
-
-    return (
-        <line ref={ref}>
-            <bufferGeometry />
-            <lineBasicMaterial color="yellow" />
-        </line>
-    )
-}
+import { Line3D } from './Line3D'
 
 type Unit3DProps = {
     unit: UnitState,
@@ -47,7 +29,7 @@ export function Unit3D(props: Unit3DProps) {
         e.stopPropagation();
 
         if (props.click)
-            props.click(props.unit.id, e.button);
+            props.click(props.unit.id, e.nativeEvent.button);
     }
 
     // TODO better color choices
@@ -110,16 +92,16 @@ export function Map3D(props: Map3DProps) {
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z}, e.button);
+        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button);
     };
 
     // selection box
     const [drag, setDrag] = useState<{x:number, y:number}|undefined>(undefined);
-    const pointerDown = e => {
+    const pointerDown = (e: ThreeEvent<PointerEvent>) => {
         setDrag({x: e.point.x, y: e.point.z});
     };
-    const pointerUp = e => {
-        if (e.button !== 0)
+    const pointerUp = (e: ThreeEvent<PointerEvent>) => {
+        if (e.nativeEvent.button !== 0)
             return;
         if (drag) {
             props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
@@ -134,7 +116,7 @@ export function Map3D(props: Map3DProps) {
     const xSize = 1;
     const ySize = 1;
 
-    const ref = useRef<THREE.InstancedMesh>()
+    const ref = useRef<THREE.InstancedMesh>(null);
     useLayoutEffect(() => {
         if (!ref.current)
             return;
@@ -154,8 +136,8 @@ export function Map3D(props: Map3DProps) {
                 ref.current.setColorAt(ix, vec3Color);
             }
         }
-        ref.current.instanceMatrix.needsUpdate = true
-        ref.current.instanceColor.needsUpdate = true
+        ref.current.instanceMatrix.needsUpdate = true;
+        if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
     }, [props.map])
 
     return (
@@ -218,7 +200,7 @@ export function Board3D(props: Props) {
         selected={props.selectedUnits.has(u.id)}
     />));
 
-    const groupRef = useRef<THREE.Group>();
+    const groupRef = useRef<THREE.Group>(null);
 
     const selectInBox = (box: Box) => {
         function isInBox(p: Position, b: Box) {

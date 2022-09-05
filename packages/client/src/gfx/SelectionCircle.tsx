@@ -6,7 +6,7 @@ export function SelectionCircle(props: { size: number }) {
     const outerRadius = props.size * 1.1;
     const segments = 32;
 
-    const ref = useRef<THREE.RingGeometry>();
+    const ref = useRef<THREE.RingGeometry>(null);
 
     useEffect(() => {
         if (!ref.current)
