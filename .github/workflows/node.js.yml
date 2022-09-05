@@ -14,21 +14,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    
     - uses: actions/setup-node@v3
       with:
         node-version: '16'
         cache: 'yarn'
+        
     - run: yarn install --frozen-lockfile
+    
+    - name: Set outputs
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      
     #- name: Build client
     #  working-directory: ./packages/client
     #  run: yarn build
+    
     - name: Build server
       working-directory: ./packages/server
       run: yarn build
+      
     - name: Upload server artifact
       uses: actions/upload-artifact@v3.1.0
       with:
-        name: ./packages/server/dist/
+        name: server-${{ steps.vars.outputs.sha_short }}
+        path: ./packages/server/dist/
+        
     #- name: Upload client artifact
     #  uses: actions/upload-artifact@v3.1.0
     #  with:
