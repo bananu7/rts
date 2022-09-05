@@ -110,21 +110,36 @@ export function command(c: CommandPacket, g: Game) {
         case 'Move':
         {
             const targetPos = c.action.target;
-            u.pathToNext = pathFind(u.position, targetPos, g.board.map);
+            const path = pathFind(u.position, targetPos, g.board.map);
+
+            if (!path) {
+                return;
+            }
+
+            u.pathToNext = path;
+
             break;
         }
         case 'Follow':
         case 'Attack':
         case 'Harvest':
         {
+            // TODO duplication above
             const targetId = c.action.target;
             const target = g.units.find(u => u.id === targetId); // TODO Map
             if (!target) {
                 // the target unit doesn't exist, ignore this action;
                 return;
             }
-            const targetPos = target.position;
-            u.pathToNext = pathFind(u.position, targetPos, g.board.map);
+
+            const path = pathFind(u.position, target.position, g.board.map);
+            if (!path) {
+                // target not reachable, ignore this action
+                // TODO maybe move as far as possible?
+                return;
+            }
+
+            u.pathToNext = path;
             break;
         }
         case 'Produce':
@@ -262,8 +277,17 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
         const targetPos = target.position;
 
         // recompute path if target is more than 3 units away from the original destination
-        if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > 3)
-            unit.pathToNext = pathFind(unit.position, targetPos, g.board.map);
+        if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > 3){
+            const newPath = pathFind(unit.position, targetPos, g.board.map);
+
+            // if target is unobtainable, forfeit navigation
+            if (!newPath) {
+                unit.pathToNext = null;
+                unit.actionQueue.shift();
+            } else {
+                unit.pathToNext = newPath
+            }
+        }
     };
     
     switch (cmd.typ) {

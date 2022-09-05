@@ -191,9 +191,11 @@ export interface Props {
 
 export function Board3D(props: Props) {
     const handleUnitClick = (u: UnitId, b: number) => {
-        // Add unit to selection TODO - require shift for that
+        // Add unit to selection
         if (b === 0) {
-            props.select(props.selectedUnits.add(u));
+            // TODO shiftclick
+            //props.select(props.selectedUnits.add(u));
+            props.select(new Set([u]));
         } else if (b === 2) {
             props.unitRightClick(u);
         }

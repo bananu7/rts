@@ -85,7 +85,7 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
     // TODO I don't think that's a correct check
     if (q.isEmpty())
-        throw "Failed to find path";
+        return undefined;
 
     // Reconstruct the path from the chained map
     const path = [] as TilePos[];
