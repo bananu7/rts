@@ -65,7 +65,7 @@ export function Map3D(props: Map3DProps) {
                 const color = isPassable ? 0x11aa11 : 0x888888;
                 const height = isPassable ? 0 : 0.8;
                 
-                mat4Pos.makeTranslation((x + 0.5) * xSize, height, (y + 0.5) * ySize);
+                mat4Pos.makeTranslation(x * xSize, height, y * ySize);
                 vec3Color.set(color);
 
                 ref.current.setMatrixAt(ix, mat4Pos);
@@ -83,7 +83,7 @@ export function Map3D(props: Map3DProps) {
                 onContextMenu={rawClick}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
-                position={[xSize*0.5*w, 0, ySize*0.5*h]}
+                position={[0.5*w, 0, ySize*0.5*h]}
             >
                 <boxGeometry args={[xSize*w, 1, ySize*h]} />
                 <meshBasicMaterial opacity={0} transparent={true} />
@@ -92,7 +92,6 @@ export function Map3D(props: Map3DProps) {
             <instancedMesh
                 ref={ref}
                 args={[undefined, undefined, w*h]}
-                receiveShadow
             >
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
                 <boxGeometry args={[xSize, 1, ySize]} />
