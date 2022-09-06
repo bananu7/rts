@@ -2,6 +2,7 @@ import geckos, { Data } from '@geckos.io/server'
 import http from 'http'
 import express from 'express'
 import cors from 'cors'
+import bodyParser from 'body-parser'
 
 import {newGame, startGame, tick, command} from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, PlayerEntry } from './types.js';
@@ -15,6 +16,8 @@ type Match = {
 
 const app = express()
 app.use(cors())
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 const server = http.createServer(app)
 const io = geckos()
 
@@ -70,46 +73,56 @@ app.post('/create', async (req, res) => {
 
 // register a particular user as a player in a match
 app.post('/join', async (req, res) => {
-    const userId = req.query.userId as string;
+    try {
+        const userId = req.body.userId as string;
+        const matchId = req.body.matchId;
+        console.log(req.body);
 
-    const match = matches.find(m => m.matchId === req.query.matchId);
-    if (!match) {
-        res.status(400);
-        res.send("Match doesn't exists");
-        return;
+        const match = matches.find(m => m.matchId === matchId);
+        if (!match) {
+            res.status(400);
+            res.send("Match doesn't exist");
+            console.warn(`Join attempt to a match that doesn't exist (${matchId})`);
+            return;
+        }
+
+        // TODO - allow more than two players
+        if (match.players.length >= 2) {
+            res.status(400);
+            res.send("This match is full");
+            return;
+        }
+
+        if (match.game.state.id !== 'Lobby') {
+            res.status(400);
+            res.send("This match has already started");
+            return;
+        }
+
+        if (match.players.find(p => p.user === userId)) {
+            res.status(400);
+            res.send("User is already in this match");
+            return;
+        }
+
+        // TODO - find a better way to find next free slot
+        // it makes sense to not just use array to leave slots open when someone leaves
+        // and slot order might matter
+        let index = 1;
+        for (;index < 10; index++) {
+            if (match.players.find(p => p.index === index))
+                continue;
+        }
+        match.players.push({ user: userId, index });
+
+        res.send(JSON.stringify({
+            playerIndex: index
+        }));
     }
-
-    // TODO - allow more than two players
-    if (match.players.length >= 2) {
-        res.status(400);
-        res.send("This match is full");
-        return;
+    catch(e) {
+        res.sendStatus(500);
+        console.error(e);
     }
-
-    if (match.game.state.id !== 'Lobby') {
-        res.status(400);
-        res.send("This match has already started");
-    }
-
-    if (match.players.find(p => p.user === userId)) {
-        res.status(400);
-        res.send("User is already in this match");
-        return;
-    }
-
-    // TODO - find a better way to find next free slot
-    // it makes sense to not just use array to leave slots open when someone leaves
-    // and slot order might matter
-    let index = 1;
-    for (;index < 10; index++) {
-        if (match.players.find(p => p.index === index))
-            continue;
-    }
-    match.players.push({ user: userId, index });
-
-    res.send(JSON.stringify({
-        playerIndex: index
-    }));
 });
 
 // channel is a new RTC connection (i.e. one browser)
@@ -159,7 +172,7 @@ io.onConnection(channel => {
 
     channel.on('command', (data: Data) => {
         try {
-            if (!channel.userData.playerId) {
+            if (!channel.userData.playerIndex) {
                 throw "Received a command from an unidentified channel";
             }
 
