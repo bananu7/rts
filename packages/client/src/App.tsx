@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
+import { CommandPalette } from './components/CommandPalette';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -13,17 +14,18 @@ import { Multiplayer } from './Multiplayer';
 const multiplayer = new Multiplayer();
 
 function App() {
+  const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
   const [serverState, setServerState] = useState<Game | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
-  const getMatchState = (matchId: string) => {
+  const getMatchState = useCallback((matchId: string) => {
     console.log("Getting match state");
     fetch('http://localhost:9208/getMatchState?' + new URLSearchParams({ matchId }))
       .then(r => r.json())
       .then(s => setServerState(s));
-  }
+  }, []);
 
   useEffect(() => {
     multiplayer.setup({
@@ -35,11 +37,12 @@ function App() {
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
-  const mapClick = (p: Position) => {
+
+  const mapClick = useCallback((p: Position) => {
     selectedUnits.forEach(u => {
       multiplayer.moveCommand(p, u);
     });
-  };
+  }, [selectedUnits]);
 
   const unitRightClick = (targetId: UnitId) => {
     if (!lastUpdatePacket)
@@ -63,42 +66,47 @@ function App() {
 
   return (
     <div className="App">
-      <div className="card">
-        <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
+      {showMainMenu &&
+        <div className="modal">
+          <h3>Main menu</h3>
+          <ul>
+            <li>Play</li>
+            { false && 
+                <li>Leave game</li>
+            }
+          </ul>
+        </div>
+      }
 
-        <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
-        <button onClick={() => multiplayer.createMatch()}>Create</button>
-
-        <br />
-
-        <span>{lastUpdatePacket ? JSON.stringify(lastUpdatePacket) : ""}</span>
-
-        <ul>
-          {lines}
-        </ul>
+      <div className="chat">
+          <ul>
+            {lines}
+          </ul>
+          <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
       </div>
 
-      { serverState && 
-        <div className="CommandPalette">
-          <button onClick={() => multiplayer.moveCommand({x:50, y:50}, 1)}>Move</button>
+      { !serverState &&
+        <div className="card">
+          <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
+          <button onClick={() => multiplayer.createMatch()}>Create</button>
         </div>
       }
 
       { serverState &&
-        <View3D>
-          <Board3D
-            board={serverState.board}
-            unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
-            selectedUnits={selectedUnits}
-            select={setSelectedUnits}
-            mapClick={mapClick}
-            unitRightClick={unitRightClick}
-          />
-        </View3D>
-      }
-
-      { serverState &&
+        <>
+          <CommandPalette selectedUnits={selectedUnits} multiplayer={multiplayer} />
+          <View3D>
+            <Board3D
+              board={serverState.board}
+              unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
+              selectedUnits={selectedUnits}
+              select={setSelectedUnits}
+              mapClick={mapClick}
+              unitRightClick={unitRightClick}
+            />
+          </View3D>
           <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
+        </>
       }
     </div>
   )
