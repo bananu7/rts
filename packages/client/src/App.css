@@ -60,7 +60,7 @@
   width: 300px;
   position: absolute;
   top: 5%;
-  left: 5%;
+  right: 10px;
   z-index: 2;
   background-color: #555;
   display: flex;
@@ -71,8 +71,8 @@
 
 .MainMenuButton {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 10px;
+  right: 10px;
   z-index: 10;
 }
 

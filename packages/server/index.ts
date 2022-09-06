@@ -33,6 +33,7 @@ app.get('/listMatches', (req, res) => {
     const matchInfos : MatchInfo[] = matches.map(m => { return {
         matchId: m.matchId,
         playerCount: m.players.length,
+        status: m.game.state,
     }});
 
     res.send(JSON.stringify(matchInfos));
@@ -76,7 +77,6 @@ app.post('/join', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
-        console.log(req.body);
 
         const match = matches.find(m => m.matchId === matchId);
         if (!match) {
@@ -119,6 +119,29 @@ app.post('/join', async (req, res) => {
             playerIndex: index
         }));
     }
+    catch(e) {
+        res.sendStatus(500);
+        console.error(e);
+    }
+});
+
+app.post('/leave', async (req, res) => {
+    try {
+        const userId = req.body.userId as string;
+        const matchId = req.body.matchId;
+        
+        const match = matches.find(m => m.matchId === matchId);
+        if (!match) {
+            res.send('OK');
+            return;
+        }
+
+        if (match.players.find(p => p.user === userId)) {
+            match.players = match.players.filter(p => p.user !== userId);
+            res.send('OK');
+            return;
+        }
+    } 
     catch(e) {
         res.sendStatus(500);
         console.error(e);

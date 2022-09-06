@@ -12,7 +12,8 @@ export type UnitId = number;
 // Network connectivity
 export type MatchInfo = {
     matchId: string,
-    playerCount: number
+    playerCount: number,
+    status: GameState, 
 }
 
 export type IdentificationPacket = {

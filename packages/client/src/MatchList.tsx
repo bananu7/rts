@@ -28,6 +28,7 @@ export function MatchList(props: Props) {
         <tr key={m.matchId}>
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
+            <td>{m.status.id}</td>
             <td><button onClick={() => props.joinMatch(m.matchId)}>Join</button></td>
         </tr>
     );
@@ -38,6 +39,7 @@ export function MatchList(props: Props) {
                 <tr>
                     <th>Match id</th>
                     <th>Players</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>

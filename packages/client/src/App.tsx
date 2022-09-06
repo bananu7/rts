@@ -66,21 +66,20 @@ function App() {
 
   return (
     <div className="App">
-      <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
-      {showMainMenu &&
+      { showMainMenu &&
         <div className="MainMenu">
           <h3>Main menu</h3>
-          <button>Play</button>
-          <button>Leave game</button>
+          { !serverState && <button>Play</button> }
+          { serverState && <button onClick={() => multiplayer.leaveMatch()}>Leave game</button> }
         </div>
       }
 
-      <div className="chat">
+      {/*<div className="chat">
           <ul>
             {lines}
           </ul>
           <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
-      </div>
+      </div>*/}
 
       { !serverState &&
         <div className="card">
@@ -91,6 +90,7 @@ function App() {
 
       { serverState &&
         <>
+          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette selectedUnits={selectedUnits} multiplayer={multiplayer} />
           <View3D>
             <Board3D

@@ -82,7 +82,7 @@ export class Multiplayer {
     protected reconnect() {
         if (this.matchId) {
             console.log(`[Multiplayer] Reconnecting to match ${this.matchId}`)
-            this.channel.emit('connect', { matchId: this.matchId, userId: this.userId });
+            this.channel.emit('connect', { matchId: this.matchId, userId: this.userId }, { reliable: true });
         }
     }
 
@@ -124,6 +124,27 @@ export class Multiplayer {
             this.channel.emit('connect', data);
         })
     };
+    
+    leaveMatch() {
+        if (!this.matchId)
+            return;
+
+        const body = JSON.stringify({
+            matchId: this.matchId,
+            userId: this.userId,
+        });
+
+        fetch(FETCH_URL+'/leave', {
+            method: 'POST',
+            body,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(res => {
+            this.matchId = undefined;
+        });
+    }
 
     sendChatMessage(msg: string) {
         this.channel.emit('chat message', 'msg')
