@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef, useLayoutEffect } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react'
 
 import {
     ThreeEvent
@@ -29,19 +29,28 @@ export function Map3D(props: Map3DProps) {
 
     // selection box
     const [drag, setDrag] = useState<{x:number, y:number}|undefined>(undefined);
-    const pointerDown = (e: ThreeEvent<PointerEvent>) => {
-        setDrag({x: e.point.x, y: e.point.z});
-    };
-    const pointerUp = (e: ThreeEvent<PointerEvent>) => {
-        if (e.nativeEvent.button !== 0)
-            return;
-        if (drag) {
+    const [pointer, setPointer] = useState<{x:number, y:number}|undefined>(undefined);
+    const pointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
+        if (e.nativeEvent.button === 0)
+            setDrag({x: e.point.x, y: e.point.z});
+    }, []);
+    const pointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
+        setPointer({x: e.point.x, y: e.point.z});
+    }, []);
+    const pointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
+        if (drag && e.nativeEvent.button === 0) {
             props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
         }
         setDrag(undefined);
-    };
+        setPointer(undefined);
+    }, [drag]);
 
+    const selectionBoxSize = (drag && pointer) ? {
+        x: Math.abs(drag.x - pointer.x),
+        y: Math.abs(drag.y - pointer.y)
+    } : undefined;
 
+    // actual map
     const w = props.map.w;
     const h = props.map.h;
 
@@ -83,15 +92,30 @@ export function Map3D(props: Map3DProps) {
                 onContextMenu={rawClick}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
+                onPointerMove={pointerMove}
                 position={[0.5*w, 0, ySize*0.5*h]}
             >
                 <boxGeometry args={[xSize*w, 1, ySize*h]} />
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
+            {drag && pointer && selectionBoxSize && <mesh
+                name="SelectionBox"
+                position={[
+                    pointer.x - selectionBoxSize.x / 2 * (pointer.x > drag.x ? 1 : -1),
+                    2,
+                    pointer.y - selectionBoxSize.y / 2 * (pointer.y > drag.y ? 1 : -1)
+                ]}
+                rotation={[-Math.PI/2, 0, 0]}
+            >
+                <planeGeometry args={[selectionBoxSize.x, selectionBoxSize.y]}/>
+                <meshBasicMaterial wireframe color={0x00ff00} />
+            </mesh>}
+
             <instancedMesh
                 ref={ref}
                 args={[undefined, undefined, w*h]}
+                receiveShadow
             >
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
                 <boxGeometry args={[xSize, 1, ySize]} />
