@@ -15,7 +15,7 @@ import * as THREE from 'three';
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
-import { Map3D } from './Map3D'
+import { Map3D, Box } from './Map3D'
 
 type Unit3DProps = {
     unit: UnitState,

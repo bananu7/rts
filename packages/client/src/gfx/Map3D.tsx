@@ -11,7 +11,7 @@ import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 
 type Click = (p: Position, button: number) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
-type Box = { x1: number, y1: number, x2: number, y2: number };
+export type Box = { x1: number, y1: number, x2: number, y2: number };
 
 type Map3DProps = {
     map: GameMap,

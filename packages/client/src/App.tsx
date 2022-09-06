@@ -66,15 +66,12 @@ function App() {
 
   return (
     <div className="App">
+      <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
       {showMainMenu &&
-        <div className="modal">
+        <div className="MainMenu">
           <h3>Main menu</h3>
-          <ul>
-            <li>Play</li>
-            { false && 
-                <li>Leave game</li>
-            }
-          </ul>
+          <button>Play</button>
+          <button>Leave game</button>
         </div>
       }
 
