@@ -11,7 +11,7 @@ import { Board3D } from './gfx/Board3D';
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
 import { Multiplayer } from './Multiplayer';
 
-const multiplayer = new Multiplayer();
+const multiplayer = new Multiplayer("bananu7");
 
 function App() {
   const [showMainMenu, setShowMainMenu] = useState(false);
@@ -22,7 +22,7 @@ function App() {
  
   const getMatchState = useCallback((matchId: string) => {
     console.log("Getting match state");
-    fetch('http://localhost:9208/getMatchState?' + new URLSearchParams({ matchId }))
+    fetch(`http://${window.location.hostname}:9208/getMatchState?` + new URLSearchParams({ matchId }))
       .then(r => r.json())
       .then(s => setServerState(s));
   }, []);
@@ -30,7 +30,7 @@ function App() {
   useEffect(() => {
     multiplayer.setup({
       onUpdatePacket: (p:UpdatePacket) => setLastUpdatePacket(p),
-      onMatchJoin: (matchId: string) => getMatchState(matchId),
+      onMatchConnected: (matchId: string) => getMatchState(matchId),
     });
   }, []);
 

@@ -1,5 +1,5 @@
 import {
-    GameMap, Game, Player, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Mover, Attacker, Harvester,
     ActionFollow, ActionAttack
 } from './types';
@@ -107,9 +107,9 @@ let lastId = 4;
 
 export function newGame(map: GameMap): Game {
     return {
-        state: {id: 'Fresh'},
+        state: {id: 'Lobby'},
         tickNumber: 0,
-        players: [],
+        players: 0,
         board: {
             map: map,
         },
@@ -426,11 +426,12 @@ function unitVector(a: Position, b: Position) {
     return {x: Math.cos(angle), y: Math.sin(angle)};
 }
 
-function eliminated(g: Game): Player[] {
+function eliminated(g: Game): PlayerIndex[] {
     const isBuilding = (u: Unit) => !!UNIT_CATALOG[u.kind].components.find(c => c.type === 'Building');
-    const buildingsByPlayer = (p: Player) => g.units.filter(u => u.owner === p && isBuilding(u));
+    const buildingsByPlayer = (p: PlayerIndex) => g.units.filter(u => u.owner === p && isBuilding(u));
 
-    const buildingCounts = g.players.map(p => [p, buildingsByPlayer(p).length]);
+    // TODO support more than 2 players
+    const buildingCounts = [1,2].map(p => [p, buildingsByPlayer(p).length]);
 
     return buildingCounts.filter(([p,c]) => c === 0).map(([p,c]) => p);
 }

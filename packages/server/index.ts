@@ -4,13 +4,13 @@ import express from 'express'
 import cors from 'cors'
 
 import {newGame, startGame, tick, command} from './game.js';
-import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket } from './types.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, PlayerEntry } from './types.js';
 import {getMap} from './map.js';
 
 type Match = {
     game: Game,
     matchId: string,
-    players: number[],
+    players: PlayerEntry[],
 }
 
 const app = express()
@@ -68,6 +68,50 @@ app.post('/create', async (req, res) => {
     console.log(`Match ${matchId} created`);
 })
 
+// register a particular user as a player in a match
+app.post('/join', async (req, res) => {
+    const userId = req.query.userId as string;
+
+    const match = matches.find(m => m.matchId === req.query.matchId);
+    if (!match) {
+        res.status(400);
+        res.send("Match doesn't exists");
+        return;
+    }
+
+    // TODO - allow more than two players
+    if (match.players.length >= 2) {
+        res.status(400);
+        res.send("This match is full");
+        return;
+    }
+
+    if (match.game.state.id !== 'Lobby') {
+        res.status(400);
+        res.send("This match has already started");
+    }
+
+    if (match.players.find(p => p.user === userId)) {
+        res.status(400);
+        res.send("User is already in this match");
+        return;
+    }
+
+    // TODO - find a better way to find next free slot
+    // it makes sense to not just use array to leave slots open when someone leaves
+    // and slot order might matter
+    let index = 1;
+    for (;index < 10; index++) {
+        if (match.players.find(p => p.index === index))
+            continue;
+    }
+    match.players.push({ user: userId, index });
+
+    res.send(JSON.stringify({
+        playerIndex: index
+    }));
+});
+
 // channel is a new RTC connection (i.e. one browser)
 io.onConnection(channel => {
     // first figure out where to join it
@@ -75,66 +119,41 @@ io.onConnection(channel => {
         console.log(`${channel.id} got disconnected`)
     })
 
-    channel.on('join', (data: Data) => {
+    channel.on('connect', (data: Data) => {
         // TODO properly validate data format
         const packet = data as IdentificationPacket;
-
+        
         const m = matches.find(m => m.matchId === packet.matchId);
         if (!m) {
-            console.error("Received a join request to a match that doesn't exist");
+            console.warn("Received a connect request to a match that doesn't exist");
+            channel.emit('connection failure', packet.matchId, {reliable: true});
             return;
         }
 
-        m.players.push(packet.playerId);
+        const playerEntry = m.players.find(p => p.user === packet.userId);
+        if (!playerEntry) {
+            console.warn(`Received a connect request to a match(${packet.matchId}) that the user(${packet.userId}) hasn't joined`);
+            channel.emit('connection failure', packet.matchId, {reliable: true});
+            return;
+        }
 
         channel.join(String(packet.matchId));
 
         channel.userData = {
-            playerId: packet.playerId,
+            playerIndex: playerEntry.index,
             matchId: packet.matchId
         };
 
-        console.log(`Channel of player ${packet.playerId} joined the match ${packet.matchId}`);
+        console.log(`Channel of user ${packet.userId} connected to the match ${packet.matchId}`);
 
-        channel.emit('joined', packet.matchId);
-        channel.emit('chat message', `Successfully joined the match ${packet.matchId}!`);
+        channel.emit('connected', playerEntry.index, {reliable: true});
+        channel.emit('chat message', `Successfully connected to the match ${packet.matchId}!`);
 
         // check if the game can start
         // TODO - wait for all players, not just one
         if (m.players.length >= 1) {
             startGame(m.game);
             io.room(m.matchId).emit('chat message', "Game starting")
-        }
-    });
-
-    channel.on('rejoin', (data: Data) => {
-        const packet = data as IdentificationPacket;
-        try {
-            packet.matchId = String(packet.matchId);
-
-            const m = matches.find(m => m.matchId === packet.matchId);
-            if (!m) {
-                throw "Received a rejoin request to a match that doesn't exist";
-            }
-
-            if (!m.players.find(p => p === packet.playerId)) {
-                throw "Received a rejoin request but player isn't in this match";
-            }
-
-            channel.join(packet.matchId);
-
-            channel.emit('joined', packet.matchId);
-            channel.emit('chat message', `Successfully re-joined the match ${packet.matchId}!`);
-
-            channel.userData = {
-                playerId: packet.playerId,
-                matchId: packet.matchId
-            };
-            console.log(`Channel of player ${packet.playerId} rejoined the match ${packet.matchId}`);
-        }
-        catch (e) {
-            channel.emit('join failure', packet.matchId, {reliable: true});
-            console.error(e);
         }
     });
 

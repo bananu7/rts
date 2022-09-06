@@ -3,28 +3,33 @@ import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Positi
 
 export type OnChatMessage = (msg: string) => void;
 export type OnUpdatePacket = (p: UpdatePacket) => void;
-export type OnMatchJoin = (matchId: string) => void;
+export type OnMatchConnected = (matchId: string) => void;
 
 export type MultiplayerConfig = {
     onChatMessage?: OnChatMessage,
     onUpdatePacket: OnUpdatePacket,
-    onMatchJoin: OnMatchJoin,
+    onMatchConnected: OnMatchConnected,
 }
+
+const FETCH_URL = `http://${window.location.hostname}:9208`;
 
 export class Multiplayer {
     channel: ClientChannel;
     geckosSetUp: boolean;
-    playerId: number;
+    userId: string;
+
+    matchId?: string;
+    playerIndex?: number;
 
     onChatMessage?: OnChatMessage;
     onUpdatePacket?: OnUpdatePacket;
-    onMatchJoin?: OnMatchJoin;
+    onMatchConnected?: OnMatchConnected;
 
-    constructor() {
+    constructor(userId: string) {
         this.channel = geckos({ port: 9208 });
         this.geckosSetUp = false;
 
-        this.playerId = 1;
+        this.userId = userId;
     }
 
     setup(config: MultiplayerConfig) {
@@ -34,7 +39,9 @@ export class Multiplayer {
 
         this.onChatMessage = config.onChatMessage;
         this.onUpdatePacket = config.onUpdatePacket;
-        this.onMatchJoin = config.onMatchJoin;
+        this.onMatchConnected = config.onMatchConnected;
+
+        this.matchId = localStorage.getItem('matchId') || undefined;
 
         this.channel.onConnect((error: any) => {
             if (error) {
@@ -55,45 +62,67 @@ export class Multiplayer {
                 this.onUpdatePacket && this.onUpdatePacket(u);
             })
 
-            this.channel.on('joined', (data: Data) => {
-                const matchId = String(data);
-                console.log(`[Multiplayer] server confirmed match join to match ${matchId}`);
-                localStorage.setItem('matchId', matchId);
-                this.onMatchJoin && this.onMatchJoin(matchId);
+            this.channel.on('connected', (data: Data) => {
+                if (!this.matchId) {
+                    throw "Server responded with connection but the multiplayer isn't initialized to a match";
+                }
+                console.log("[Multiplayer] RTC connected to match")
+                this.onMatchConnected && this.onMatchConnected(this.matchId);
             });
 
-            this.channel.on('join failure', (data: Data) => {
+            this.channel.on('connection failure', (data: Data) => {
                 console.log("[Multiplayer] server refused join or rejoin, clearing match association");
                 localStorage.removeItem('matchId');
             });
 
-            this.rejoin();
+            this.reconnect();
         });
     }
 
-    rejoin() {
-        const matchId = localStorage.getItem('matchId');
-        if (matchId) {
-            console.log(`[Multiplayer] Rejoining match ${matchId}`)
-            this.channel.emit('rejoin', { matchId, playerId: this.playerId });
+    protected reconnect() {
+        if (this.matchId) {
+            console.log(`[Multiplayer] Reconnecting to match ${this.matchId}`)
+            this.channel.emit('connect', { matchId: this.matchId, userId: this.userId });
         }
     }
 
     // TODO - make this async, make backend return id
     createMatch() {
-        fetch('http://localhost:9208/create', {
+        fetch(FETCH_URL+'/create', {
             method: 'POST',
         });
     }
 
     joinMatch(matchId: string) {
-        const data : IdentificationPacket = {
-            playerId: this.playerId,
-            matchId
+        console.log(`[Multiplayer] joining match ${matchId}`)
+        const joinData = {
+            matchId,
+            userId: this.userId
         };
 
-        console.log(this)
-        this.channel.emit('join', data);
+        fetch(FETCH_URL+'/join', {
+            method: 'POST',
+            body: JSON.stringify(joinData),
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        // connect RTC automatically after joining
+        .then(res => res.json())
+        .then(res => {
+            this.playerIndex = res.playerIndex;
+            console.log(`[Multiplayer] server confirmed match join`);
+
+            this.matchId = matchId;
+            localStorage.setItem('matchId', this.matchId);
+
+            const data : IdentificationPacket = {
+                userId: this.userId,
+                matchId
+            };
+
+            this.channel.emit('connect', data);
+        })
     };
 
     sendChatMessage(msg: string) {

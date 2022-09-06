@@ -56,7 +56,8 @@
 .MainMenu {
   width: 300px;
   position: absolute;
-  margin: auto;
+  top: 5%;
+  left: 5%;
   z-index: 2;
   background-color: #555;
   display: flex;

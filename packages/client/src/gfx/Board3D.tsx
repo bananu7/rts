@@ -69,6 +69,7 @@ export function Unit3D(props: Unit3DProps) {
                     onClick={ onClick }
                     onContextMenu={ onClick }
                     castShadow
+                    receiveShadow
                 >
                     <boxGeometry args={[unitSize, 2, unitSize]} />
                     <meshStandardMaterial color={color} />

@@ -18,7 +18,10 @@ export function MatchList(props: Props) {
         refresh();
         // TODO - only do when open?
         // TODO - move match create button here
-        setInterval(refresh, 1000);
+        const i = setInterval(refresh, 1000);
+        return () => {
+            clearInterval(i);
+        };
     }, []);
 
     const matchRows = matches.map(m => 
