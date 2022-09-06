@@ -1,133 +1,48 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
+import { CommandPalette } from './components/CommandPalette';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
 
-import geckos, { Data } from '@geckos.io/client'
-
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
+import { Multiplayer } from './Multiplayer';
 
-let channel = geckos({ port: 9208 });
-let geckosSetUp = false;
-
-const playerId = 1;
+const multiplayer = new Multiplayer("bananu7");
 
 function App() {
-  const [msgs, setMsgs] = useState([] as Data[]);
+  const [showMainMenu, setShowMainMenu] = useState(false);
+  const [msgs, setMsgs] = useState([] as string[]);
   const [serverState, setServerState] = useState<Game | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
-  const getMatchState = (matchId: string) => {
-    fetch('http://localhost:9208/getMatchState?' + new URLSearchParams({ matchId }))
+  const getMatchState = useCallback((matchId: string) => {
+    console.log("Getting match state");
+    fetch(`http://${window.location.hostname}:9208/getMatchState?` + new URLSearchParams({ matchId }))
       .then(r => r.json())
       .then(s => setServerState(s));
-  }
-
-  useEffect(() => {
-    if (geckosSetUp)
-      return;
-    geckosSetUp = true;
-
-    channel.onConnect((error: any) => {
-      if (error) {
-        console.error(error.message)
-        return
-      }
-
-      console.log('Channel set up correctly')
-
-      // rejoin
-      const matchId = localStorage.getItem('matchId');
-      if (matchId) {
-        console.log(`Rejoining match ${matchId}`)
-        channel.emit('rejoin', { matchId, playerId });
-      }
-
-      // set up handlers
-      channel.on('chat message', (data: Data) => {
-        msgs.push(data);
-        setMsgs(msgs);
-      })
-
-      channel.on('tick', (data: Data) => {
-        const u = data as UpdatePacket;
-        // TODO - detect dying units for visualisation purposes
-        setLastUpdatePacket(u);
-      })
-
-      channel.on('joined', (data: Data) => {
-        const matchId = String(data);
-        console.log(`server confirmed match join to match ${matchId}`);
-        localStorage.setItem('matchId', matchId);
-        getMatchState(matchId);
-      });
-
-      channel.on('join failure', (data: Data) => {
-        console.log("server refused join or rejoin, clearing match association");
-        localStorage.removeItem('matchId');
-      });
-    })
   }, []);
 
-  const lines = msgs.map((m: Data, i: number) => <li key={i}>{String(m)}</li>);
+  useEffect(() => {
+    multiplayer.setup({
+      onUpdatePacket: (p:UpdatePacket) => setLastUpdatePacket(p),
+      onMatchConnected: (matchId: string) => getMatchState(matchId),
+    });
+  }, []);
 
-  // TODO - pull the commands into a proper class
-  const joinMatch = (matchId: string) => {
-    const data : IdentificationPacket = {
-      playerId,
-      matchId
-    };
-
-    channel.emit('join', data);
-  };
-
-  const moveCommand = (target: Position, unitId: UnitId) => {
-    const cmd : CommandPacket = {
-      action: {
-        typ: 'Move',
-        target
-      },
-      unitId: unitId,
-      shift: false,
-    };
-    channel.emit('command', cmd)
-  };
-
-  const followCommand = (unitId: UnitId, target: UnitId) => {
-    const cmd : CommandPacket = {
-      action: {
-        typ: 'Follow',
-        target
-      },
-      unitId,
-      shift: false,
-    };
-    channel.emit('command', cmd)
-  };
-
-  const attackCommand = (unitId: UnitId, target: UnitId) => {
-    const cmd : CommandPacket = {
-      action: {
-        typ: 'Attack',
-        target
-      },
-      unitId,
-      shift: false,
-    };
-    channel.emit('command', cmd)
-  }
+  const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
-  const mapClick = (p: Position) => {
+
+  const mapClick = useCallback((p: Position) => {
     selectedUnits.forEach(u => {
-      moveCommand(p, u);
+      multiplayer.moveCommand(p, u);
     });
-  };
+  }, [selectedUnits]);
 
   const unitRightClick = (targetId: UnitId) => {
     if (!lastUpdatePacket)
@@ -142,59 +57,53 @@ function App() {
     selectedUnits.forEach(u => {
       // TODO - handle actual user numbers
       if (target.owner === 1) {
-        followCommand(u, targetId);
+        multiplayer.followCommand(u, targetId);
       } else {
-        attackCommand(u, targetId);
+        multiplayer.attackCommand(u, targetId);
       }
     });
   }
 
   return (
     <div className="App">
-      <div className="card">
-        <button onClick={
-          () => {
-            channel.emit('chat message', 'a short message sent to the server')
-          }}
-        >Chat</button>
+      { showMainMenu &&
+        <div className="MainMenu">
+          <h3>Main menu</h3>
+          { !serverState && <button>Play</button> }
+          { serverState && <button onClick={() => multiplayer.leaveMatch()}>Leave game</button> }
+        </div>
+      }
 
-        <MatchList joinMatch={joinMatch} />
+      {/*<div className="chat">
+          <ul>
+            {lines}
+          </ul>
+          <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
+      </div>*/}
 
-        <button onClick={ () => {
-          fetch('http://localhost:9208/create', {
-            method: 'POST',
-          });
-        }}>Create</button>
-
-        <br />
-        <span>{lastUpdatePacket ? JSON.stringify(lastUpdatePacket) : ""}</span>
-
-        <ul>
-          {lines}
-        </ul>
-      </div>
-
-      { serverState && 
-        <div className="CommandPalette">
-          <button onClick={() => moveCommand({x:50, y:50}, 1)}>Move</button>
+      { !serverState &&
+        <div className="card">
+          <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
+          <button onClick={() => multiplayer.createMatch()}>Create</button>
         </div>
       }
 
       { serverState &&
-        <View3D>
-          <Board3D
-            board={serverState.board}
-            unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
-            selectedUnits={selectedUnits}
-            select={setSelectedUnits}
-            mapClick={mapClick}
-            unitRightClick={unitRightClick}
-          />
-        </View3D>
-      }
-
-      { serverState &&
+        <>
+          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
+          <CommandPalette selectedUnits={selectedUnits} multiplayer={multiplayer} />
+          <View3D>
+            <Board3D
+              board={serverState.board}
+              unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
+              selectedUnits={selectedUnits}
+              select={setSelectedUnits}
+              mapClick={mapClick}
+              unitRightClick={unitRightClick}
+            />
+          </View3D>
           <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
+        </>
       }
     </div>
   )

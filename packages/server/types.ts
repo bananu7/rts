@@ -1,5 +1,10 @@
 
 // Misc
+export type Position = {
+    x: number,
+    y: number,
+}
+
 export type Milliseconds = number;
 
 export type UnitId = number;
@@ -7,11 +12,12 @@ export type UnitId = number;
 // Network connectivity
 export type MatchInfo = {
     matchId: string,
-    playerCount: number
+    playerCount: number,
+    status: GameState, 
 }
 
 export type IdentificationPacket = {
-    playerId: number,
+    userId: UserId,
     matchId: string, 
 }
 
@@ -93,18 +99,19 @@ export type ProductionFacility = {
 // Internal Game stuff
 export type TilePos = { x: number, y: number }
 
-export type Player = number
+export type PlayerIndex = number
+export type UserId = string
 
-export type Position = {
-    x: number,
-    y: number,
+export type PlayerEntry = {
+    index: number,
+    user: UserId,
 }
 
 export type Unit = {
     id: number,
     actionQueue: Action[],
     kind: string, // TODO should this be in a component
-    owner: Player,
+    owner: PlayerIndex,
     position: Position,
     direction: number,
 
@@ -116,7 +123,7 @@ export type Unit = {
 export type Game = {
     state: GameState
     tickNumber: number,
-    players: Player[],
+    players: number,
     board: Board,
     units: Unit[],
 }
@@ -132,7 +139,7 @@ export type Board = {
 }
 
 export type GameState = {
-    id: 'Fresh',
+    id: 'Lobby',
 } | {
     id: 'Precount', // once everyone joins
     count: number,

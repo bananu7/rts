@@ -18,13 +18,17 @@ export function MatchList(props: Props) {
         refresh();
         // TODO - only do when open?
         // TODO - move match create button here
-        setInterval(refresh, 1000);
+        const i = setInterval(refresh, 1000);
+        return () => {
+            clearInterval(i);
+        };
     }, []);
 
     const matchRows = matches.map(m => 
         <tr key={m.matchId}>
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
+            <td>{m.status.id}</td>
             <td><button onClick={() => props.joinMatch(m.matchId)}>Join</button></td>
         </tr>
     );
@@ -35,6 +39,7 @@ export function MatchList(props: Props) {
                 <tr>
                     <th>Match id</th>
                     <th>Players</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
