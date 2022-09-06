@@ -67,9 +67,10 @@ export function Unit3D(props: Unit3DProps) {
                 <mesh
                     onClick={ onClick }
                     onContextMenu={ onClick }
+                    castShadow
                 >
                     <boxGeometry args={[unitSize, 2, unitSize]} />
-                    <meshBasicMaterial color={color} />
+                    <meshStandardMaterial color={color} />
                 </mesh>
                 { props.selected && <SelectionCircle size={unitSize} /> }    
             </group>
@@ -127,9 +128,13 @@ export function Map3D(props: Map3DProps) {
         for (let y = 0; y < w; y++){
             for (let x = 0; x < h; x++) {
                 const ix = y*props.map.w+x;
-                const color = props.map.tiles[ix] === 0 ? 0x11cc11 : 0x111111;
+
+                const isPassable = props.map.tiles[ix] === 0;
+
+                const color = isPassable ? 0x11aa11 : 0x888888;
+                const height = isPassable ? 0 : 0.8;
                 
-                mat4Pos.makeTranslation((x + 0.5) * xSize, 0, (y + 0.5) * ySize);
+                mat4Pos.makeTranslation((x + 0.5) * xSize, height, (y + 0.5) * ySize);
                 vec3Color.set(color);
 
                 ref.current.setMatrixAt(ix, mat4Pos);
@@ -153,10 +158,14 @@ export function Map3D(props: Map3DProps) {
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
-            <instancedMesh ref={ref} args={[undefined, undefined, w*h]}>
+            <instancedMesh
+                ref={ref}
+                args={[undefined, undefined, w*h]}
+                receiveShadow
+            >
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
                 <boxGeometry args={[xSize, 1, ySize]} />
-                <meshBasicMaterial />
+                <meshStandardMaterial />
             </instancedMesh>
         </group>
     );
