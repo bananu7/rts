@@ -35,14 +35,14 @@ jobs:
       run: yarn build
       
     - name: Upload server artifact
-      if: github.ref_type == 'tag'
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3.1.0
       with:
         name: server-${{ steps.vars.outputs.sha_short }}
         path: ./packages/server/dist/
         
     - name: Upload client artifact
-      if: github.ref_type == 'tag'
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3.1.0
       with:
         name: client-${{ steps.vars.outputs.sha_short }}
