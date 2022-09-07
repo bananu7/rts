@@ -1,1 +1,3 @@
-# rts
+# RTS
+
+An OpenSource RTS game.
