@@ -232,7 +232,7 @@ function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
     const presence: PresenceMap = new Map();
     for (const u of g.units) {
-        const explodedIndex = u.position.x + u.position.y * g.board.map.w;
+        const explodedIndex = Math.floor(u.position.x) + Math.floor(u.position.y) * g.board.map.w;
         const us = presence.get(explodedIndex) ?? [] as Unit[];
         us.push(u);
         presence.set(explodedIndex, us);
@@ -307,7 +307,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
                 const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
 
-                const velocity = checkMovePossibility(unit.position, desiredVelocity, g.board.map, presence);
+                const velocity = checkMovePossibility(unit.id, unit.position, desiredVelocity, g.board.map, presence);
 
                 unit.position = sum(unit.position, velocity);
                 break;
@@ -478,48 +478,51 @@ function eliminated(g: Game): PlayerIndex[] {
 }
 
 
-function checkMovePossibility(currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
-    /*
-      // We accumulate a new acceleration each time based on three rules
-  void flock(ArrayList<Boid> boids) {
-    PVector sep = separate(boids);   // Separation
-    PVector ali = align(boids);      // Alignment
-    PVector coh = cohesion(boids);   // Cohesion
-    // Arbitrarily weight these forces
-    sep.mult(1.5);
-    ali.mult(1.0);
-    coh.mult(1.0);
-    // Add the force vectors to acceleration
-    applyForce(sep);
-    applyForce(ali);
-    applyForce(coh);
-  }
-  */
+function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
+    const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
-  const explode = (p: TilePos) => p.x+p.y*gm.w; 
+    const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
+    const otherUnitsNearby =
+        allTilesInfluenced
+        .map(t => presence.get(explode(t)))
+        .map(ps => ps ?? [])
+        .flat(2);
 
-  const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
-  const otherUnitsNearby =
-      allTilesInfluenced
-      .map(t => presence.get(explode(t)))
-      .map(ps => ps ?? [])
-      .flat(2);
+    let separation = {x:0, y:0};
+    for (const u of otherUnitsNearby) {
+        if (u.id === unitId)
+            continue;
 
-  let separation = {x:0, y:0};
-  for (const u of otherUnitsNearby) {
-      separation = sum(separation, difference(u.position, currentPos))
-  }
-  // limit maximum    
-  const MAX_SEPARATION_FORCE = 2;
-  separation = clampVector(separation, MAX_SEPARATION_FORCE);
+        let localSeparation = difference(currentPos, u.position);
 
-  // push off of terrain
-  //terrainAvoidance = 
+        // the force gets stronger the closer it is
+        const distance = magnitude(localSeparation);
+        const distanceFactor = 10 / distance;
+        localSeparation.x *= distanceFactor;
+        localSeparation.x *= distanceFactor;
 
-  const velocity = sum(desiredVelocity, separation);
+        // clamp the local force to avoid very high impulses at close passes
+        const MAX_LOCAL_SEPARATION_FORCE = 2;
+        localSeparation = clampVector(separation, MAX_LOCAL_SEPARATION_FORCE);
 
-  // this should still acceleration not velocity directly...
-  return velocity;
+        separation = sum(separation, localSeparation);
+
+        // push other unit apart
+        u.position.x -= localSeparation.x;
+        u.position.y -= localSeparation.y;
+    }
+
+    // limit maximum    
+    const MAX_SEPARATION_FORCE = 3;
+    separation = clampVector(separation, MAX_SEPARATION_FORCE);
+
+    // push off of terrain
+    //terrainAvoidance = 
+
+    const velocity = sum(desiredVelocity, separation);
+
+    // this should still acceleration not velocity directly...
+    return velocity;
 }
 
 // TODO duplication with pathfinding
