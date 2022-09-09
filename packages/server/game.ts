@@ -8,6 +8,8 @@ import { pathFind } from './pathfinding.js'
 
 type Milliseconds = number;
 
+type PresenceMap = Map<number, [Unit]>;
+
 // TODO - dynamic components that can introduce state, make HP be a state of a component
 interface Catalog {
     [kind: string]: { hp: number, components: Component[] };
@@ -223,14 +225,21 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
+    // Build a unit presence map
+    const presence = new Map();
+    for (const u of g.units) {
+        const explodedIndex = u.position.x + u.position.y * g.board.map.w;
+        presence.set(explodedIndex, u.id);
+    }
+
     for (const unit of g.units) {
-        updateUnit(dt, g, unit);
+        updateUnit(dt, g, unit, presence);
     }
 
     g.units = g.units.filter(u => u.hp > 0);
 }
 
-function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
+function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     // if no actions are queued, the unit is considered idle
     if (unit.actionQueue.length === 0)
         return;
@@ -289,8 +298,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit) {
             else {
                 const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
                 unit.direction = angleFromTo(unit.position, nextPathStep);
-                unit.position.x += dx * distancePerTick;
-                unit.position.y += dy * distancePerTick;
+
+                const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
+
+                const velocity = checkMovePossibility(unit.position, desiredVelocity, g.board.map, presence);
+
+                unit.position = sum(unit.position, velocity);
                 break;
             }
         }
@@ -417,6 +430,28 @@ function distance(a: Position, b: Position) {
     return Math.sqrt(x*x+y*y);
 }
 
+function magnitude(a: Position) {
+    return Math.sqrt(a.x*a.x+a.y*a.y);
+}
+
+function difference(a: Position, b: Position) {
+    return {x: a.x-b.x, y:a.y-b.y};
+}
+
+function clampVector(a: Position, max: number) {
+    const m = magnitude(a);
+    if (m <= max)
+        return a;
+    else {
+        const f = max / m;
+        return { x: a.x * f, y: a.y * f };
+    }
+}
+
+function sum(a: Position, b: Position) {
+    return {x: a.x + b.x, y: a.y + b.y };
+}
+
 function angleFromTo(a: Position, b: Position) {
     return Math.atan2(b.y-a.y, b.x-a.x);
 }
@@ -435,4 +470,74 @@ function eliminated(g: Game): PlayerIndex[] {
 
     return buildingCounts.filter(([p,c]) => c === 0).map(([p,c]) => p);
 }
+
+
+function checkMovePossibility(currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
+    /*
+      // We accumulate a new acceleration each time based on three rules
+  void flock(ArrayList<Boid> boids) {
+    PVector sep = separate(boids);   // Separation
+    PVector ali = align(boids);      // Alignment
+    PVector coh = cohesion(boids);   // Cohesion
+    // Arbitrarily weight these forces
+    sep.mult(1.5);
+    ali.mult(1.0);
+    coh.mult(1.0);
+    // Add the force vectors to acceleration
+    applyForce(sep);
+    applyForce(ali);
+    applyForce(coh);
+  }
+  */
+
+  const explode = (p: TilePos) => p.x+p.y*gm.w; 
+
+  const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
+  const otherUnitsNearby =
+      allTilesInfluenced
+      .map(t => presence.get(explode(t)))
+      .flat(2);
+
+  let separation = {x:0, y:0};
+  for (const u of otherUnitsNearby) {
+      separation = sum(separation, difference(u.position, currentPos))
+  }
+  // limit maximum
+  const MAX_SEPARATION_FORCE = 2;
+  separation = clampVector(separation, MAX_SEPARATION_FORCE);
+
+  // push off of terrain
+  //terrainAvoidance = 
+
+  const velocity = sum(desiredVelocity, separation);
+
+  // this should still acceleration not velocity directly...
+  return velocity;
+}
+
+// TODO duplication with pathfinding
+function getSurroundingPos(p: TilePos): TilePos[] {
+    return [
+        {x: p.x+1, y: p.y},
+        {x: p.x+1, y: p.y+1},
+        {x: p.x, y: p.y+1},
+        {x: p.x-1, y: p.y+1},
+        {x: p.x-1, y: p.y},
+        {x: p.x-1, y: p.y-1},
+        {x: p.x, y: p.y-1},
+        {x: p.x+1, y: p.y-1}
+    ]
+}
+
+function createTilesInfluenced(pos: Position, size: number) {
+    const result = [];
+    const tile = { x: Math.floor(pos.x), y: Math.floor(pos.y) };
+
+    // TODO - incorrect, should actually find all affected tiles
+    // depending on the size
+    const surrounding = getSurroundingPos(tile);
+    surrounding.push(tile);
+    return surrounding;
+}
+
 

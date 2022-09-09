@@ -1,4 +1,4 @@
-import { GameMap, TilePos, Position } from './types'
+import { GameMap, TilePos, Position, Unit } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
 
 function octileDistance(a: TilePos, b: TilePos) {
