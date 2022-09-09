@@ -8,7 +8,7 @@ import { pathFind } from './pathfinding.js'
 
 type Milliseconds = number;
 
-type PresenceMap = Map<number, [Unit]>;
+type PresenceMap = Map<number, Unit[]>;
 
 // TODO - dynamic components that can introduce state, make HP be a state of a component
 interface Catalog {
@@ -128,7 +128,10 @@ export function command(c: CommandPacket, g: Game) {
     if (!u)
         return;
 
-    console.log(`Adding action ${c.action.typ} for unit ${u.id}`)
+    if (g.state.id !== 'Play')
+        return;
+
+    console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`)
 
     switch (c.action.typ) {
         case 'AttackMove': // TODO - implement
@@ -189,6 +192,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
         const e = eliminated(g);
         // TODO alliances, actual game type etc.
         if (e.length > 0) {
+            console.log('[game] Game ended by elimination');
             g.state = {id: 'GameEnded'};
         }
         g.tickNumber += 1;
@@ -226,10 +230,12 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
 
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
-    const presence = new Map();
+    const presence: PresenceMap = new Map();
     for (const u of g.units) {
         const explodedIndex = u.position.x + u.position.y * g.board.map.w;
-        presence.set(explodedIndex, u.id);
+        const us = presence.get(explodedIndex) ?? [] as Unit[];
+        us.push(u);
+        presence.set(explodedIndex, us);
     }
 
     for (const unit of g.units) {
@@ -496,13 +502,14 @@ function checkMovePossibility(currentPos: Position, desiredVelocity: Position, g
   const otherUnitsNearby =
       allTilesInfluenced
       .map(t => presence.get(explode(t)))
+      .map(ps => ps ?? [])
       .flat(2);
 
   let separation = {x:0, y:0};
   for (const u of otherUnitsNearby) {
       separation = sum(separation, difference(u.position, currentPos))
   }
-  // limit maximum
+  // limit maximum    
   const MAX_SEPARATION_FORCE = 2;
   separation = clampVector(separation, MAX_SEPARATION_FORCE);
 
