@@ -468,7 +468,7 @@ function difference(a: Position, b: Position) {
 function clampVector(a: Position, max: number) {
     const m = magnitude(a);
     if (m <= max)
-        return a;
+        return { x: a.x, y: a.y };
     else {
         const f = max / m;
         return { x: a.x * f, y: a.y * f };
@@ -549,6 +549,8 @@ function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVeloc
 // TODO duplication with pathfinding
 function getSurroundingPos(p: TilePos): TilePos[] {
     return [
+        {x: p.x, y: p.y},
+
         {x: p.x+1, y: p.y},
         {x: p.x+1, y: p.y+1},
         {x: p.x, y: p.y+1},
