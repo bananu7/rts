@@ -331,16 +331,22 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     // returns whether the unit is still supposed to move
-    const recomputePathToTarget = (targetId: UnitId) => {
+    const recomputePathToTarget = (targetId: UnitId): boolean => {
         // TODO: duplication with command
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (!target) {
             // the target unit doesn't exist, end this action
             unit.pathToNext = null;
             unit.actionQueue.shift();
-            return;
+            return false;
         }
         const targetPos = target.position;
+
+        // don't move if we're sufficiently close to the target
+        const UNIT_FOLLOW_DISTANCE = 2;
+        if (distance(targetPos, unit.position) < UNIT_FOLLOW_DISTANCE) {
+            return false;
+        }
 
         // recompute path if target is more than 3 units away from the original destination
         if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > 3){
@@ -353,10 +359,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 return false;
             } else {
                 unit.pathToNext = newPath
-                return true;
             }
         }
 
+        // in other case, simply continue moving
         return true;
     };
 
@@ -512,7 +518,7 @@ function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVeloc
 
         // the force gets stronger the closer it is
         const distance = magnitude(localSeparation);
-        const distanceFactor = 1 / distance;
+        const distanceFactor = distance > 0.00001 ? 1 / distance : 10; // avoid zero distance issues
         localSeparation.x *= distanceFactor;
         localSeparation.y *= distanceFactor;
 
