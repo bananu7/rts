@@ -56,20 +56,32 @@ export function Unit3D(props: Unit3DProps) {
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
-    //const currentPosition = unitGroupRef.
-    const softSnapVelocity = {
-        x: 0, y: 0
-    };
+    const softSnapVelocity =
+        unitGroupRef.current ?
+        { x: props.unit.position.x - unitGroupRef.current.position.x,
+          y: props.unit.position.y - unitGroupRef.current.position.z
+        }
+        :
+        { x: 0, y: 0 };
 
-    // TODO include tick length as a match metadata parameter
+    const SMOOTHING_TIME = 100;
+    const SMOOTHING_SCALE = 1000 / SMOOTHING_TIME;
+
     const smoothingVelocity = {
-        x: props.unit.velocity.x * 10 + softSnapVelocity.x,
-        y: props.unit.velocity.y * 10 + softSnapVelocity.y
+        x: props.unit.velocity.x + softSnapVelocity.x * SMOOTHING_SCALE,
+        y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
     }
 
     useFrame((s, dt) => {
         if(!unitGroupRef.current)
             return;
+
+        // TODO - temporary fix to bring units where they're needed quickly
+        if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
+            unitGroupRef.current.position.x = props.unit.position.x;
+            unitGroupRef.current.position.z = props.unit.position.y;
+            return;
+        }
 
         unitGroupRef.current.position.x += smoothingVelocity.x * dt;
         unitGroupRef.current.position.z += smoothingVelocity.y * dt;
@@ -80,7 +92,7 @@ export function Unit3D(props: Unit3DProps) {
             {/*<Line3D points={path} />*/}
             <group
                 ref={unitGroupRef}
-                position={[props.unit.position.x, 1, props.unit.position.y]}
+                position={[0, 1, 0]}
                 name={`Unit_${props.unit.id}`}
             >
                 <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
