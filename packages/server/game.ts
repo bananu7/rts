@@ -62,6 +62,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Harvester',
         owner: 1,
         position: {x:31, y:25},
+        velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Harvester'].hp
     },
@@ -71,6 +72,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Harvester',
         owner: 2,
         position: {x:64, y:90},
+        velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Harvester'].hp
     },
@@ -80,6 +82,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Base',
         owner: 1,
         position: {x:10, y:10},
+        velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Base'].hp
     },
@@ -89,6 +92,7 @@ const TEMP_STARTING_UNITS : Unit[] = [
         kind: 'Base',
         owner: 2,
         position: {x:90, y:90},
+        velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Base'].hp
     },
@@ -102,6 +106,7 @@ let lastId = 4;
         kind: 'Trooper',
         owner: 1,
         position: p,
+        velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Trooper'].hp
     },)
@@ -220,6 +225,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
                 status,
                 position: u.position,
                 direction: u.direction,
+                velocity: u.velocity,
                 owner: u.owner,
                 kind: u.kind,
             }
@@ -293,6 +299,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 // if there are no more path steps to do, we've reached the destination
                 if (unit.pathToNext.length === 0) {
                     // TODO - that will cause stutter at shift-clicked moves
+                    unit.velocity.x = 0;
+                    unit.velocity.y = 0;
                     unit.actionQueue.shift();
                     break;
                 } else {
@@ -307,9 +315,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
                 const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
 
-                const velocity = checkMovePossibility(unit.id, unit.position, desiredVelocity, g.board.map, presence);
+                // TODO - slow starts and braking
+                unit.velocity = checkMovePossibility(unit.id, unit.position, desiredVelocity, g.board.map, presence);
 
-                unit.position = sum(unit.position, velocity);
+                unit.position = sum(unit.position, unit.velocity);
                 break;
             }
         }

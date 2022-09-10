@@ -54,11 +54,17 @@ export function Unit3D(props: Unit3DProps) {
     else if (props.unit.status === 'Harvesting')
         indicatorColor = 0x5555ff;
 
+    const interpolatedPosition = props.unit.position;
+    useFrame((s, dt) => {
+        interpolatedPosition.x += props.unit.velocity.x / 10 * dt;
+        interpolatedPosition.y += props.unit.velocity.y / 10 * dt;
+    });
+
     return (
         <group>
             {/*<Line3D points={path} />*/}
             <group 
-                position={[props.unit.position.x, 1, props.unit.position.y]}
+                position={[interpolatedPosition.x, 1, interpolatedPosition.y]}
                 name={`Unit_${props.unit.id}`}
             >
                 <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>

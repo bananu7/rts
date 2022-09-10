@@ -63,6 +63,7 @@ export type UnitState = {
     kind: string,
     status: 'Moving'|'Attacking'|'Harvesting'|'Idle',
     position: Position,
+    velocity: Position, // TODO - Position to Vec2
     direction: number,
     owner: number,
 }
@@ -114,8 +115,9 @@ export type Unit = {
     owner: PlayerIndex,
     position: Position,
     direction: number,
+    velocity: Position,
 
-    hp: number,
+    hp: number, // TODO should be in a dynamic component
 
     pathToNext?: TilePos[],
 }
