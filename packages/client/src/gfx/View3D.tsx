@@ -1,9 +1,25 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties } from 'react'
 
+import StatsImpl from 'three/examples/jsm/libs/stats.module.js'
+
 import * as THREE from 'three';
 
 import { MapControls } from './MapControls'
+
+function Stats() {
+  const [stats] = useState(() => new StatsImpl())
+  useEffect(() => {
+    stats.showPanel(0)
+    document.body.appendChild(stats.dom)
+    return () => document.body.removeChild(stats.dom)
+  }, [stats])
+  return useFrame(state => {
+    stats.begin()
+    state.gl.render(state.scene, state.camera)
+    stats.end()
+  }, 1)
+}
 
 function CameraControls() {
     const { camera, gl: { domElement }, scene } = useThree();
@@ -138,6 +154,7 @@ export function View3D(props: Props) {
                     <ambientLight />
                     <MapSpotlight />
                     {props.children}
+                    <Stats />
                 </Canvas>
             </div>
         </Suspense>
