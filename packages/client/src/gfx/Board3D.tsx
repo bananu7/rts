@@ -45,15 +45,6 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.target.x, 1, a.target.y);
     })*/
 
-    // TODO - this will be replaced with animations etc
-    let indicatorColor = 0xeeeeee;
-    if (props.unit.status === 'Moving')
-        indicatorColor = 0x55ff55;
-    else if (props.unit.status === 'Attacking')
-        indicatorColor = 0xff5555;
-    else if (props.unit.status === 'Harvesting')
-        indicatorColor = 0x5555ff;
-
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
     const softSnapVelocity =
@@ -71,6 +62,18 @@ export function Unit3D(props: Unit3DProps) {
         x: props.unit.velocity.x + softSnapVelocity.x * SMOOTHING_SCALE,
         y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
     }
+
+    // TODO - this will be replaced with animations etc
+    let indicatorColor = 0xeeeeee;
+    if (props.unit.status === 'Moving')
+        indicatorColor = 0x55ff55;
+    else if (props.unit.status === 'Attacking')
+        indicatorColor = 0xff5555;
+    else if (props.unit.status === 'Harvesting')
+        indicatorColor = 0x5555ff;
+    // indicate discrepancy between server and us
+    else if (smoothingVelocity.x > 0 || smoothingVelocity.y >> 0)
+        indicatorColor = 0xffff55;
 
     useFrame((s, dt) => {
         if(!unitGroupRef.current)
