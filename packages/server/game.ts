@@ -506,13 +506,13 @@ function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVeloc
 
         // the force gets stronger the closer it is
         const distance = magnitude(localSeparation);
-        const distanceFactor = 10 / distance;
+        const distanceFactor = 1 / distance;
         localSeparation.x *= distanceFactor;
-        localSeparation.x *= distanceFactor;
+        localSeparation.y *= distanceFactor;
 
         // clamp the local force to avoid very high impulses at close passes
         const MAX_LOCAL_SEPARATION_FORCE = 2;
-        localSeparation = clampVector(separation, MAX_LOCAL_SEPARATION_FORCE);
+        localSeparation = clampVector(localSeparation, MAX_LOCAL_SEPARATION_FORCE);
 
         separation = sum(separation, localSeparation);
 
