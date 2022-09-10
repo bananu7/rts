@@ -54,21 +54,37 @@ export function Unit3D(props: Unit3DProps) {
     else if (props.unit.status === 'Harvesting')
         indicatorColor = 0x5555ff;
 
-    const interpolatedPosition = props.unit.position;
+    // smoothing
+    const unitGroupRef = useRef<THREE.Group>(null);
+    //const currentPosition = unitGroupRef.
+    const softSnapVelocity = {
+        x: 0, y: 0
+    };
+
+    // TODO include tick length as a match metadata parameter
+    const smoothingVelocity = {
+        x: props.unit.velocity.x * 10 + softSnapVelocity.x,
+        y: props.unit.velocity.y * 10 + softSnapVelocity.y
+    }
+
     useFrame((s, dt) => {
-        interpolatedPosition.x += props.unit.velocity.x / 10 * dt;
-        interpolatedPosition.y += props.unit.velocity.y / 10 * dt;
+        if(!unitGroupRef.current)
+            return;
+
+        unitGroupRef.current.position.x += smoothingVelocity.x * dt;
+        unitGroupRef.current.position.z += smoothingVelocity.y * dt;
     });
 
     return (
         <group>
             {/*<Line3D points={path} />*/}
-            <group 
-                position={[interpolatedPosition.x, 1, interpolatedPosition.y]}
+            <group
+                ref={unitGroupRef}
+                position={[props.unit.position.x, 1, props.unit.position.y]}
                 name={`Unit_${props.unit.id}`}
             >
                 <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
-                    <coneGeometry args={[1, 3, 8]} />
+                    <coneGeometry args={[0.5, 2, 8]} />
                     <meshBasicMaterial color={indicatorColor} />
                 </mesh>
                 <mesh
