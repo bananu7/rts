@@ -6,5 +6,6 @@
     "noImplicitAny": true,
     "moduleResolution": "node",
     "outDir": "dist",
+    "sourceMap": true,
   }
 }
