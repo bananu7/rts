@@ -49,7 +49,7 @@ export type ActionProduce = {
 
 export type CommandPacket = {
     action: Action,
-    unitId: UnitId,
+    unitIds: UnitId[],
     shift: boolean,
 }
 

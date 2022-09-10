@@ -39,13 +39,17 @@ function App() {
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
   const mapClick = useCallback((p: Position) => {
-    selectedUnits.forEach(u => {
-      multiplayer.moveCommand(p, u);
-    });
+    if (selectedUnits.size === 0)
+      return;
+    
+    multiplayer.moveCommand(Array.from(selectedUnits), p);
   }, [selectedUnits]);
 
   const unitRightClick = (targetId: UnitId) => {
     if (!lastUpdatePacket)
+      return;
+
+    if (selectedUnits.size === 0)
       return;
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
@@ -54,14 +58,12 @@ function App() {
       return;
     }
 
-    selectedUnits.forEach(u => {
-      // TODO - handle actual user numbers
-      if (target.owner === 1) {
-        multiplayer.followCommand(u, targetId);
-      } else {
-        multiplayer.attackCommand(u, targetId);
-      }
-    });
+    if (target.owner === 1) {
+      multiplayer.followCommand(Array.from(selectedUnits), targetId);
+    }
+    else {
+      multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+    }
   }
 
   return (

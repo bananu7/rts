@@ -150,37 +150,37 @@ export class Multiplayer {
         this.channel.emit('chat message', 'msg')
     }
 
-    moveCommand(target: Position, unitId: UnitId) {
+    moveCommand(unitIds: UnitId[], target: Position) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Move',
                 target
             },
-            unitId: unitId,
+            unitIds,
             shift: false,
         };
         this.channel.emit('command', cmd)
     };
 
-    followCommand(unitId: UnitId, target: UnitId) {
+    followCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Follow',
                 target
             },
-            unitId,
+            unitIds,
             shift: false,
         };
         this.channel.emit('command', cmd)
     };
 
-    attackCommand(unitId: UnitId, target: UnitId) {
+    attackCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Attack',
             target
         },
-            unitId,
+            unitIds,
             shift: false,
         };
         this.channel.emit('command', cmd)

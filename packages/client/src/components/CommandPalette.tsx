@@ -9,7 +9,7 @@ type Props = {
 export function CommandPalette(props: Props) {
     return (
         <div className="CommandPalette">
-            <button onClick={() => props.multiplayer.moveCommand({x:50, y:50}, 1)}>Move</button>
+            <button onClick={() => props.multiplayer.moveCommand(Array.from(props.selectedUnits), {x:50, y:50})}>Move</button>
         </div>
     );
 };

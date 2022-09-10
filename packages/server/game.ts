@@ -129,60 +129,66 @@ export function startGame(g: Game) {
 }
 
 export function command(c: CommandPacket, g: Game) {
-    const u = g.units.find(u => c.unitId === u.id);
-    if (!u)
+    const us = c.unitIds
+        .map(id => g.units.find(u => id === u.id))
+        .filter(u => u) // non-null
+    ;
+
+    if (us.length === 0)
         return;
 
     if (g.state.id !== 'Play')
         return;
 
-    console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`)
+    us.forEach(u => {
+        console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`)
 
-    switch (c.action.typ) {
-        case 'AttackMove': // TODO - implement
-        case 'Move':
-        {
-            const targetPos = c.action.target;
-            const path = pathFind(u.position, targetPos, g.board.map);
+        switch (c.action.typ) {
+            case 'AttackMove': // TODO - implement
+            case 'Move':
+            {
+                const targetPos = c.action.target;
+                const path = pathFind(u.position, targetPos, g.board.map);
 
-            if (!path) {
-                return;
+                if (!path) {
+                    return;
+                }
+
+                u.pathToNext = path;
+
+                break;
             }
+            case 'Follow':
+            case 'Attack':
+            case 'Harvest':
+            {
+                // TODO duplication above
+                const targetId = c.action.target;
+                const target = g.units.find(u => u.id === targetId); // TODO Map
+                if (!target) {
+                    // the target unit doesn't exist, ignore this action;
+                    return;
+                }
 
-            u.pathToNext = path;
+                const path = pathFind(u.position, target.position, g.board.map);
+                if (!path) {
+                    // target not reachable, ignore this action
+                    // TODO maybe move as far as possible?
+                    return;
+                }
 
-            break;
+                u.pathToNext = path;
+                break;
+            }
+            case 'Produce':
+                break;
         }
-        case 'Follow':
-        case 'Attack':
-        case 'Harvest':
-        {
-            // TODO duplication above
-            const targetId = c.action.target;
-            const target = g.units.find(u => u.id === targetId); // TODO Map
-            if (!target) {
-                // the target unit doesn't exist, ignore this action;
-                return;
-            }
-
-            const path = pathFind(u.position, target.position, g.board.map);
-            if (!path) {
-                // target not reachable, ignore this action
-                // TODO maybe move as far as possible?
-                return;
-            }
-
-            u.pathToNext = path;
-            break;
-        }
-        case 'Produce':
-            break;
-    }
-    
-    if (c.shift)
-        u.actionQueue.push(c.action);
-    else
-        u.actionQueue = [c.action];
+        
+        if (c.shift)
+            u.actionQueue.push(c.action);
+        else
+            u.actionQueue = [c.action];
+    });
 }
 
 export function tick(dt: Milliseconds, g: Game): UpdatePacket {
