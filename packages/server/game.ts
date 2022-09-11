@@ -55,8 +55,10 @@ const UNIT_CATALOG : Catalog = {
 };
 
 // TODO
-const TEMP_STARTING_UNITS : Unit[] = [
-    {
+
+function createStartingUnits(): Unit[] {
+    const startingUnits = [] as Unit[];
+    startingUnits.push({
         actionQueue: [],
         id: 1,
         kind: 'Harvester',
@@ -65,8 +67,8 @@ const TEMP_STARTING_UNITS : Unit[] = [
         velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Harvester'].hp
-    },
-    {
+    });
+    startingUnits.push({
         actionQueue: [],
         id: 2,
         kind: 'Harvester',
@@ -75,8 +77,8 @@ const TEMP_STARTING_UNITS : Unit[] = [
         velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Harvester'].hp
-    },
-    {
+    });
+    startingUnits.push({
         actionQueue: [],
         id: 3,
         kind: 'Base',
@@ -85,8 +87,8 @@ const TEMP_STARTING_UNITS : Unit[] = [
         velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Base'].hp
-    },
-    {
+    });
+    startingUnits.push({
         actionQueue: [],
         id: 4,
         kind: 'Base',
@@ -95,22 +97,24 @@ const TEMP_STARTING_UNITS : Unit[] = [
         velocity: {x:0, y:0},
         direction: 0,
         hp: UNIT_CATALOG['Base'].hp
-    },
-];
+    });
 
-let lastId = 4;
-[{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
-    TEMP_STARTING_UNITS.push({
-        actionQueue: [],
-        id: ++lastId,
-        kind: 'Trooper',
-        owner: 1,
-        position: p,
-        velocity: {x:0, y:0},
-        direction: 0,
-        hp: UNIT_CATALOG['Trooper'].hp
-    },)
-});
+    let lastId = 4;
+    [{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
+        startingUnits.push({
+            actionQueue: [],
+            id: ++lastId,
+            kind: 'Trooper',
+            owner: 1,
+            position: p,
+            velocity: {x:0, y:0},
+            direction: 0,
+            hp: UNIT_CATALOG['Trooper'].hp
+        },)
+    });
+
+    return startingUnits;
+}
 
 export function newGame(map: GameMap): Game {
     return {
@@ -120,7 +124,7 @@ export function newGame(map: GameMap): Game {
         board: {
             map: map,
         },
-        units: TEMP_STARTING_UNITS,
+        units: createStartingUnits(),
     }
 }
 
