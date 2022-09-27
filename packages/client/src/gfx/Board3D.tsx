@@ -72,7 +72,7 @@ export function Unit3D(props: Unit3DProps) {
     else if (props.unit.status === 'Harvesting')
         indicatorColor = 0x5555ff;
     // indicate discrepancy between server and us
-    else if (smoothingVelocity.x > 0 || smoothingVelocity.y >> 0)
+    else if (smoothingVelocity.x > 0 || smoothingVelocity.y > 0)
         indicatorColor = 0xffff55;
 
     useFrame((s, dt) => {
