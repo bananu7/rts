@@ -66,6 +66,6 @@ jobs:
         name: Build and push server container
         uses: docker/build-push-action@v3
         with:
-          context: packages/server
+          context: ./packages/server
           push: true
           tags: bananu7/rts:server
