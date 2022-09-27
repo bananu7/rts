@@ -74,4 +74,4 @@ jobs:
         with:
           context: ./packages/server
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/rts:server, ${{ secrets.DOCKER_HUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server, ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
