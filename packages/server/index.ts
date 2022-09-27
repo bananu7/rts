@@ -8,6 +8,8 @@ import {newGame, startGame, tick, command} from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, PlayerEntry } from './types.js';
 import {getMap} from './map.js';
 
+console.log("Starting RTS server");
+
 type Match = {
     game: Game,
     matchId: string,
