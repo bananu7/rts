@@ -159,7 +159,11 @@ export function Board3D(props: Props) {
 
     const selectInBox = (box: Box) => {
         function isInBox(p: Position, b: Box) {
-            return p.x >= b.x1 && p.x <= b.x2 && p.y >= b.y1 && p.y <= b.y2;
+            const x1 = b.x1 < b.x2 ? b.x1 : b.x2;
+            const x2 = b.x1 < b.x2 ? b.x2 : b.x1;
+            const y1 = b.y1 < b.y2 ? b.y1 : b.y2;
+            const y2 = b.y1 < b.y2 ? b.y2 : b.y1;
+            return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
         }
 
         const selection = props.unitStates
