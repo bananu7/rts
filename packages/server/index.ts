@@ -7,8 +7,15 @@ import bodyParser from 'body-parser'
 import {newGame, startGame, tick, command} from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, PlayerEntry } from './types.js';
 import {getMap} from './map.js';
+import {readFileSync} from 'fs';
 
-console.log("Starting RTS server");
+let version = "uknown version";
+try {
+    version = readFileSync("version.txt", "utf8");
+}
+catch (err) { }
+
+console.log(`Starting RTS server - ${version}`);
 
 type Match = {
     game: Game,

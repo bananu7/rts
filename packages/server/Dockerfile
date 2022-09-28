@@ -23,6 +23,7 @@ COPY package.json ./
 RUN yarn install --production
 
 COPY --from=0 /var/lib/app/dist .
+COPY version.txt ./
 COPY assets ./assets
 
 EXPOSE 9208
