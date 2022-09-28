@@ -156,6 +156,7 @@ export class Multiplayer {
         });
     }
 
+    // TODO - pull those out to a separate MatchControl object
     sendChatMessage(msg: string) {
         this.channel.emit('chat message', 'msg')
     }
@@ -181,7 +182,7 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd)
+        this.channel.emit('command', cmd);
     };
 
     attackCommand(unitIds: UnitId[], target: UnitId) {
@@ -193,6 +194,18 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd)
+        this.channel.emit('command', cmd);
+    }
+
+    produceCommand(unitIds: UnitId[], unitToProduce: string) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Produce',
+            unitToProduce
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
     }
 }
