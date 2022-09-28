@@ -1,5 +1,6 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
+import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
 
 export type OnChatMessage = (msg: string) => void;
 export type OnUpdatePacket = (p: UpdatePacket) => void;
@@ -10,8 +11,6 @@ export type MultiplayerConfig = {
     onUpdatePacket: OnUpdatePacket,
     onMatchConnected: OnMatchConnected,
 }
-
-const FETCH_URL = `http://${window.location.hostname}:9208`;
 
 export class Multiplayer {
     channel: ClientChannel;
@@ -26,7 +25,10 @@ export class Multiplayer {
     onMatchConnected?: OnMatchConnected;
 
     constructor(userId: string) {
-        this.channel = geckos({ port: 9208 });
+        this.channel = geckos({
+          url: GECKOS_URL,
+          port: GECKOS_PORT
+        });
         this.geckosSetUp = false;
 
         this.userId = userId;
@@ -88,7 +90,7 @@ export class Multiplayer {
 
     // TODO - make this async, make backend return id
     createMatch() {
-        fetch(FETCH_URL+'/create', {
+        fetch(HTTP_API_URL+'/create', {
             method: 'POST',
         });
     }
@@ -100,7 +102,7 @@ export class Multiplayer {
             userId: this.userId
         };
 
-        fetch(FETCH_URL+'/join', {
+        fetch(HTTP_API_URL+'/join', {
             method: 'POST',
             body: JSON.stringify(joinData),
             headers: {
@@ -134,7 +136,7 @@ export class Multiplayer {
             userId: this.userId,
         });
 
-        fetch(FETCH_URL+'/leave', {
+        fetch(HTTP_API_URL+'/leave', {
             method: 'POST',
             body,
             headers: {

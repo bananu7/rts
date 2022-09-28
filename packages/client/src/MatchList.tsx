@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { MatchInfo } from 'server/types'
+import { HTTP_API_URL } from './config'
 
 type Props = {
     joinMatch: (matchId: string) => void;
@@ -9,7 +10,7 @@ export function MatchList(props: Props) {
     const [matches, setMatches] = useState([] as MatchInfo[]);
 
     const refresh = () => {
-        fetch('http://localhost:9208/listMatches')
+        fetch(HTTP_API_URL+'/listMatches')
             .then(d => { return d.json() })
             .then(d => setMatches(d));
     };

@@ -10,6 +10,7 @@ import { Board3D } from './gfx/Board3D';
 
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
 import { Multiplayer } from './Multiplayer';
+import { HTTP_API_URL } from './config';
 
 const multiplayer = new Multiplayer("bananu7");
 
@@ -22,7 +23,7 @@ function App() {
  
   const getMatchState = useCallback((matchId: string) => {
     console.log("Getting match state");
-    fetch(`http://${window.location.hostname}:9208/getMatchState?` + new URLSearchParams({ matchId }))
+    fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId }))
       .then(r => r.json())
       .then(s => setServerState(s));
   }, []);
