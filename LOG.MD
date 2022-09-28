@@ -70,3 +70,10 @@ My next milestone is being able to actually playtest the game with people. That 
 
 I'll choose whatever's the easiest and go with that, probably. After I do the above i want to do playtests with grayboxed visuals first, and then maybe
 start working on the models and music a bit.
+
+## 2022-09-28 - #2
+
+I sat down during the evening to start working on the first playtest branch. I quickly cleaned up a lot of bugs, but when i got to unit production, i realized
+that i really need to get myself out of the static components rabbit hole, since there's no good way to rely the information about the unit production capabilities
+(and cooldown!) to the client. This presents a challenge - expanding the unit state with dynamic component state means that the update might get much bigger. I
+should keep an eye on that, but in the meantime should be able to get away with sending everything everytime.
