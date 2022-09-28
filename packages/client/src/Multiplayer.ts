@@ -95,14 +95,14 @@ export class Multiplayer {
         });
     }
 
-    joinMatch(matchId: string) {
+    async joinMatch(matchId: string) {
         console.log(`[Multiplayer] joining match ${matchId}`)
         const joinData = {
             matchId,
             userId: this.userId
         };
 
-        fetch(HTTP_API_URL+'/join', {
+        return fetch(HTTP_API_URL+'/join', {
             method: 'POST',
             body: JSON.stringify(joinData),
             headers: {
@@ -131,10 +131,10 @@ export class Multiplayer {
             };
 
             this.channel.emit('connect', data);
-        })
+        });
     };
     
-    leaveMatch() {
+    async leaveMatch() {
         if (!this.matchId)
             return;
 
@@ -143,7 +143,7 @@ export class Multiplayer {
             userId: this.userId,
         });
 
-        fetch(HTTP_API_URL+'/leave', {
+        return fetch(HTTP_API_URL+'/leave', {
             method: 'POST',
             body,
             headers: {

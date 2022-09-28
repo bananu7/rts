@@ -22,7 +22,7 @@ function App() {
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
   const getMatchState = useCallback((matchId: string) => {
-    console.log("Getting match state");
+    console.log("[App] Getting match state");
     fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId }))
       .then(r => r.json())
       .then(s => setServerState(s));
@@ -73,7 +73,7 @@ function App() {
         <div className="MainMenu">
           <h3>Main menu</h3>
           { !serverState && <button>Play</button> }
-          { serverState && <button onClick={() => multiplayer.leaveMatch()}>Leave game</button> }
+          { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
         </div>
       }
 
