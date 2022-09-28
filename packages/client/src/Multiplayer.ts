@@ -152,6 +152,7 @@ export class Multiplayer {
         })
         .then(res => {
             this.matchId = undefined;
+            localStorage.removeItem('matchId');
         });
     }
 
