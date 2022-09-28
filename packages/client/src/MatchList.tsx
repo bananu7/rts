@@ -30,7 +30,11 @@ export function MatchList(props: Props) {
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
             <td>{m.status.id}</td>
-            <td><button onClick={() => props.joinMatch(m.matchId)}>Join</button></td>
+            <td>
+                { m.status.id == "Lobby" &&
+                    <button onClick={() => props.joinMatch(m.matchId)}>Join</button>
+                }
+            </td>
         </tr>
     );
 
