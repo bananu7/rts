@@ -110,7 +110,14 @@ export class Multiplayer {
             },
         })
         // connect RTC automatically after joining
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 200) {
+                return res.json();
+            }
+            else {
+                throw new Error("Match join failed")
+            }
+        })
         .then(res => {
             this.playerIndex = res.playerIndex;
             console.log(`[Multiplayer] server confirmed match join`);
