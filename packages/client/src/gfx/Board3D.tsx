@@ -45,6 +45,24 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.target.x, 1, a.target.y);
     })*/
 
+    // smoothing
+    const unitGroupRef = useRef<THREE.Group>(null);
+    const softSnapVelocity =
+        unitGroupRef.current ?
+        { x: props.unit.position.x - unitGroupRef.current.position.x,
+          y: props.unit.position.y - unitGroupRef.current.position.z
+        }
+        :
+        { x: 0, y: 0 };
+
+    const SMOOTHING_TIME = 100;
+    const SMOOTHING_SCALE = 1000 / SMOOTHING_TIME;
+
+    const smoothingVelocity = {
+        x: props.unit.velocity.x + softSnapVelocity.x * SMOOTHING_SCALE,
+        y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
+    }
+
     // TODO - this will be replaced with animations etc
     let indicatorColor = 0xeeeeee;
     if (props.unit.status === 'Moving')
@@ -53,16 +71,35 @@ export function Unit3D(props: Unit3DProps) {
         indicatorColor = 0xff5555;
     else if (props.unit.status === 'Harvesting')
         indicatorColor = 0x5555ff;
+    // indicate discrepancy between server and us
+    else if (smoothingVelocity.x > 0 || smoothingVelocity.y > 0)
+        indicatorColor = 0xffff55;
+
+    useFrame((s, dt) => {
+        if(!unitGroupRef.current)
+            return;
+
+        // TODO - temporary fix to bring units where they're needed quickly
+        if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
+            unitGroupRef.current.position.x = props.unit.position.x;
+            unitGroupRef.current.position.z = props.unit.position.y;
+            return;
+        }
+
+        unitGroupRef.current.position.x += smoothingVelocity.x * dt;
+        unitGroupRef.current.position.z += smoothingVelocity.y * dt;
+    });
 
     return (
         <group>
             {/*<Line3D points={path} />*/}
-            <group 
-                position={[props.unit.position.x, 1, props.unit.position.y]}
+            <group
+                ref={unitGroupRef}
+                position={[0, 1, 0]}
                 name={`Unit_${props.unit.id}`}
             >
                 <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
-                    <coneGeometry args={[1, 3, 8]} />
+                    <coneGeometry args={[0.5, 2, 8]} />
                     <meshBasicMaterial color={indicatorColor} />
                 </mesh>
                 <mesh

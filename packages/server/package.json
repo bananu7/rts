@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc -p .",
-    "dev": "node dist/index.js"
+    "dev": "node dist/index.js",
+    "debug": "node --inspect dist/index.js"
   },
   "author": "",
   "license": "MIT",

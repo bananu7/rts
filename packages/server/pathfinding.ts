@@ -1,4 +1,4 @@
-import { GameMap, TilePos, Position } from './types'
+import { GameMap, TilePos, Position, Unit } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
 
 function octileDistance(a: TilePos, b: TilePos) {
@@ -105,5 +105,13 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 export function pathFind(a: Position, b: Position, m: GameMap)  {
     const unitTilePos = { x: Math.floor(a.x), y: Math.floor(a.y) };
     const destTilePos =  { x: Math.floor(b.x), y: Math.floor(b.y) };
-    return gridPathFind(unitTilePos, destTilePos, m);
+    const path = gridPathFind(unitTilePos, destTilePos, m);
+
+    // improve the resulting path slightly, if found
+    if (path) {
+        path.pop(); // remove last grid tile to avoid backtracking
+        path.push(b); // add the precise destination as the last step
+    }
+
+    return path;
 };

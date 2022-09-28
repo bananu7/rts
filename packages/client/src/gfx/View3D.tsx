@@ -4,6 +4,7 @@ import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties }
 import * as THREE from 'three';
 
 import { MapControls } from './MapControls'
+import { Stats } from './Stats'
 
 function CameraControls() {
     const { camera, gl: { domElement }, scene } = useThree();
@@ -138,6 +139,7 @@ export function View3D(props: Props) {
                     <ambientLight />
                     <MapSpotlight />
                     {props.children}
+                    <Stats />
                 </Canvas>
             </div>
         </Suspense>
