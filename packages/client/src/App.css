@@ -49,6 +49,12 @@
   background-color: #555;
 }
 
+.CommandPalette > button {
+  width: 75px;
+  height: 75px;
+  padding: 3px;
+}
+
 .chat {
   position: absolute;
   top: 60%;
