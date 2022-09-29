@@ -1,75 +1,14 @@
 import {
+    Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
-    Mover, Attacker, Harvester,
+    Hp, Mover, Attacker, Harvester,
     ActionFollow, ActionAttack
 } from './types';
 
 import { pathFind } from './pathfinding.js'
-
-type Milliseconds = number;
+import { createStartingUnits } from './units'
 
 type PresenceMap = Map<number, Unit[]>;
-
-// those are functions to clone the objects easily
-interface Catalog {
-    [kind: string]: () => Component[];
-}
-
-const UNIT_CATALOG : Catalog = {
-    'Harvester': () => [
-        { type: 'Hp', maxHp: 50, hp: 50 },
-        { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 5, cooldown: 1000, range: 2 },
-        { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20 }
-    ],
-    'Base': () => [
-        { type: 'Hp', maxHp: 1000, hp: 1000 },
-        { type: 'Building' },
-        { type: 'ProductionFacility', unitsProduced: [{unitType: 'Harvester', productionTime: 5000}] }
-    ],
-    'ResourceNode': () => [
-        { type: 'Resource', value: 100 }
-    ],
-    'Barracks': () => [
-        { type: 'Hp', maxHp: 600, hp: 600 },
-        { type: 'Building' },
-        { type: 'ProductionFacility', unitsProduced: [{unitType: 'Trooper', productionTime: 5000}] }
-    ],
-    'Trooper': () => [
-        { type: 'Hp', maxHp: 50, hp: 50 },
-        { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 10, cooldown: 500, range: 6 }
-    ]
-};
-
-function createStartingUnits(): Unit[] {
-    const startingUnits = [] as Unit[];
-
-    let lastUnitId = 1;
-    const createUnit = (kind: string, position: Position): Unit => {
-        return {
-            actionQueue: [],
-            id: lastUnitId++,
-            kind,
-            owner: 1,
-            position,
-            velocity: {x:0, y:0},
-            direction: 0,
-            components: UNIT_CATALOG[kind]()
-        }
-    };
-
-    startingUnits.push(createUnit('Harvester', {x:31, y:25}));
-    startingUnits.push(createUnit('Harvester', {x:64, y:90}));
-    startingUnits.push(createUnit('Base', {x:10, y:10}));
-    startingUnits.push(createUnit('Base', {x:90, y:90}));
-
-    [{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
-        startingUnits.push(createUnit('Trooper', p));
-    });
-
-    return startingUnits;
-}
 
 export function newGame(map: GameMap): Game {
     return {
@@ -199,6 +138,22 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
     return { tickNumber: g.tickNumber, units: unitUpdates};
 }
 
+const getHpComponent = (unit: Unit): Hp => {
+    return unit.components.find(c => c.type === 'Hp') as Hp;
+}
+
+const getMoveComponent = (unit: Unit): Mover => {
+    return unit.components.find(c => c.type === 'Mover') as Mover;
+}
+
+const getAttackerComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Attacker') as Attacker;
+}
+
+const getHarvesterComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Harvester') as Harvester;
+}
+
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
     const presence: PresenceMap = new Map();
@@ -213,28 +168,20 @@ function updateUnits(dt: Milliseconds, g: Game) {
         updateUnit(dt, g, unit, presence);
     }
 
-    g.units = g.units.filter(u => u.hp > 0);
+    g.units = g.units.filter(u => {
+        const hp = getHpComponent(u);
+        if (!hp)
+            return true; // units with no HP live forever
+        
+        return hp.hp > 0;
+    });
 }
 
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     // if no actions are queued, the unit is considered idle
     if (unit.actionQueue.length === 0)
         return;
-    
-    const unitInfo = UNIT_CATALOG[unit.kind];
 
-    const getMoveComponent = (): Mover => {
-        return unitInfo.components.find(c => c.type === 'Mover') as Mover;
-    }
-
-    const getAttackerComponent = () => {
-        return unitInfo.components.find(c => c.type === 'Attacker') as Attacker;
-    }
-
-    const getHarvesterComponent = () => {
-        return unitInfo.components.find(c => c.type === 'Harvester') as Harvester;
-    }
-    
     // TODO - handle more than one action per tick
     // requires pulling out the distance traveled so that two moves can't happen
     // one after another
@@ -337,7 +284,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         // if out of range, just move to target
         // TODO - duplication with follow
         if (distance(unit.position, target.position) > ac.range) {
-            const mc = getMoveComponent();
+            const mc = getMoveComponent(unit);
             if (!mc) {
                 // if cannot move to the target, then just sit in place
                 return;
@@ -356,14 +303,17 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 move(mc);
             }
         } else {
-            target.hp -= ac.damage;
+            const hp = getHpComponent(unit);
+            if (hp) {
+                hp.hp -= ac.damage;
+            }
         }
     }
     
     const cmd = unit.actionQueue[0];
     switch (cmd.typ) {
         case 'Move': {
-            const mc = getMoveComponent();
+            const mc = getMoveComponent(unit);
             if (!mc) {
                 // ignore the move command if can't move
                 unit.actionQueue.shift();
@@ -374,7 +324,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         case 'Follow': {
-            const mc = getMoveComponent();
+            const mc = getMoveComponent(unit);
             if (!mc) {
                 // ignore the move command if can't move
                 unit.actionQueue.shift();
@@ -389,7 +339,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         case 'Attack': {
-            const ac = getAttackerComponent();
+            const ac = getAttackerComponent(unit);
             if (!ac) {
                 unit.actionQueue.shift();
                 return;
@@ -399,7 +349,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             break;
         }
         case 'Harvest': {
-            const hc = getHarvesterComponent();
+            const hc = getHarvesterComponent(unit);
             if (!hc) {
                 unit.actionQueue.shift();
                 break;
@@ -448,7 +398,7 @@ function unitVector(a: Position, b: Position) {
 }
 
 function eliminated(g: Game): PlayerIndex[] {
-    const isBuilding = (u: Unit) => !!UNIT_CATALOG[u.kind].components.find(c => c.type === 'Building');
+    const isBuilding = (u: Unit) => !!u.components.find(c => c.type === 'Building');
     const buildingsByPlayer = (p: PlayerIndex) => g.units.filter(u => u.owner === p && isBuilding(u));
 
     // TODO support more than 2 players

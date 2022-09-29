@@ -69,7 +69,7 @@ export type UnitState = {
 }
 
 // Components
-export type Component = HP | Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
 export type Hp = {
     type: 'Hp',
     maxHp: number,
