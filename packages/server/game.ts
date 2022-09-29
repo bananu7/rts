@@ -356,6 +356,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             }
 
             break;
+        }    
+        default: {
+            console.warn(`[game] action of type ${cmd.typ} ignored because of no handler`);
+            unit.actionQueue.shift();
         }
     }
 }
