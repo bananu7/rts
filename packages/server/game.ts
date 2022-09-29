@@ -1,16 +1,17 @@
 import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
-    Hp, Mover, Attacker, Harvester,
+    Hp, Mover, Attacker, Harvester, ProductionFacility,
     ActionFollow, ActionAttack
 } from './types';
 
 import { pathFind } from './pathfinding.js'
-import { createStartingUnits } from './units.js'
+import { createUnit, createStartingUnits } from './units.js'
 
 type PresenceMap = Map<number, Unit[]>;
 
 export function newGame(map: GameMap): Game {
+    const units = createStartingUnits();
     return {
         state: {id: 'Lobby'},
         tickNumber: 0,
@@ -18,7 +19,8 @@ export function newGame(map: GameMap): Game {
         board: {
             map: map,
         },
-        units: createStartingUnits(),
+        units,
+        lastUnitId: units.length,
     }
 }
 
@@ -38,6 +40,7 @@ export function command(c: CommandPacket, g: Game) {
     if (g.state.id !== 'Play')
         return;
 
+    // TODO should anything even happen here if I will update anyway?
     us.forEach(u => {
         console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`)
 
@@ -153,6 +156,11 @@ const getAttackerComponent = (unit: Unit) => {
 const getHarvesterComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Harvester') as Harvester;
 }
+
+const getProducerComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'ProductionFacility') as ProductionFacility;
+}
+
 
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
@@ -356,10 +364,46 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             }
 
             break;
-        }    
+        }
+        case 'Produce': {
+            // TODO should this happen regardless of the command if i keep the state
+            // in the component anyway?
+            const p = getProducerComponent(unit);
+            if (!p) {
+                unit.actionQueue.shift();
+                break;
+            }
+
+            if (!p.productionState) {
+                const time = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce).productionTime;
+                p.productionState = {
+                    unitType: cmd.unitToProduce,
+                    timeLeft: time
+                };
+            }
+
+            p.productionState.timeLeft -= dt;
+
+            if (p.productionState.timeLeft < 0) {
+                g.lastUnitId += 1;
+                g.units.push(createUnit(
+                    g.lastUnitId,
+                    unit.owner,
+                    p.productionState.unitType,
+                    { x: unit.position.x, y: unit.position.y+4 }, // TODO find a good spot for a new unit
+                ));
+
+                // TODO - build queue
+                unit.actionQueue.shift();
+                p.productionState = undefined;
+            }
+
+            break;
+        }
         default: {
             console.warn(`[game] action of type ${cmd.typ} ignored because of no handler`);
             unit.actionQueue.shift();
+            break;
         }
     }
 }

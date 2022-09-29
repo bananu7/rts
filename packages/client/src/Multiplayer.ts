@@ -156,6 +156,14 @@ export class Multiplayer {
         });
     }
 
+    async getMatchState() {
+        if (!this.matchId)
+            throw new Error("Can't get match state because not it in a match");
+
+        console.log("[multiplayer] Getting match state");
+        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    }
+
     // TODO - pull those out to a separate MatchControl object
     sendChatMessage(msg: string) {
         this.channel.emit('chat message', 'msg')

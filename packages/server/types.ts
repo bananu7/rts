@@ -143,6 +143,7 @@ export type Game = {
     players: number,
     board: Board,
     units: Unit[],
+    lastUnitId: number,
 }
 
 export type GameMap = {

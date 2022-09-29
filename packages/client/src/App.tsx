@@ -21,17 +21,18 @@ function App() {
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
-  const getMatchState = useCallback((matchId: string) => {
-    console.log("[App] Getting match state");
-    fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId }))
-      .then(r => r.json())
-      .then(s => setServerState(s));
+  const updateMatchState = useCallback(() => {
+    multiplayer.getMatchState()
+    .then(s => { setServerState(s); console.log(s);});
   }, []);
 
   useEffect(() => {
     multiplayer.setup({
       onUpdatePacket: (p:UpdatePacket) => setLastUpdatePacket(p),
-      onMatchConnected: (matchId: string) => getMatchState(matchId),
+      onMatchConnected: (matchId: string) => {
+        console.log(`[App] Connected to a match ${matchId}`);
+        updateMatchState();
+      }
     });
   }, []);
 
@@ -74,6 +75,8 @@ function App() {
           <h3>Main menu</h3>
           { !serverState && <button>Play</button> }
           { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+          { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+          { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
         </div>
       }
 
@@ -94,7 +97,13 @@ function App() {
       { serverState &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
-          <CommandPalette selectedUnits={selectedUnits} units={serverState.units} multiplayer={multiplayer} />
+          <CommandPalette
+            selectedUnits={selectedUnits}
+            // TODO - this ignores the update packet!!
+            // need a way to inform the game about new units / component state...
+            units={serverState.units}
+            multiplayer={multiplayer}
+          />
           <View3D>
             <Board3D
               board={serverState.board}
