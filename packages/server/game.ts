@@ -303,7 +303,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 move(mc);
             }
         } else {
-            const hp = getHpComponent(unit);
+            const hp = getHpComponent(target);
             if (hp) {
                 hp.hp -= ac.damage;
             }

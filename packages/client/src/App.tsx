@@ -94,7 +94,7 @@ function App() {
       { serverState &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
-          <CommandPalette selectedUnits={selectedUnits} multiplayer={multiplayer} />
+          <CommandPalette selectedUnits={selectedUnits} units={serverState.units} multiplayer={multiplayer} />
           <View3D>
             <Board3D
               board={serverState.board}
