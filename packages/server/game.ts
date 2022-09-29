@@ -6,7 +6,7 @@ import {
 } from './types';
 
 import { pathFind } from './pathfinding.js'
-import { createStartingUnits } from './units'
+import { createStartingUnits } from './units.js'
 
 type PresenceMap = Map<number, Unit[]>;
 

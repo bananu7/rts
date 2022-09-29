@@ -38,12 +38,12 @@ export function createStartingUnits(): Unit[] {
     const startingUnits = [] as Unit[];
 
     let lastUnitId = 1;
-    const createUnit = (kind: string, position: Position): Unit => {
+    const createUnit = (owner: number, kind: string, position: Position): Unit => {
         return {
             actionQueue: [],
             id: lastUnitId++,
             kind,
-            owner: 1,
+            owner,
             position,
             velocity: {x:0, y:0},
             direction: 0,
@@ -51,13 +51,13 @@ export function createStartingUnits(): Unit[] {
         }
     };
 
-    startingUnits.push(createUnit('Harvester', {x:31, y:25}));
-    startingUnits.push(createUnit('Harvester', {x:64, y:90}));
-    startingUnits.push(createUnit('Base', {x:10, y:10}));
-    startingUnits.push(createUnit('Base', {x:90, y:90}));
+    startingUnits.push(createUnit(1, 'Harvester', {x:31, y:25}));
+    startingUnits.push(createUnit(2, 'Harvester', {x:64, y:90}));
+    startingUnits.push(createUnit(1, 'Base', {x:10, y:10}));
+    startingUnits.push(createUnit(2, 'Base', {x:90, y:90}));
 
     [{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
-        startingUnits.push(createUnit('Trooper', p));
+        startingUnits.push(createUnit(1, 'Trooper', p));
     });
 
     return startingUnits;
