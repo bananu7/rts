@@ -69,7 +69,12 @@ export type UnitState = {
 }
 
 // Components
-export type Component = Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Component = HP | Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Hp = {
+    type: 'Hp',
+    maxHp: number,
+    hp: number,
+}
 export type Attacker = {
     type: 'Attacker',
     damage: number,
@@ -92,9 +97,19 @@ export type Resource = {
 export type Building = {
     type: 'Building'
 }
+
+export type UnitProductionCapability = {
+    unitType: string,
+    productionTime: number,
+}
+export type CurrentProductionState = {
+    unitType: string,
+    timeLeft: number,
+}
 export type ProductionFacility = {
     type: 'ProductionFacility',
-    unitsProduced: string[],    
+    productionState?: CurrentProductionState,
+    unitsProduced: UnitProductionCapability[],
 }
 
 // Internal Game stuff
@@ -117,7 +132,7 @@ export type Unit = {
     direction: number,
     velocity: Position,
 
-    hp: number, // TODO should be in a dynamic component
+    components: Component[],
 
     pathToNext?: TilePos[],
 }
