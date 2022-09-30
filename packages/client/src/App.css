@@ -82,9 +82,26 @@
   z-index: 10;
 }
 
+.BottomUnitView {
+  position: absolute;
+  bottom: 0;
+  left: 320px;
+  width: 400px;
+  height: 200px;
+  background-color: #555;
+  z-index: 2;
+  padding: 8px;
+}
+
+.BottomUnitView .UnitIcon {
+  padding: 3px;
+  border-radius: 2px;
+  border: 1px solid black;
+}
 
 @media (prefers-color-scheme: light) {
-  .card, .CommandPalette, .MainMenu {
+  .card, .CommandPalette, .MainMenu, .BottomUnitView {
     background-color: #eee;
   }
 }
+

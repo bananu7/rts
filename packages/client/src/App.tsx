@@ -4,6 +4,7 @@ import './App.css'
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
 import { CommandPalette } from './components/CommandPalette';
+import { BottomUnitView } from './components/BottomUnitView';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -100,10 +101,12 @@ function App() {
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette
             selectedUnits={selectedUnits}
-            // TODO - this ignores the update packet!!
-            // need a way to inform the game about new units / component state...
             units={lastUpdatePacket.units}
             multiplayer={multiplayer}
+          />
+          <BottomUnitView
+            selectedUnits={selectedUnits}
+            units={lastUpdatePacket.units}
           />
           <View3D>
             <Board3D
