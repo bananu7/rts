@@ -21,7 +21,7 @@ export type IdentificationPacket = {
     matchId: string, 
 }
 
-export type Action = ActionMove | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce;
+export type Action = ActionMove | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
 export type ActionMove = {
     typ: 'Move',
     target: Position,
@@ -45,6 +45,11 @@ export type ActionHarvest = {
 export type ActionProduce = {
     typ: 'Produce',
     unitToProduce: string,
+}
+export type ActionBuild = {
+    typ: 'Build',
+    building: string,
+    position: Position,
 }
 
 export type CommandPacket = {
@@ -71,7 +76,7 @@ export type UnitState = {
 }
 
 // Components
-export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder;
 export type Hp = {
     type: 'Hp',
     maxHp: number,
@@ -112,6 +117,11 @@ export type ProductionFacility = {
     type: 'ProductionFacility',
     productionState?: CurrentProductionState,
     unitsProduced: UnitProductionCapability[],
+}
+
+export type Builder = {
+    type: 'Builder',
+    buildingsProduced: string[],
 }
 
 // Internal Game stuff

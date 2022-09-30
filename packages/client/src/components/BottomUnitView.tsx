@@ -66,6 +66,7 @@ function HealthBar(props: {hp: number, maxHp: number}) {
     );
 }
 
+// TODO select on click
 function UnitIcon(props: {unit: UnitState}) {
     const u = props.unit;
 
@@ -73,7 +74,7 @@ function UnitIcon(props: {unit: UnitState}) {
     const health = u.components.find(c => c.type === "Hp") as Hp | undefined;
 
     return (
-        <div className="UnitIcon" key={u.id}>
+        <div className="UnitIcon">
             {u.kind}
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
         </div>
@@ -83,7 +84,7 @@ function UnitIcon(props: {unit: UnitState}) {
 function MultiUnitView(props: {units: UnitState[]}) {
     return (
         <div className="MultiUnitView">
-            { props.units.map(u => <UnitIcon unit={u} />) }
+            { props.units.map(u => <UnitIcon key={u.id} unit={u} />) }
         </div>
     );
 }

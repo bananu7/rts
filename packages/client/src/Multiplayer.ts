@@ -216,4 +216,17 @@ export class Multiplayer {
         };
         this.channel.emit('command', cmd);
     }
+
+    buildCommand(unitIds: UnitId[], building: string, position: Position) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Build',
+            building,
+            position
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
 }

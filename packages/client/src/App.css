@@ -46,6 +46,7 @@
   z-index: 2;
   padding: 10px;
   display: flex;
+  gap: 5px;
   background-color: #555;
 }
 

@@ -123,6 +123,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
                 'Move': 'Moving',
                 'Harvest': 'Harvesting',
                 'Produce': 'Idle',
+                'Build': 'Idle',
             }
             type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
             const status: (US) = u.actionQueue.length > 0 ? (actionToStatus[u.actionQueue[0].typ] as US) : 'Idle';
