@@ -135,6 +135,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
                 velocity: u.velocity,
                 owner: u.owner,
                 kind: u.kind,
+                components: u.components,
             }
         });
 

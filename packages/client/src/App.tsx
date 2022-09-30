@@ -23,7 +23,7 @@ function App() {
  
   const updateMatchState = useCallback(() => {
     multiplayer.getMatchState()
-    .then(s => { setServerState(s); console.log(s);});
+    .then(s => setServerState(s));
   }, []);
 
   useEffect(() => {
@@ -76,6 +76,7 @@ function App() {
           { !serverState && <button>Play</button> }
           { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
           { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+          { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
           { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
         </div>
       }
@@ -94,14 +95,14 @@ function App() {
         </div>
       }
 
-      { serverState &&
+      { serverState && lastUpdatePacket &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette
             selectedUnits={selectedUnits}
             // TODO - this ignores the update packet!!
             // need a way to inform the game about new units / component state...
-            units={serverState.units}
+            units={lastUpdatePacket.units}
             multiplayer={multiplayer}
           />
           <View3D>

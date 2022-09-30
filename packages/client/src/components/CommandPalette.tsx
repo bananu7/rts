@@ -1,9 +1,9 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, Position, ProductionFacility } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility } from 'server/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {
     selectedUnits: Set<UnitId>,
-    units: Unit[],
+    units: UnitState[],
     multiplayer: Multiplayer,
 }
 
@@ -14,9 +14,14 @@ export function CommandPalette(props: Props) {
         if (props.selectedUnits.size === 0)
             return [];
 
-        const units: Unit[] = 
+        const units: UnitState[] = 
             Array.from(props.selectedUnits)
-            .map(id => props.units.find(u => u.id === id)) as Unit[]; // TODO "never happen" situation
+            .map(id => {
+                const unit = props.units.find(u => u.id === id);
+                if (!unit)
+                    throw new Error("Selected unit id not in the unit set");
+                return unit;
+            });
 
         const allSameType = units.every(u => u.kind === units[0].kind);
 

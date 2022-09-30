@@ -66,6 +66,8 @@ export type UnitState = {
     velocity: Position, // TODO - Position to Vec2
     direction: number,
     owner: number,
+
+    components: Component[],
 }
 
 // Components
