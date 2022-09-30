@@ -102,7 +102,8 @@ export type Resource = {
     value: number,
 }
 export type Building = {
-    type: 'Building'
+    type: 'Building',
+    constructionTimeLeft?: number,
 }
 
 export type UnitProductionCapability = {
@@ -122,6 +123,7 @@ export type ProductionFacility = {
 export type Builder = {
     type: 'Builder',
     buildingsProduced: string[],
+    currentlyBuilding?: UnitId,
 }
 
 // Internal Game stuff
