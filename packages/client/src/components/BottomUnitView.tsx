@@ -1,4 +1,4 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp } from 'server/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {
@@ -48,14 +48,42 @@ function SingleUnitView(props: {unit: UnitState}) {
     );
 }
 
-function MultiUnitView(props: {units: UnitState[]}) {
-    const style = {
-        display: "flex",
-        gap: "5px",
-    }
+function HealthBar(props: {hp: number, maxHp: number}) {
+    const outer = {
+        height: "1px",
+        width: "100%",
+        backgroundColor: "black",
+    };
+    const bar = {
+        width: `${(props.hp * 100) / props.maxHp}%`,
+        height: '100%',
+        backgroundColor: '#00ee00',
+    };
     return (
-        <div style={style}>
-            { props.units.map(u => <div className="UnitIcon" key={u.id}>{u.kind}</div>) }
+        <div style={outer}>
+            <div style={bar} />
+        </div>
+    );
+}
+
+function UnitIcon(props: {unit: UnitState}) {
+    const u = props.unit;
+
+    // TODO component getters to shared code
+    const health = u.components.find(c => c.type === "Hp") as Hp | undefined;
+
+    return (
+        <div className="UnitIcon" key={u.id}>
+            {u.kind}
+            { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
+        </div>
+    );
+}
+
+function MultiUnitView(props: {units: UnitState[]}) {
+    return (
+        <div className="MultiUnitView">
+            { props.units.map(u => <UnitIcon unit={u} />) }
         </div>
     );
 }

@@ -93,9 +93,15 @@
   padding: 8px;
 }
 
+.BottomUnitView .MultiUnitView {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
 .BottomUnitView .UnitIcon {
   padding: 3px;
-  border-radius: 2px;
+  border-radius: 3px;
   border: 1px solid black;
 }
 
