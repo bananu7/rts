@@ -77,3 +77,17 @@ I sat down during the evening to start working on the first playtest branch. I q
 that i really need to get myself out of the static components rabbit hole, since there's no good way to rely the information about the unit production capabilities
 (and cooldown!) to the client. This presents a challenge - expanding the unit state with dynamic component state means that the update might get much bigger. I
 should keep an eye on that, but in the meantime should be able to get away with sending everything everytime.
+
+## 2022-09-30
+The day started with realization that the whole setup with "lastUpdatePacket" and "serverState" is very finnicky. I'll need to address the reliable vs unreliable updates at some point, for now I've just added all components to the UnitUpdate and called it a day.
+
+I've added the bottom view that is able to show both a single unit and a group of selected units. That was easy enough, i really love how quickly you can create ui with React.
+
+I figure that for the first playthrough i can add crucial elements now - i have moving, attacking and production, i need harvesting and making new buildings now.
+
+A couple of hours later I've also realized that it's a good time to refactor the movement part of the game's AI system. I had a lot of TODOs left in that code because I was struggling with making proper abstractions there. The follow, move and attack actions all seemed to have very
+specific needs, and i couldn't put my finger on what a good entrypoint would be. With adding the Build action though it became much clearer;
+what I needed to express was simply "move towards a given position", hiding the entire pathfinding complexity underneath that. This now means
+that building is just "go to the place, then build" etc. I've also added a radius parameter to the move command to allow it to end quicker;
+that's very useful for all sort of actions that define their own interaction ranges. Perhaps in the future i might replace it with some other
+arrival predicate or similar. Either way, I'm well set up to add resources and harvesting.
