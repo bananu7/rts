@@ -39,16 +39,6 @@ export function BottomUnitView (props: Props) {
     );
 }
 
-function SingleUnitView(props: {unit: UnitState}) {
-    return (
-        <div>
-            <h2>{props.unit.kind}</h2>
-            <span>{props.unit.status}</span>
-            <pre style={{width: "100%", whiteSpace: "normal"}}>{JSON.stringify(props.unit.components)}</pre>
-        </div>
-    );
-}
-
 function HealthBar(props: {hp: number, maxHp: number}) {
     const outer = {
         height: "1px",
@@ -63,6 +53,19 @@ function HealthBar(props: {hp: number, maxHp: number}) {
     return (
         <div style={outer}>
             <div style={bar} />
+        </div>
+    );
+}
+
+function SingleUnitView(props: {unit: UnitState}) {
+    const health = props.unit.components.find(c => c.type === "Hp") as Hp | undefined;
+
+    return (
+        <div>
+            <h2>{props.unit.kind}</h2>
+            { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
+            { health && <h3>{health.hp}/{health.maxHp}</h3> }
+            <span>{props.unit.status}</span>
         </div>
     );
 }
