@@ -179,7 +179,18 @@ export class Multiplayer {
             shift: false,
         };
         this.channel.emit('command', cmd)
-    };
+    }
+
+    stopCommand(unitIds: UnitId[]) {
+        const cmd : CommandPacket = {
+            action: {
+                typ: 'Stop',
+            },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd)
+    }
 
     followCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {
@@ -191,7 +202,7 @@ export class Multiplayer {
             shift: false,
         };
         this.channel.emit('command', cmd);
-    };
+    }
 
     attackCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {

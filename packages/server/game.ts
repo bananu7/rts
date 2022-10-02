@@ -87,6 +87,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
                 'Harvest': 'Harvesting',
                 'Produce': 'Producing',
                 'Build': 'Idle',
+                'Stop': 'Idle',
             }
             type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
             const status: (US) = u.actionQueue.length > 0 ? (actionToStatus[u.actionQueue[0].typ] as US) : 'Idle';
@@ -284,6 +285,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             if (moveTowards(cmd.target, 0.1) !== 'Moving') {
                 clearCurrentAction();
             }
+            break;
+        }
+
+        case 'Stop': {
+            stopMoving();
+            unit.actionQueue = [];
             break;
         }
 

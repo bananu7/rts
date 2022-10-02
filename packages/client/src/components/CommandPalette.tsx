@@ -25,7 +25,6 @@ type Props = {
     units: UnitState[],
     multiplayer: Multiplayer,
 }
-
 export function CommandPalette(props: Props) {
     if (props.selectedUnits.size === 0) {
         return <div></div>;
@@ -42,19 +41,12 @@ export function CommandPalette(props: Props) {
 
     const allSameType = units.every(u => u.kind === units[0].kind);
 
-    // TODO check if all can move
-    // TODO the selection is somewhat clunky
+    // TODO browse all units?
     const canMove = Boolean(units[0].components.find(c => c.type === 'Mover'));
-    const moveButtonActive = props.selectedAction && props.selectedAction.action == 'Move';
-    const moveButtonClass = moveButtonActive ? "active" : "";
-    const move = () => props.setSelectedAction({ action: 'Move'});
-    const moveButton = <button className={moveButtonClass} key="move" onClick={move}>Move</button>
-
     const canAttack = Boolean(units[0].components.find(c => c.type === 'Attacker'));
-    const attackButtonActive = props.selectedAction && props.selectedAction.action == 'Attack';
-    const attackButtonClass = attackButtonActive ? "active" : "";
-    const attack = () => props.setSelectedAction({ action: 'Attack'});
-    const attackButton = <button className={attackButtonClass} key="attack" onClick={attack}>Attack</button>
+
+    const stop = () =>
+        props.multiplayer.stopCommand(Array.from(props.selectedUnits));
 
     const productionUnits = (() => {
         if (props.selectedUnits.size === 0)
@@ -75,7 +67,11 @@ export function CommandPalette(props: Props) {
         props.multiplayer.produceCommand(Array.from(props.selectedUnits), utype);
 
     const productionButtons = productionUnits.map(ut =>
-        <button key={`produce_${ut}`} onClick={() => produce(ut)}>Produce {ut}</button>
+        <button
+            key={`produce_${ut}`}
+            style={{gridRow: "2 / span 1"}}
+            onClick={() => produce(ut)}
+        >Produce {ut}</button>
     );
 
     const availableBuildings = (() => {
@@ -99,13 +95,43 @@ export function CommandPalette(props: Props) {
     // TODO - second click to determine position
     const buildButtons = availableBuildings.map(bp => {
         const b = bp.buildingType;
-        return <button key={`build_${b}`} onClick={() => build(b, {x: 50, y: 50})}>Build {b}</button>
+
+        return (
+            <button
+                key={`build_${b}`}
+                style={{gridRow: "2 / span 1"}}
+                onClick={() => build(b, {x: 50, y: 50})}
+            >Build {b}</button>
+        );
     })
 
     return (
         <div className="CommandPalette">
-            { canMove && moveButton }
-            { canAttack && attackButton }
+            {
+                canMove &&
+                <button
+                    key="move"
+                    style={{gridColumn: "1 / span 1", gridRow: "1 / span 1"}}
+                    className={props.selectedAction && props.selectedAction.action === 'Move' ? "active" : ""}
+                    onClick={() => props.setSelectedAction({ action: 'Move'})}
+                >Move</button>
+            }
+
+            <button
+                key="stop"
+                style={{gridColumn: "2 / span 1", gridRow: "1 / span 1"}}
+                onClick={stop}
+            >Stop</button>
+
+            {
+                canAttack &&
+                <button
+                    key="attack"
+                    style={{gridColumn: "3 / span 1", gridRow: "1 / span 1"}}
+                    className={props.selectedAction && props.selectedAction.action === 'Attack' ? "active" : ""}
+                    onClick={() => props.setSelectedAction({ action: 'Attack'})}
+                >Attack</button>
+            }
 
             { productionButtons }
             { buildButtons }

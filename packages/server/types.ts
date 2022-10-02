@@ -21,10 +21,13 @@ export type IdentificationPacket = {
     matchId: string, 
 }
 
-export type Action = ActionMove | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
+export type Action = ActionMove | ActionStop | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
 export type ActionMove = {
     typ: 'Move',
     target: Position,
+}
+export type ActionStop = {
+    typ: 'Stop'
 }
 export type ActionFollow = {
     typ: 'Follow',
