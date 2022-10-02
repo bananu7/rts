@@ -340,20 +340,53 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             const target = g.units.find(u => u.id === cmd.target);
             if (!target) {
+                // TODO find other nearby resource
                 clearCurrentAction();
                 break;
             }
 
-            const HARVESTING_DISTANCE = 2;
-            switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
-            case 'Unreachable':
-                clearCurrentAction();
-                break;
-            case 'Moving':
-                break;
-            case 'ReachedTarget':
-                // TODO - implement harvesting logic and resources
-                break;
+            if (!hc.resourcesCarried) {
+                const HARVESTING_DISTANCE = 2;
+                switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
+                case 'Unreachable':
+                    clearCurrentAction();
+                    break;
+                case 'ReachedTarget':
+                    // TODO - harvesting time
+                    hc.resourcesCarried = 50;
+                    break;
+                }
+            } else {
+                const DROPOFF_DISTANCE = 2;
+                // TODO cache the dropoff base
+
+                // TODO - resource dropoff component
+                const bases = g.units.filter(u => 
+                    u.owner == unit.owner &&
+                    u.kind === 'Base'
+                );
+
+                if (bases.length === 0) {
+                    // no base to dropoff to
+                    break;
+                }
+
+                bases.sort((ba, bb) => {
+                    return distance(unit.position, ba.position) - distance(unit.position, bb.position);
+                });
+                const target = bases[0];
+
+                switch(moveTowards(target.position, DROPOFF_DISTANCE)) {
+                case 'Unreachable':
+                    // TODO if closest base is unreachable maybe try next one?
+                    clearCurrentAction();
+                    break;
+                case 'ReachedTarget':
+                    // TODO - harvesting time
+                    owner.resources += hc.resourcesCarried;
+                    hc.resourcesCarried = null;
+                    break;
+                }
             }
 
             break;
@@ -426,8 +459,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             switch(moveTowards(cmd.position, BUILDING_DISTANCE)) {
             case 'Unreachable':
                 clearCurrentAction();
-                break;
-            case 'Moving':
                 break;
             case 'ReachedTarget':
                 owner.resources -= bp.buildCost;

@@ -229,4 +229,16 @@ export class Multiplayer {
         };
         this.channel.emit('command', cmd);
     }
+
+    harvestCommand(unitIds: UnitId[], target: UnitId) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Harvest',
+            target,
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
 }

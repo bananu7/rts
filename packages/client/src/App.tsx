@@ -49,6 +49,7 @@ function App() {
     multiplayer.moveCommand(Array.from(selectedUnits), p);
   }, [selectedUnits]);
 
+  // TODO it feels like it shouldn't be be here, maybe GameController component?
   const unitRightClick = (targetId: UnitId) => {
     if (!lastUpdatePacket)
       return;
@@ -62,10 +63,15 @@ function App() {
       return;
     }
 
-    if (target.owner === 1) {
+    // TODO properly understand your own id
+    if (target.owner === 0) { // neutral
+      // TODO actually check if can harvest and is resource
+      multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+    }
+    else if (target.owner === 1) {
       multiplayer.followCommand(Array.from(selectedUnits), targetId);
     }
-    else {
+    else if (target.owner === 2) {
       multiplayer.attackCommand(Array.from(selectedUnits), targetId);
     }
   }
