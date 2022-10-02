@@ -532,9 +532,11 @@ function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVeloc
 
         separation = sum(separation, localSeparation);
 
-        // push other unit apart
-        u.position.x -= localSeparation.x;
-        u.position.y -= localSeparation.y;
+        // push other unit apart (but only if it can move)
+        if (u.components.find(c => c.type === 'Mover')) {
+            u.position.x -= localSeparation.x;
+            u.position.y -= localSeparation.y;
+        }
     }
 
     // limit maximum    
