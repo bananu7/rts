@@ -21,6 +21,7 @@ type Unit3DProps = {
     unit: UnitState,
     selected: boolean,
     click?: (id: UnitId, button: number) => void,
+    enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
     //const [catalog] = useState(() => require('../../assets/catalog.json'));
@@ -119,7 +120,7 @@ export function Unit3D(props: Unit3DProps) {
                     <boxGeometry args={[unitSize, 2, unitSize]} />
                     <meshStandardMaterial color={color} />
                 </mesh>
-                { props.selected && <SelectionCircle size={unitSize} /> }    
+                { props.selected && <SelectionCircle size={unitSize} enemy={props.enemy} /> }    
             </group>
         </group>
     );
@@ -162,6 +163,7 @@ export function Board3D(props: Props) {
         unit={u}
         click={handleUnitClick}
         selected={props.selectedUnits.has(u.id)}
+        enemy={u.owner !== props.playerIndex}
     />));
 
     const groupRef = useRef<THREE.Group>(null);
