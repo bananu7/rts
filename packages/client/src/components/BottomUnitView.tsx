@@ -44,6 +44,7 @@ function SingleUnitView(props: {unit: UnitState}) {
         <div>
             <h2>{props.unit.kind}</h2>
             <span>{props.unit.status}</span>
+            <pre style={{width: "100%", whiteSpace: "normal"}}>{JSON.stringify(props.unit.components)}</pre>
         </div>
     );
 }

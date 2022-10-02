@@ -2,7 +2,8 @@ import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder,
-    ActionFollow, ActionAttack
+    ActionFollow, ActionAttack,
+    PlayerState,
 } from './types';
 
 import { pathFind } from './pathfinding.js'
@@ -15,7 +16,8 @@ export function newGame(map: GameMap): Game {
     return {
         state: {id: 'Lobby'},
         tickNumber: 0,
-        players: 0,
+        // TODO factor number of players in creation
+        players: [{resources: 50}, {resources: 50}],
         board: {
             map: map,
         },
@@ -50,7 +52,8 @@ export function command(c: CommandPacket, g: Game) {
     });
 }
 
-export function tick(dt: Milliseconds, g: Game): UpdatePacket {
+// Returns a list of update packets, one for each player
+export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     switch (g.state.id) {
     case 'Precount':
         g.state.count -= dt;
@@ -98,7 +101,14 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket {
             }
         });
 
-    return { tickNumber: g.tickNumber, units: unitUpdates};
+    // TODO - fog of war will happen here
+    return g.players.map((p, i) => {
+        return {
+            tickNumber: g.tickNumber,
+            units: unitUpdates,
+            player: p,
+        }
+    });
 }
 
 const getHpComponent = (unit: Unit): Hp => {

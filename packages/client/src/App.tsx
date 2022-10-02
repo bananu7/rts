@@ -5,6 +5,7 @@ import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
 import { CommandPalette } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
+import { ResourceView } from './components/ResourceView';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -108,6 +109,7 @@ function App() {
             selectedUnits={selectedUnits}
             units={lastUpdatePacket.units}
           />
+          <ResourceView resources={lastUpdatePacket.player.resources} />
           <View3D>
             <Board3D
               board={serverState.board}

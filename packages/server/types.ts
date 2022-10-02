@@ -61,6 +61,7 @@ export type CommandPacket = {
 export type UpdatePacket = {
     tickNumber: number,
     units: UnitState[],
+    player: PlayerState,
 }
 
 export type UnitState = {
@@ -151,10 +152,14 @@ export type Unit = {
     pathToNext?: TilePos[],
 }
 
+export type PlayerState = {
+    resources: number,
+}
+
 export type Game = {
     state: GameState
     tickNumber: number,
-    players: number,
+    players: PlayerState[],
     board: Board,
     units: Unit[],
     lastUnitId: number,

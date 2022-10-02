@@ -92,6 +92,7 @@
   background-color: #555;
   z-index: 2;
   padding: 8px;
+  overflow: hidden;
 }
 
 .BottomUnitView .MultiUnitView {
@@ -106,8 +107,19 @@
   border: 1px solid black;
 }
 
+.ResourceView {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 200px;
+  width: 150px;
+  height: 40px;
+  padding: 10px;
+  background-color: #555;
+}
+
 @media (prefers-color-scheme: light) {
-  .card, .CommandPalette, .MainMenu, .BottomUnitView {
+  .card, .CommandPalette, .MainMenu, .BottomUnitView, .ResourceView {
     background-color: #eee;
   }
 }

@@ -73,9 +73,10 @@ app.post('/create', async (req, res) => {
     matches.push({ game, matchId, players: [] });
 
     setInterval(() => {
-        const updatePacket = tick(100, game);
-        // TODO - fog of war
-        io.room(matchId).emit('tick', updatePacket);
+        const updatePackets = tick(100, game);
+        // TODO - those updates can't be broadcasted, need a way
+        // to address players individually
+        io.room(matchId).emit('tick', updatePackets[0]);
     }, 100);
 
     console.log(`Match ${matchId} created`);
