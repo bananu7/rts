@@ -69,6 +69,8 @@ export class Multiplayer {
                     throw "Server responded with connection but the multiplayer isn't initialized to a match";
                 }
                 console.log("[Multiplayer] RTC connected to match")
+                this.playerIndex = data as number;
+                console.log(`[Multiplayer] Client is player ${this.playerIndex}`)
                 this.onMatchConnected && this.onMatchConnected(this.matchId);
             });
 
@@ -162,6 +164,10 @@ export class Multiplayer {
 
         console.log("[multiplayer] Getting match state");
         return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    }
+
+    getPlayerIndex() {
+        return this.playerIndex;
     }
 
     // TODO - pull those out to a separate MatchControl object

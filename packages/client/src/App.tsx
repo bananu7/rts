@@ -14,7 +14,16 @@ import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Positi
 import { Multiplayer } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 
-const multiplayer = new Multiplayer("bananu7");
+// TODO
+let userId = localStorage.getItem("userId");
+if (!userId) {
+  userId = window.prompt("Please provide your user id");
+  if (userId)
+    localStorage.setItem('userId', userId);
+  else
+    throw "No user id present; set item 'userId' in localStorage to play";
+}
+const multiplayer = new Multiplayer(userId);
 
 function App() {
   const [showMainMenu, setShowMainMenu] = useState(false);

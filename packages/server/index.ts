@@ -120,9 +120,10 @@ app.post('/join', async (req, res) => {
         // and slot order might matter
         let index = 1;
         for (;index < 10; index++) {
-            if (match.players.find(p => p.index === index))
-                continue;
+            if (!match.players.find(p => p.index === index))
+                break;
         }
+        console.log(`[index] Adding user ${userId} as player number ${index} in match ${matchId}`);
         match.players.push({ user: userId, index });
 
         res.send(JSON.stringify({
@@ -197,7 +198,8 @@ io.onConnection(channel => {
 
         // check if the game can start
         // TODO - wait for all players, not just one
-        if (m.players.length >= 1) {
+        if (m.players.length >= 2) {
+            console.log(`[index] Enough players joined, starting ${packet.matchId}`)
             startGame(m.game);
             io.room(m.matchId).emit('chat message', "Game starting")
         }
@@ -219,7 +221,7 @@ io.onConnection(channel => {
             }
 
             // TODO - validate
-            command(data as CommandPacket, m.game);
+            command(data as CommandPacket, m.game, channel.userData.playerIndex);
         }
         catch(e) {
             console.error(e);

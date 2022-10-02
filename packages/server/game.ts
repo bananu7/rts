@@ -28,10 +28,11 @@ export function newGame(map: GameMap): Game {
 }
 
 export function startGame(g: Game) {
+    console.log("[game] Game starting precount");
     g.state = {id: 'Precount', count: 0};
 }
 
-export function command(c: CommandPacket, g: Game) {
+export function command(c: CommandPacket, g: Game, playerIndex: number) {
     const us = c.unitIds
         .map(id => g.units.find(u => id === u.id))
         .filter(u => u) // non-null
@@ -44,8 +45,13 @@ export function command(c: CommandPacket, g: Game) {
         return;
 
     us.forEach(u => {
+        if (u.owner !== playerIndex) {
+            console.info(`[game] Player tried to control other player's unit`);
+            return;
+        }
+
         console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`);
-        
+
         if (c.shift)
             u.actionQueue.push(c.action);
         else
