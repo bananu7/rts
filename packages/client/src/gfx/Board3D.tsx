@@ -34,7 +34,15 @@ export function Unit3D(props: Unit3DProps) {
     }
 
     // TODO better color choices
-    const color = props.unit.owner === 1 ? 0x1111ee : 0xee1111;
+    const ownerToColor = (owner: number) => {
+        switch(owner) {
+        case 0: return 0xdddddd;
+        case 1: return 0x1111ee;
+        case 2: return 0xee1111;
+        }
+    };
+
+    const color = ownerToColor(props.unit.owner);
 
     // TODO proper unit catalog
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';

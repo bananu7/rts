@@ -60,10 +60,13 @@ export function createStartingUnits(): Unit[] {
 
     let lastUnitId = 1;
 
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:6}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
     startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
     startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:10, y:10}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:30, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:90, y:90}));
 
     [{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
