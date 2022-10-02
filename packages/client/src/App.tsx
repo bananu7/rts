@@ -39,7 +39,10 @@ function App() {
 
   useEffect(() => {
     multiplayer.setup({
-      onUpdatePacket: (p:UpdatePacket) => setLastUpdatePacket(p),
+      onUpdatePacket: (p:UpdatePacket) => {
+        setLastUpdatePacket(p);
+        setSelectedUnits(su => new Set(p.units.map(u => u.id).filter(id => su.has(id))));
+      },
       onMatchConnected: (matchId: string) => {
         console.log(`[App] Connected to a match ${matchId}`);
         updateMatchState();
