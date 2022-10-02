@@ -127,6 +127,7 @@ export function Unit3D(props: Unit3DProps) {
 
 export interface Props {
     board: Board;
+    playerIndex: number;
     unitStates: UnitState[];
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
@@ -176,6 +177,7 @@ export function Board3D(props: Props) {
 
         const selection = props.unitStates
             .filter(u => isInBox(u.position, box))
+            .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);
 
         props.select(new Set(selection));

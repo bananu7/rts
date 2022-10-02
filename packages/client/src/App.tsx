@@ -151,6 +151,7 @@ function App() {
           <View3D>
             <Board3D
               board={serverState.board}
+              playerIndex={multiplayer.getPlayerIndex() || 0} // TODO really need a match class to fix this undefined
               unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
               select={boardSelectUnits}
