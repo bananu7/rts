@@ -93,15 +93,15 @@ function App() {
       return;
     }
 
-    // TODO properly understand your own id
+    // TODO properly understand alliances
     if (target.owner === 0) { // neutral
       // TODO actually check if can harvest and is resource
       multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
     }
-    else if (target.owner === 1) {
+    else if (target.owner === multiplayer.getPlayerIndex()) {
       multiplayer.followCommand(Array.from(selectedUnits), targetId);
     }
-    else if (target.owner === 2) {
+    else if (target.owner !== multiplayer.getPlayerIndex()) {
       multiplayer.attackCommand(Array.from(selectedUnits), targetId);
     }
   }
