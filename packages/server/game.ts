@@ -219,7 +219,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
 
                 // TODO - slow starts and braking
-                unit.velocity = checkMovePossibility(unit.id, unit.position, desiredVelocity, g.board.map, presence);
+                unit.velocity = checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence);
 
                 unit.position = sum(unit.position, unit.velocity);
                 return false;
@@ -534,8 +534,15 @@ function eliminated(g: Game): PlayerIndex[] {
 }
 
 
-function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
+function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
+
+    // Disable collisions for harvesting units
+    if (unit.actionQueue.length > 0 &&
+        unit.actionQueue[0].typ === 'Harvest'
+    ) {
+        return desiredVelocity;
+    }
 
     const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
     const otherUnitsNearby =
@@ -546,7 +553,7 @@ function checkMovePossibility(unitId: UnitId, currentPos: Position, desiredVeloc
 
     let separation = {x:0, y:0};
     for (const u of otherUnitsNearby) {
-        if (u.id === unitId)
+        if (u.id === unit.id)
             continue;
 
         let localSeparation = difference(currentPos, u.position);
