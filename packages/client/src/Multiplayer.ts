@@ -205,6 +205,18 @@ export class Multiplayer {
         this.channel.emit('command', cmd);
     }
 
+    attackMoveCommand(unitIds: UnitId[], target: Position) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'AttackMove',
+            target
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
+
     produceCommand(unitIds: UnitId[], unitToProduce: string) {
         const cmd : CommandPacket = {
             action: {

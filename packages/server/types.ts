@@ -67,7 +67,7 @@ export type UpdatePacket = {
 export type UnitState = {
     id: number,
     kind: string,
-    status: 'Moving'|'Attacking'|'Harvesting'|'Idle',
+    status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
     position: Position,
     velocity: Position, // TODO - Position to Vec2
     direction: number,

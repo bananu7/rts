@@ -3,7 +3,7 @@ import './App.css'
 
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
-import { CommandPalette } from './components/CommandPalette';
+import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
 
@@ -40,14 +40,35 @@ function App() {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
+  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
+
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
   const mapClick = useCallback((p: Position) => {
     if (selectedUnits.size === 0)
       return;
-    
-    multiplayer.moveCommand(Array.from(selectedUnits), p);
-  }, [selectedUnits]);
+
+    const action = selectedAction ?? { action: 'Move' };
+    switch(action.action) {
+    case 'Move':
+      multiplayer.moveCommand(Array.from(selectedUnits), p);
+      break;
+    case 'Attack':
+      multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+      break;
+    case 'Build':
+      multiplayer.buildCommand(Array.from(selectedUnits), action.building, p);
+      break;
+    }
+
+    setSelectedAction(undefined);
+
+  }, [selectedAction, selectedUnits]);
+
+  const boardSelectUnits = (units: Set<UnitId>) => {
+    setSelectedAction(undefined);
+    setSelectedUnits(units);
+  };
 
   // TODO it feels like it shouldn't be be here, maybe GameController component?
   const unitRightClick = (targetId: UnitId) => {
@@ -110,6 +131,8 @@ function App() {
             selectedUnits={selectedUnits}
             units={lastUpdatePacket.units}
             multiplayer={multiplayer}
+            selectedAction={selectedAction}
+            setSelectedAction={setSelectedAction}
           />
           <BottomUnitView
             selectedUnits={selectedUnits}
@@ -121,7 +144,7 @@ function App() {
               board={serverState.board}
               unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              select={setSelectedUnits}
+              select={boardSelectUnits}
               mapClick={mapClick}
               unitRightClick={unitRightClick}
             />

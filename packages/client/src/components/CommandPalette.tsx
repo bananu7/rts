@@ -12,8 +12,16 @@ import {
 } from 'server/types'
 import { Multiplayer } from '../Multiplayer'
 
+export type SelectedAction = 
+  { action: 'Move' }
+| { action: 'Attack' }
+| { action: 'Build', building: string }
+| { action: 'Harvest' };
+
 type Props = {
     selectedUnits: Set<UnitId>,
+    selectedAction: SelectedAction | undefined,
+    setSelectedAction: (a: SelectedAction) => void,
     units: UnitState[],
     multiplayer: Multiplayer,
 }
@@ -35,8 +43,18 @@ export function CommandPalette(props: Props) {
     const allSameType = units.every(u => u.kind === units[0].kind);
 
     // TODO check if all can move
+    // TODO the selection is somewhat clunky
     const canMove = Boolean(units[0].components.find(c => c.type === 'Mover'));
-    const move = () => props.multiplayer.moveCommand(Array.from(props.selectedUnits), {x:50, y:50});
+    const moveButtonActive = props.selectedAction && props.selectedAction.action == 'Move';
+    const moveButtonClass = moveButtonActive ? "active" : "";
+    const move = () => props.setSelectedAction({ action: 'Move'});
+    const moveButton = <button className={moveButtonClass} key="move" onClick={move}>Move</button>
+
+    const canAttack = Boolean(units[0].components.find(c => c.type === 'Attacker'));
+    const attackButtonActive = props.selectedAction && props.selectedAction.action == 'Attack';
+    const attackButtonClass = attackButtonActive ? "active" : "";
+    const attack = () => props.setSelectedAction({ action: 'Attack'});
+    const attackButton = <button className={attackButtonClass} key="attack" onClick={attack}>Attack</button>
 
     const productionUnits = (() => {
         if (props.selectedUnits.size === 0)
@@ -76,7 +94,7 @@ export function CommandPalette(props: Props) {
     })();
 
     const build = (building: string, position: Position) =>
-        props.multiplayer.buildCommand(Array.from(props.selectedUnits), building, position);
+        props.setSelectedAction({ action: 'Build', building });
 
     // TODO - second click to determine position
     const buildButtons = availableBuildings.map(bp => {
@@ -86,7 +104,8 @@ export function CommandPalette(props: Props) {
 
     return (
         <div className="CommandPalette">
-            { canMove && <button key="move" onClick={move}>Move</button> }
+            { canMove && moveButton }
+            { canAttack && attackButton }
 
             { productionButtons }
             { buildButtons }

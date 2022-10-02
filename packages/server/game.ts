@@ -78,13 +78,14 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
         .map(u => {
             // TODO pull actual action that's done right at the moment
             // (including cooldowns etc)
+            // maybe this should happen client-side actually?
             const actionToStatus = {
                 'Attack': 'Attacking',
                 'AttackMove': 'Attacking',
                 'Follow': 'Moving',
                 'Move': 'Moving',
                 'Harvest': 'Harvesting',
-                'Produce': 'Idle',
+                'Produce': 'Producing',
                 'Build': 'Idle',
             }
             type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';

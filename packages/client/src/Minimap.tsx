@@ -25,8 +25,16 @@ export function Minimap(props: Props) {
     };
 
     const contents = props.units.map(u => {
-        const color = u.owner === 1 ? '#1111ee' : '#ee1111';
-        const size = u.kind === 'Base' ? '20' : '10';
+        const ownerToColor = (owner: number) => {
+            switch(owner) {
+            case 0: return "#dddddd";
+            case 1: return "#3333ff";
+            case 2: return "#ee1111";
+            }
+        };
+        const color = ownerToColor(u.owner);
+
+        const size = u.kind === 'Base' ? '8' : '3';
         return (<rect
             key={u.id}
             x={u.position.x}
@@ -37,9 +45,10 @@ export function Minimap(props: Props) {
         />);
     });
 
+    // TODO proper scaling to map size
     return (
         <div style={style}>
-            <svg style={{width: '100%', height: '100%'}}>
+            <svg viewBox="0 0 110 110" style={{width: '100%', height: '100%'}}>
                 {contents}
             </svg>
         </div>
