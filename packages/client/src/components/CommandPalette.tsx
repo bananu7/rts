@@ -79,9 +79,10 @@ export function CommandPalette(props: Props) {
         props.multiplayer.buildCommand(Array.from(props.selectedUnits), building, position);
 
     // TODO - second click to determine position
-    const buildButtons = availableBuildings.map(bp => 
-        <button key={`build_${bp}`} onClick={() => build(bp, {x: 50, y: 50})}>Build {bp}</button>
-    )
+    const buildButtons = availableBuildings.map(bp => {
+        const b = bp.buildingType;
+        return <button key={`build_${b}`} onClick={() => build(b, {x: 50, y: 50})}>Build {b}</button>
+    })
 
     return (
         <div className="CommandPalette">

@@ -13,12 +13,17 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Mover', speed: 10 },
         { type: 'Attacker', damage: 5, cooldown: 1000, range: 2 },
         { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20 },
-        { type: 'Builder', buildingsProduced: ['Base', 'Barracks'] },
+        { type: 'Builder', buildingsProduced: [
+            { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
+            { buildingType: 'Barracks', buildTime: 5000, buildCost: 150},
+        ]},
     ],
     'Base': () => [
         { type: 'Hp', maxHp: 1000, hp: 1000 },
         { type: 'Building' },
-        { type: 'ProductionFacility', unitsProduced: [{unitType: 'Harvester', productionTime: 5000}] }
+        { type: 'ProductionFacility', unitsProduced: [
+            { unitType: 'Harvester', productionTime: 5000, productionCost: 50 }
+        ]}
     ],
     'ResourceNode': () => [
         { type: 'Resource', value: 100 }
@@ -26,7 +31,9 @@ const UNIT_CATALOG : Catalog = {
     'Barracks': () => [
         { type: 'Hp', maxHp: 600, hp: 600 },
         { type: 'Building' },
-        { type: 'ProductionFacility', unitsProduced: [{unitType: 'Trooper', productionTime: 5000}] }
+        { type: 'ProductionFacility', unitsProduced: [
+            {unitType: 'Trooper', productionTime: 5000, productionCost: 50}
+        ]}
     ],
     'Trooper': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },

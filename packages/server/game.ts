@@ -17,7 +17,8 @@ export function newGame(map: GameMap): Game {
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
-        players: [{resources: 50}, {resources: 50}],
+        // TODO making it 5000 for now until resources arrive
+        players: [{resources: 5000}, {resources: 5000}],
         board: {
             map: map,
         },
@@ -275,6 +276,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     const cmd = unit.actionQueue[0];
+    const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
+
     switch (cmd.typ) {
         case 'Move': {
             if (moveTowards(cmd.target, 0.1) !== 'Moving') {
@@ -366,7 +369,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             }
 
             if (!p.productionState) {
-                const time = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce).productionTime;
+                const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
+                const time = utp.productionTime;
+                const cost = utp.productionCost;
+
+                owner.resources -= cost;
+
                 p.productionState = {
                     unitType: cmd.unitToProduce,
                     timeLeft: time
@@ -394,8 +402,22 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         case 'Build': {
-            const b = getBuilderComponent(unit);
-            if (!b) {
+            const bc = getBuilderComponent(unit);
+            if (!bc) {
+                console.info("[game] Unit without a builder component ordered to build");
+                clearCurrentAction();
+                break;
+            }
+
+            const bp = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
+            if (!bp) {
+                console.info("[game] Unit ordered to build something it can't");
+                clearCurrentAction();
+                break;
+            }
+
+            if (bp.buildCost > owner.resources) {
+                console.info("[game] Unit ordered to build but player doesn't have enough resources");
                 clearCurrentAction();
                 break;
             }
@@ -408,7 +430,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             case 'Moving':
                 break;
             case 'ReachedTarget':
+                owner.resources -= bp.buildCost;
                 // TODO - this should take time
+                // already specified in bp.buildTime
+
                 g.lastUnitId += 1;
                 g.units.push(createUnit(
                     g.lastUnitId,

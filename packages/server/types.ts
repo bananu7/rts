@@ -110,6 +110,7 @@ export type Building = {
 export type UnitProductionCapability = {
     unitType: string,
     productionTime: number,
+    productionCost: number,
 }
 export type CurrentProductionState = {
     unitType: string,
@@ -121,9 +122,15 @@ export type ProductionFacility = {
     unitsProduced: UnitProductionCapability[],
 }
 
+export type BuildCapability = {
+    buildingType: string,
+    buildTime: number,
+    buildCost: number,
+}
+
 export type Builder = {
     type: 'Builder',
-    buildingsProduced: string[],
+    buildingsProduced: BuildCapability[],
     currentlyBuilding?: UnitId,
 }
 
