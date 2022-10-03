@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react'
 
-export function SelectionCircle(props: { size: number }) {
+export function SelectionCircle(props: { size: number, enemy?: boolean }) {
     const innerRadius = props.size;
     const outerRadius = props.size * 1.1;
     const segments = 32;
@@ -24,7 +24,7 @@ export function SelectionCircle(props: { size: number }) {
                 args={[innerRadius, outerRadius, segments]}
             />
             <meshBasicMaterial
-                color={0x00ff00}
+                color={props.enemy ? 0xff0000 : 0x00ff00}
                 opacity={1.0}
                 transparent={false}
             />

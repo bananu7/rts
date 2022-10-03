@@ -21,10 +21,13 @@ export type IdentificationPacket = {
     matchId: string, 
 }
 
-export type Action = ActionMove | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce;
+export type Action = ActionMove | ActionStop | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
 export type ActionMove = {
     typ: 'Move',
     target: Position,
+}
+export type ActionStop = {
+    typ: 'Stop'
 }
 export type ActionFollow = {
     typ: 'Follow',
@@ -46,6 +49,11 @@ export type ActionProduce = {
     typ: 'Produce',
     unitToProduce: string,
 }
+export type ActionBuild = {
+    typ: 'Build',
+    building: string,
+    position: Position,
+}
 
 export type CommandPacket = {
     action: Action,
@@ -56,20 +64,28 @@ export type CommandPacket = {
 export type UpdatePacket = {
     tickNumber: number,
     units: UnitState[],
+    player: PlayerState,
 }
 
 export type UnitState = {
     id: number,
     kind: string,
-    status: 'Moving'|'Attacking'|'Harvesting'|'Idle',
+    status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
     position: Position,
     velocity: Position, // TODO - Position to Vec2
     direction: number,
     owner: number,
+
+    components: Component[],
 }
 
 // Components
-export type Component = Attacker | Mover | Building | ProductionFacility | Harvester | Resource;
+export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder;
+export type Hp = {
+    type: 'Hp',
+    maxHp: number,
+    hp: number,
+}
 export type Attacker = {
     type: 'Attacker',
     damage: number,
@@ -84,17 +100,42 @@ export type Harvester = {
     type: 'Harvester',
     harvestingTime: Milliseconds,
     harvestingValue: number,
+    resourcesCarried?: number,
 }
 export type Resource = { 
     type: 'Resource',
     value: number,
 }
 export type Building = {
-    type: 'Building'
+    type: 'Building',
+    constructionTimeLeft?: number,
+}
+
+export type UnitProductionCapability = {
+    unitType: string,
+    productionTime: number,
+    productionCost: number,
+}
+export type CurrentProductionState = {
+    unitType: string,
+    timeLeft: number,
 }
 export type ProductionFacility = {
     type: 'ProductionFacility',
-    unitsProduced: string[],    
+    productionState?: CurrentProductionState,
+    unitsProduced: UnitProductionCapability[],
+}
+
+export type BuildCapability = {
+    buildingType: string,
+    buildTime: number,
+    buildCost: number,
+}
+
+export type Builder = {
+    type: 'Builder',
+    buildingsProduced: BuildCapability[],
+    currentlyBuilding?: UnitId,
 }
 
 // Internal Game stuff
@@ -117,17 +158,22 @@ export type Unit = {
     direction: number,
     velocity: Position,
 
-    hp: number, // TODO should be in a dynamic component
+    components: Component[],
 
     pathToNext?: TilePos[],
+}
+
+export type PlayerState = {
+    resources: number,
 }
 
 export type Game = {
     state: GameState
     tickNumber: number,
-    players: number,
+    players: PlayerState[],
     board: Board,
     units: Unit[],
+    lastUnitId: number,
 }
 
 export type GameMap = {

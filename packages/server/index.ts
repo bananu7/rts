@@ -34,10 +34,6 @@ const matches : Match[] = [];
 
 io.addServer(server)
 
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-})
-
 app.get('/listMatches', (req, res) => {
     const matchInfos : MatchInfo[] = matches.map(m => { return {
         matchId: m.matchId,
@@ -72,11 +68,13 @@ app.post('/create', async (req, res) => {
     const matchId = String(++lastMatchId); // TODO
     matches.push({ game, matchId, players: [] });
 
+    const TICK_MS = 50;
     setInterval(() => {
-        const updatePacket = tick(100, game);
-        // TODO - fog of war
-        io.room(matchId).emit('tick', updatePacket);
-    }, 100);
+        const updatePackets = tick(TICK_MS, game);
+        // TODO - those updates can't be broadcasted, need a way
+        // to address players individually
+        io.room(matchId).emit('tick', updatePackets[0]);
+    }, TICK_MS);
 
     console.log(`Match ${matchId} created`);
 })
@@ -119,9 +117,10 @@ app.post('/join', async (req, res) => {
         // and slot order might matter
         let index = 1;
         for (;index < 10; index++) {
-            if (match.players.find(p => p.index === index))
-                continue;
+            if (!match.players.find(p => p.index === index))
+                break;
         }
+        console.log(`[index] Adding user ${userId} as player number ${index} in match ${matchId}`);
         match.players.push({ user: userId, index });
 
         res.send(JSON.stringify({
@@ -196,7 +195,8 @@ io.onConnection(channel => {
 
         // check if the game can start
         // TODO - wait for all players, not just one
-        if (m.players.length >= 1) {
+        if (m.players.length >= 2) {
+            console.log(`[index] Enough players joined, starting ${packet.matchId}`)
             startGame(m.game);
             io.room(m.matchId).emit('chat message', "Game starting")
         }
@@ -218,7 +218,7 @@ io.onConnection(channel => {
             }
 
             // TODO - validate
-            command(data as CommandPacket, m.game);
+            command(data as CommandPacket, m.game, channel.userData.playerIndex);
         }
         catch(e) {
             console.error(e);
@@ -232,5 +232,8 @@ io.onConnection(channel => {
         io.room(channel.roomId).emit('chat message', data)
     })
 })
+
+// Serve client files
+app.use(express.static('client'));
 
 server.listen(9208)

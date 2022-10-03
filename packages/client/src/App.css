@@ -41,12 +41,27 @@
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 300px;
+  width: 350px;
   height: 200px;
   z-index: 2;
   padding: 10px;
-  display: flex;
+
+  display: grid;
+  grid-template-columns: 25% 25% 25% 25%;
+  grid-column-gap: 5px;
+
+  gap: 5px;
   background-color: #555;
+}
+
+.CommandPalette > button {
+  width: 75px;
+  height: 75px;
+  padding: 3px;
+}
+
+.CommandPalette > button.active {
+  background-color: #33cc33;
 }
 
 .chat {
@@ -76,9 +91,44 @@
   z-index: 10;
 }
 
+.BottomUnitView {
+  position: absolute;
+  bottom: 0;
+  left: 320px;
+  width: 400px;
+  height: 200px;
+  background-color: #555;
+  z-index: 2;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.BottomUnitView .MultiUnitView {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.BottomUnitView .UnitIcon {
+  padding: 5px;
+  border-radius: 3px;
+  border: 1px solid black;
+}
+
+.ResourceView {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 200px;
+  width: 150px;
+  height: 40px;
+  padding: 10px;
+  background-color: #555;
+}
 
 @media (prefers-color-scheme: light) {
-  .card, .CommandPalette, .MainMenu {
+  .card, .CommandPalette, .MainMenu, .BottomUnitView, .ResourceView {
     background-color: #eee;
   }
 }
+

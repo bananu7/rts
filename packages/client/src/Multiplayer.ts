@@ -1,5 +1,6 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
+import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
 
 export type OnChatMessage = (msg: string) => void;
 export type OnUpdatePacket = (p: UpdatePacket) => void;
@@ -10,8 +11,6 @@ export type MultiplayerConfig = {
     onUpdatePacket: OnUpdatePacket,
     onMatchConnected: OnMatchConnected,
 }
-
-const FETCH_URL = `http://${window.location.hostname}:9208`;
 
 export class Multiplayer {
     channel: ClientChannel;
@@ -26,7 +25,10 @@ export class Multiplayer {
     onMatchConnected?: OnMatchConnected;
 
     constructor(userId: string) {
-        this.channel = geckos({ port: 9208 });
+        this.channel = geckos({
+          url: GECKOS_URL,
+          port: GECKOS_PORT
+        });
         this.geckosSetUp = false;
 
         this.userId = userId;
@@ -67,6 +69,8 @@ export class Multiplayer {
                     throw "Server responded with connection but the multiplayer isn't initialized to a match";
                 }
                 console.log("[Multiplayer] RTC connected to match")
+                this.playerIndex = data as number;
+                console.log(`[Multiplayer] Client is player ${this.playerIndex}`)
                 this.onMatchConnected && this.onMatchConnected(this.matchId);
             });
 
@@ -88,19 +92,19 @@ export class Multiplayer {
 
     // TODO - make this async, make backend return id
     createMatch() {
-        fetch(FETCH_URL+'/create', {
+        fetch(HTTP_API_URL+'/create', {
             method: 'POST',
         });
     }
 
-    joinMatch(matchId: string) {
+    async joinMatch(matchId: string) {
         console.log(`[Multiplayer] joining match ${matchId}`)
         const joinData = {
             matchId,
             userId: this.userId
         };
 
-        fetch(FETCH_URL+'/join', {
+        return fetch(HTTP_API_URL+'/join', {
             method: 'POST',
             body: JSON.stringify(joinData),
             headers: {
@@ -108,7 +112,14 @@ export class Multiplayer {
             },
         })
         // connect RTC automatically after joining
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 200) {
+                return res.json();
+            }
+            else {
+                throw new Error("Match join failed")
+            }
+        })
         .then(res => {
             this.playerIndex = res.playerIndex;
             console.log(`[Multiplayer] server confirmed match join`);
@@ -122,10 +133,10 @@ export class Multiplayer {
             };
 
             this.channel.emit('connect', data);
-        })
+        });
     };
     
-    leaveMatch() {
+    async leaveMatch() {
         if (!this.matchId)
             return;
 
@@ -134,7 +145,7 @@ export class Multiplayer {
             userId: this.userId,
         });
 
-        fetch(FETCH_URL+'/leave', {
+        return fetch(HTTP_API_URL+'/leave', {
             method: 'POST',
             body,
             headers: {
@@ -143,9 +154,23 @@ export class Multiplayer {
         })
         .then(res => {
             this.matchId = undefined;
+            localStorage.removeItem('matchId');
         });
     }
 
+    async getMatchState() {
+        if (!this.matchId)
+            throw new Error("Can't get match state because not it in a match");
+
+        console.log("[multiplayer] Getting match state");
+        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    }
+
+    getPlayerIndex() {
+        return this.playerIndex;
+    }
+
+    // TODO - pull those out to a separate MatchControl object
     sendChatMessage(msg: string) {
         this.channel.emit('chat message', 'msg')
     }
@@ -160,7 +185,18 @@ export class Multiplayer {
             shift: false,
         };
         this.channel.emit('command', cmd)
-    };
+    }
+
+    stopCommand(unitIds: UnitId[]) {
+        const cmd : CommandPacket = {
+            action: {
+                typ: 'Stop',
+            },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd)
+    }
 
     followCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {
@@ -171,8 +207,8 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd)
-    };
+        this.channel.emit('command', cmd);
+    }
 
     attackCommand(unitIds: UnitId[], target: UnitId) {
         const cmd : CommandPacket = {
@@ -183,6 +219,55 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd)
+        this.channel.emit('command', cmd);
+    }
+
+    attackMoveCommand(unitIds: UnitId[], target: Position) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'AttackMove',
+            target
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
+
+    produceCommand(unitIds: UnitId[], unitToProduce: string) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Produce',
+            unitToProduce
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
+
+    buildCommand(unitIds: UnitId[], building: string, position: Position) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Build',
+            building,
+            position
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
+    }
+
+    harvestCommand(unitIds: UnitId[], target: UnitId) {
+        const cmd : CommandPacket = {
+            action: {
+            typ: 'Harvest',
+            target,
+        },
+            unitIds,
+            shift: false,
+        };
+        this.channel.emit('command', cmd);
     }
 }

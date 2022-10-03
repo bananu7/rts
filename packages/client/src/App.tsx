@@ -3,15 +3,27 @@ import './App.css'
 
 import { MatchList } from './MatchList';
 import { Minimap } from './Minimap';
-import { CommandPalette } from './components/CommandPalette';
+import { CommandPalette, SelectedAction } from './components/CommandPalette';
+import { BottomUnitView } from './components/BottomUnitView';
+import { ResourceView } from './components/ResourceView';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
 
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
 import { Multiplayer } from './Multiplayer';
+import { HTTP_API_URL } from './config';
 
-const multiplayer = new Multiplayer("bananu7");
+// TODO
+let userId = localStorage.getItem("userId");
+if (!userId) {
+  userId = window.prompt("Please provide your user id");
+  if (userId)
+    localStorage.setItem('userId', userId);
+  else
+    throw "No user id present; set item 'userId' in localStorage to play";
+}
+const multiplayer = new Multiplayer(userId);
 
 function App() {
   const [showMainMenu, setShowMainMenu] = useState(false);
@@ -20,31 +32,57 @@ function App() {
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
  
-  const getMatchState = useCallback((matchId: string) => {
-    console.log("Getting match state");
-    fetch(`http://${window.location.hostname}:9208/getMatchState?` + new URLSearchParams({ matchId }))
-      .then(r => r.json())
-      .then(s => setServerState(s));
+  const updateMatchState = useCallback(() => {
+    multiplayer.getMatchState()
+    .then(s => setServerState(s));
   }, []);
 
   useEffect(() => {
     multiplayer.setup({
-      onUpdatePacket: (p:UpdatePacket) => setLastUpdatePacket(p),
-      onMatchConnected: (matchId: string) => getMatchState(matchId),
+      onUpdatePacket: (p:UpdatePacket) => {
+        setLastUpdatePacket(p);
+        setSelectedUnits(su => new Set(p.units.map(u => u.id).filter(id => su.has(id))));
+      },
+      onMatchConnected: (matchId: string) => {
+        console.log(`[App] Connected to a match ${matchId}`);
+        updateMatchState();
+      }
     });
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
+
+  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
   const mapClick = useCallback((p: Position) => {
     if (selectedUnits.size === 0)
       return;
-    
-    multiplayer.moveCommand(Array.from(selectedUnits), p);
-  }, [selectedUnits]);
 
+    const action = selectedAction ?? { action: 'Move' };
+    switch(action.action) {
+    case 'Move':
+      multiplayer.moveCommand(Array.from(selectedUnits), p);
+      break;
+    case 'Attack':
+      multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+      break;
+    case 'Build':
+      multiplayer.buildCommand(Array.from(selectedUnits), action.building, p);
+      break;
+    }
+
+    setSelectedAction(undefined);
+
+  }, [selectedAction, selectedUnits]);
+
+  const boardSelectUnits = (units: Set<UnitId>) => {
+    setSelectedAction(undefined);
+    setSelectedUnits(units);
+  };
+
+  // TODO it feels like it shouldn't be be here, maybe GameController component?
   const unitRightClick = (targetId: UnitId) => {
     if (!lastUpdatePacket)
       return;
@@ -58,10 +96,15 @@ function App() {
       return;
     }
 
-    if (target.owner === 1) {
+    // TODO properly understand alliances
+    if (target.owner === 0) { // neutral
+      // TODO actually check if can harvest and is resource
+      multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+    }
+    else if (target.owner === multiplayer.getPlayerIndex()) {
       multiplayer.followCommand(Array.from(selectedUnits), targetId);
     }
-    else {
+    else if (target.owner !== multiplayer.getPlayerIndex()) {
       multiplayer.attackCommand(Array.from(selectedUnits), targetId);
     }
   }
@@ -71,8 +114,12 @@ function App() {
       { showMainMenu &&
         <div className="MainMenu">
           <h3>Main menu</h3>
+          <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
           { !serverState && <button>Play</button> }
-          { serverState && <button onClick={() => multiplayer.leaveMatch()}>Leave game</button> }
+          { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+          { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+          { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
+          { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
         </div>
       }
 
@@ -90,16 +137,28 @@ function App() {
         </div>
       }
 
-      { serverState &&
+      { serverState && lastUpdatePacket &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
-          <CommandPalette selectedUnits={selectedUnits} multiplayer={multiplayer} />
+          <CommandPalette
+            selectedUnits={selectedUnits}
+            units={lastUpdatePacket.units}
+            multiplayer={multiplayer}
+            selectedAction={selectedAction}
+            setSelectedAction={setSelectedAction}
+          />
+          <BottomUnitView
+            selectedUnits={selectedUnits}
+            units={lastUpdatePacket.units}
+          />
+          <ResourceView resources={lastUpdatePacket.player.resources} />
           <View3D>
             <Board3D
               board={serverState.board}
+              playerIndex={multiplayer.getPlayerIndex() || 0} // TODO really need a match class to fix this undefined
               unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              select={setSelectedUnits}
+              select={boardSelectUnits}
               mapClick={mapClick}
               unitRightClick={unitRightClick}
             />

@@ -21,6 +21,7 @@ type Unit3DProps = {
     unit: UnitState,
     selected: boolean,
     click?: (id: UnitId, button: number) => void,
+    enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
     //const [catalog] = useState(() => require('../../assets/catalog.json'));
@@ -34,7 +35,15 @@ export function Unit3D(props: Unit3DProps) {
     }
 
     // TODO better color choices
-    const color = props.unit.owner === 1 ? 0x1111ee : 0xee1111;
+    const ownerToColor = (owner: number) => {
+        switch(owner) {
+        case 0: return 0xdddddd;
+        case 1: return 0x1111ee;
+        case 2: return 0xee1111;
+        }
+    };
+
+    const color = ownerToColor(props.unit.owner);
 
     // TODO proper unit catalog
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
@@ -111,7 +120,7 @@ export function Unit3D(props: Unit3DProps) {
                     <boxGeometry args={[unitSize, 2, unitSize]} />
                     <meshStandardMaterial color={color} />
                 </mesh>
-                { props.selected && <SelectionCircle size={unitSize} /> }    
+                { props.selected && <SelectionCircle size={unitSize} enemy={props.enemy} /> }    
             </group>
         </group>
     );
@@ -119,6 +128,7 @@ export function Unit3D(props: Unit3DProps) {
 
 export interface Props {
     board: Board;
+    playerIndex: number;
     unitStates: UnitState[];
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
@@ -153,17 +163,23 @@ export function Board3D(props: Props) {
         unit={u}
         click={handleUnitClick}
         selected={props.selectedUnits.has(u.id)}
+        enemy={u.owner !== props.playerIndex}
     />));
 
     const groupRef = useRef<THREE.Group>(null);
 
     const selectInBox = (box: Box) => {
         function isInBox(p: Position, b: Box) {
-            return p.x >= b.x1 && p.x <= b.x2 && p.y >= b.y1 && p.y <= b.y2;
+            const x1 = b.x1 < b.x2 ? b.x1 : b.x2;
+            const x2 = b.x1 < b.x2 ? b.x2 : b.x1;
+            const y1 = b.y1 < b.y2 ? b.y1 : b.y2;
+            const y2 = b.y1 < b.y2 ? b.y2 : b.y1;
+            return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
         }
 
         const selection = props.unitStates
             .filter(u => isInBox(u.position, box))
+            .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);
 
         props.select(new Set(selection));
