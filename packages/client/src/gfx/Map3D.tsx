@@ -95,7 +95,7 @@ export function Map3D(props: Map3DProps) {
                 onPointerMove={pointerMove}
                 position={[0.5*w, 0, ySize*0.5*h]}
             >
-                <boxGeometry args={[xSize*w, 1, ySize*h]} />
+                <boxGeometry args={[xSize*w*2, 1, ySize*h*2]} />
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
