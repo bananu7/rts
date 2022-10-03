@@ -75,6 +75,6 @@ jobs:
         name: Build and push server container
         uses: docker/build-push-action@v3
         with:
-          context: ./packages/server
+          context: ./
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server, ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
