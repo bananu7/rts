@@ -10,12 +10,12 @@ export function Minimap(props: Props) {
     const style : CSSProperties = {
         position: 'absolute',
         left: 0,
-        bottom: 5,
-        border: '5px solid black',
+        bottom: 0,
         width: '300px',
         height: '300px',
         backgroundColor: '#11cc11',
         boxSizing: 'border-box',
+        overflow: 'hidden',
     };
 
     const unitStyle = {

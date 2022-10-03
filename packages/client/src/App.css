@@ -38,20 +38,21 @@
 }
 
 .CommandPalette {
+  z-index: 2;
   position: absolute;
   right: 0;
   bottom: 0;
   width: 350px;
   height: 200px;
-  z-index: 2;
-  padding: 10px;
 
   display: grid;
   grid-template-columns: 25% 25% 25% 25%;
   grid-column-gap: 5px;
 
+  padding: 10px;
   gap: 5px;
   background-color: #555;
+  color: white;
 }
 
 .CommandPalette > button {
@@ -72,12 +73,15 @@
 }
 
 .MainMenu {
+  z-index: 2;
   width: 300px;
   position: absolute;
   top: 5%;
   right: 10px;
-  z-index: 2;
+
   background-color: #555;
+  color: white;
+
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -92,13 +96,16 @@
 }
 
 .BottomUnitView {
+  z-index: 2;
   position: absolute;
   bottom: 0;
   left: 320px;
   width: 400px;
   height: 200px;
+
   background-color: #555;
-  z-index: 2;
+  color: white;
+  
   padding: 8px;
   overflow: hidden;
 }
@@ -115,6 +122,10 @@
   border: 1px solid black;
 }
 
+.BottomUnitView .UnitIcon:hover {
+  background-color: lime;
+}
+
 .ResourceView {
   position: absolute;
   z-index: 2;
@@ -123,12 +134,15 @@
   width: 150px;
   height: 40px;
   padding: 10px;
+
   background-color: #555;
+  color: white;
 }
 
 @media (prefers-color-scheme: light) {
   .card, .CommandPalette, .MainMenu, .BottomUnitView, .ResourceView {
     background-color: #eee;
+    color: black;
   }
 }
 

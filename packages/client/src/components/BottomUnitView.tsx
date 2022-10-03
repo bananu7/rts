@@ -3,6 +3,7 @@ import { Multiplayer } from '../Multiplayer'
 
 type Props = {
     selectedUnits: Set<UnitId>,
+    setSelectedUnits: (us: Set<UnitId>) => void,
     units: UnitState[],
 }
 
@@ -28,7 +29,7 @@ export function BottomUnitView (props: Props) {
                     return unit;
                 });
 
-            return (<MultiUnitView units={units} />);
+            return (<MultiUnitView units={units} select={(id) => props.setSelectedUnits(new Set([id]))} />);
         }
     })();
 
@@ -75,24 +76,33 @@ function SingleUnitView(props: {unit: UnitState}) {
 }
 
 // TODO select on click
-function UnitIcon(props: {unit: UnitState}) {
+function UnitIcon(props: {unit: UnitState, onClick: () => void}) {
     const u = props.unit;
 
     // TODO component getters to shared code
     const health = u.components.find(c => c.type === "Hp") as Hp | undefined;
 
     return (
-        <div className="UnitIcon">
+        <div
+            className="UnitIcon"
+            onClick={props.onClick}
+        >
             {u.kind}
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
         </div>
     );
 }
 
-function MultiUnitView(props: {units: UnitState[]}) {
+function MultiUnitView(props: {units: UnitState[], select: (id: UnitId) => void }) {
     return (
         <div className="MultiUnitView">
-            { props.units.map(u => <UnitIcon key={u.id} unit={u} />) }
+            { props.units.map(u => 
+                <UnitIcon
+                    key={u.id}
+                    unit={u}
+                    onClick={() => props.select(u.id)}
+                />)
+            }
         </div>
     );
 }

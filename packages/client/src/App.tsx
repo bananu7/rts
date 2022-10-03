@@ -149,6 +149,7 @@ function App() {
           />
           <BottomUnitView
             selectedUnits={selectedUnits}
+            setSelectedUnits={setSelectedUnits}
             units={lastUpdatePacket.units}
           />
           <ResourceView resources={lastUpdatePacket.player.resources} />
