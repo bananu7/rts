@@ -126,6 +126,7 @@ export function Unit3D(props: Unit3DProps) {
                     <cylinderGeometry args={[unitSize, unitSize, 2, 12]} />
                     <meshBasicMaterial
                         colorWrite={false}
+                        depthWrite={false}
                     />
                 </mesh>
 
