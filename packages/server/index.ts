@@ -1,4 +1,4 @@
-import geckos, { Data } from '@geckos.io/server'
+import geckos, { Data, iceServers } from '@geckos.io/server'
 import http from 'http'
 import express from 'express'
 import cors from 'cors'
@@ -28,7 +28,7 @@ app.use(cors())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 const server = http.createServer(app)
-const io = geckos()
+const io = geckos({ iceServers })
 
 const matches : Match[] = [];
 

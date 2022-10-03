@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: rts
+  name: server
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: server
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 100%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: server
+        io.portainer.kubernetes.application.name: server
+    spec:
+      hostNetwork: true
+      containers:
+      - image: bananu7/rts:server-90487ee
+        imagePullPolicy: IfNotPresent
+        name: server
+        ports:
+        - name: http
+          containerPort: 9208
+          hostPort: 9208
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256M
+          requests:
+            cpu: 500m
+            memory: 256M
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+
