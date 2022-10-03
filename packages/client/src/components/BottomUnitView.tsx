@@ -1,4 +1,4 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from 'server/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {
@@ -60,11 +60,15 @@ function HealthBar(props: {hp: number, maxHp: number}) {
 function SingleUnitView(props: {unit: UnitState}) {
     const health = props.unit.components.find(c => c.type === "Hp") as Hp | undefined;
 
+    const productionComponent = props.unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility;
+    const productionProgress = productionComponent?.productionState?.timeLeft;
+        
     return (
         <div>
             <h2>{props.unit.kind}</h2>
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
             { health && <h3>{health.hp}/{health.maxHp}</h3> }
+            { productionProgress && <h3>{productionProgress}</h3> }
             <span>{props.unit.status}</span>
         </div>
     );

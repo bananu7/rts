@@ -114,6 +114,7 @@ function App() {
       { showMainMenu &&
         <div className="MainMenu">
           <h3>Main menu</h3>
+          <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
           { !serverState && <button>Play</button> }
           { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
           { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
