@@ -44,10 +44,10 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.2s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #64ff6c;
 }
 
 @media (prefers-color-scheme: light) {

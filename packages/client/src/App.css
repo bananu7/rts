@@ -55,6 +55,19 @@
   color: white;
 }
 
+.CommandPaletteHint {
+  position: absolute;
+  top: -80px;
+  left: 0px;
+  width: 320px;
+  height: 50px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+  background-color: rgba(150, 150, 150, 0.3);
+}
+
 .CommandPalette > button {
   width: 75px;
   height: 75px;
@@ -62,7 +75,7 @@
 }
 
 .CommandPalette > button.active {
-  background-color: #33cc33;
+  background-color: #339933;
 }
 
 .chat {
@@ -120,10 +133,12 @@
   padding: 5px;
   border-radius: 3px;
   border: 1px solid black;
+  transition: 0.2s border-color;
+  cursor: pointer;
 }
 
 .BottomUnitView .UnitIcon:hover {
-  background-color: lime;
+  border-color: lime;
 }
 
 .ResourceView {
