@@ -14,7 +14,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-three-fiber": "^6.0.13",
-    "three": "^0.144.0"
+    "three": "^0.144.0",
+    
+    "server": "*"
   },
   "devDependencies": {
     "@types/react": "^18.0.17",

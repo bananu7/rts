@@ -34,10 +34,6 @@ const matches : Match[] = [];
 
 io.addServer(server)
 
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-})
-
 app.get('/listMatches', (req, res) => {
     const matchInfos : MatchInfo[] = matches.map(m => { return {
         matchId: m.matchId,
@@ -72,12 +68,13 @@ app.post('/create', async (req, res) => {
     const matchId = String(++lastMatchId); // TODO
     matches.push({ game, matchId, players: [] });
 
+    const TICK_MS = 50;
     setInterval(() => {
-        const updatePackets = tick(100, game);
+        const updatePackets = tick(TICK_MS, game);
         // TODO - those updates can't be broadcasted, need a way
         // to address players individually
         io.room(matchId).emit('tick', updatePackets[0]);
-    }, 100);
+    }, TICK_MS);
 
     console.log(`Match ${matchId} created`);
 })
@@ -235,5 +232,8 @@ io.onConnection(channel => {
         io.room(channel.roomId).emit('chat message', data)
     })
 })
+
+// Serve client files
+app.use(express.static('client'));
 
 server.listen(9208)
