@@ -17,6 +17,8 @@ type Map3DProps = {
     map: GameMap,
     click: Click,
     selectInBox: (box: Box) => void;
+
+    pointerMove: (p: {x: number, y: number}) => void;
 }
 
 export function Map3D(props: Map3DProps) {
@@ -36,7 +38,8 @@ export function Map3D(props: Map3DProps) {
     }, []);
     const pointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
         setPointer({x: e.point.x, y: e.point.z});
-    }, []);
+        props.pointerMove({x: e.point.x, y: e.point.z});
+    }, [props.pointerMove]);
     const pointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
         if (drag && e.nativeEvent.button === 0) {
             props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});

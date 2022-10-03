@@ -15,17 +15,39 @@ import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
 
+import { SelectedAction } from '../components/CommandPalette'
+
+function BuildPreview(props: {position: Position, building: string}) {
+    const unitSize = 5;
+
+    return (
+        <group position={[props.position.x, 2, props.position.y]}>
+            <mesh>
+                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <meshBasicMaterial color={0x33cc33} transparent={true} opacity={0.5} />
+            </mesh>
+            <mesh>
+                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <meshBasicMaterial color={0x00ff00} wireframe={true}/>
+            </mesh>
+        </group>
+    );
+}
+
 export interface Props {
     board: Board;
     playerIndex: number;
     unitStates: UnitState[];
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
+    selectedAction: SelectedAction | undefined;
     mapClick: (p: Position) => void;
     unitRightClick: (u: UnitId) => void;
 }
 
 export function Board3D(props: Props) {
+    const [pointer, setPointer] = useState<{x:number, y:number}>({x: 0, y: 0});
+
     const handleUnitClick = (u: UnitId, b: number) => {
         // Add unit to selection
         if (b === 0) {
@@ -88,8 +110,18 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D map={props.board.map} click={handleMapClick} selectInBox={selectInBox} />
+            <Map3D
+                map={props.board.map}
+                click={handleMapClick}
+                selectInBox={selectInBox}
+                pointerMove={setPointer}
+            />
             { units }
+            {
+                props.selectedAction &&
+                props.selectedAction.action === 'Build' &&
+                <BuildPreview building={props.selectedAction.building} position={pointer}/>
+            }
         </group>
     );
 }
