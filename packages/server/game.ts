@@ -116,6 +116,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             tickNumber: g.tickNumber,
             units: unitUpdates,
             player: p,
+            state: g.state,
         }
     });
 }

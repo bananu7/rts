@@ -62,6 +62,7 @@ export type CommandPacket = {
 }
 
 export type UpdatePacket = {
+    state: GameState,
     tickNumber: number,
     units: UnitState[],
     player: PlayerState,

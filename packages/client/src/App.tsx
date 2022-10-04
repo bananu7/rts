@@ -6,6 +6,7 @@ import { Minimap } from './Minimap';
 import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
+import { PrecountCounter } from './components/PrecountCounter'
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -137,7 +138,29 @@ function App() {
         </div>
       }
 
-      { serverState && lastUpdatePacket &&
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Precount' &&
+        <PrecountCounter count={lastUpdatePacket.state.count} />
+      }
+
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Lobby' &&
+        <div className="card">
+          <span>Waiting for the other player to join</span>
+        </div>
+      }
+
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Paused' &&
+        <div className="card">
+          <span>Game paused</span>
+        </div>
+      }
+
+      { serverState &&
+        lastUpdatePacket && 
+        (lastUpdatePacket.state.id === 'Precount' || lastUpdatePacket.state.id === 'Play' || lastUpdatePacket.state.id === 'Paused')
+        &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette
