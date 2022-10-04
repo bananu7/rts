@@ -176,6 +176,18 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         unit.pathToNext = null;
     }
 
+    const cancelProduction = () => {
+        if (unit.actionQueue[0].typ === "Produce") {
+            unit.actionQueue.shift();
+            const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
+            if (p) {
+                // refund
+                owner.resources += p.productionState.originalCost;
+                p.productionState = undefined;
+            }
+        }
+    }
+
     const clearCurrentAction = () => {
         stopMoving();
         unit.actionQueue.shift();
@@ -296,6 +308,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         case 'Stop': {
             stopMoving();
+            // TODO dedicated cancel action
+            cancelProduction();
+
             unit.actionQueue = [];
             break;
         }
@@ -430,7 +445,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const time = utp.productionTime;
                 p.productionState = {
                     unitType: cmd.unitToProduce,
-                    timeLeft: time
+                    timeLeft: time,
+                    originalCost: cost,
+                    originalTimeToProduce: time,
                 };
             }
 
