@@ -17,8 +17,7 @@ export function newGame(map: GameMap): Game {
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
-        // TODO making it 5000 for now until resources arrive
-        players: [{resources: 5000}, {resources: 5000}],
+        players: [{resources: 50}, {resources: 50}],
         board: {
             map: map,
         },
@@ -418,11 +417,17 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!p.productionState) {
                 const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
-                const time = utp.productionTime;
                 const cost = utp.productionCost;
+
+                if (cost > owner.resources) {
+                    console.info("[game] Unit ordered to produce but player doesn't have enough resources");
+                    clearCurrentAction();
+                    break;
+                }
 
                 owner.resources -= cost;
 
+                const time = utp.productionTime;
                 p.productionState = {
                     unitType: cmd.unitToProduce,
                     timeLeft: time
@@ -442,7 +447,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 ));
 
                 // TODO - build queue
-                unit.actionQueue.shift();
+                clearCurrentAction();
                 p.productionState = undefined;
             }
 

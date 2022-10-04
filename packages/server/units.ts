@@ -77,5 +77,15 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:80, y:85}));
     startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
 
+    // left expo
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:54}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:58}));
+
+    // right expo
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:40}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:44}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:48}));
+
     return startingUnits;
 }
