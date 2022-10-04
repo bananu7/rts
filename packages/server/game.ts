@@ -2,7 +2,7 @@ import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder,
-    ActionFollow, ActionAttack,
+    Action, ActionFollow, ActionAttack,
     PlayerState,
 } from './types';
 
@@ -49,6 +49,13 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
             return;
         }
 
+        // Don't even add/set actions that the unit won't accept
+        const accept = willAcceptAction(u, c.action);
+        if (!accept) {
+            console.info(`[game] Rejecting action ${c.action.typ} for unit ${u.id}`);
+            return;
+        }
+
         console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`);
 
         if (c.shift)
@@ -56,6 +63,34 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
         else
             u.actionQueue = [c.action];
     });
+}
+
+function willAcceptAction(unit: Unit, action: Action) {
+    // TODO maybe this should be better streamlined, like in a dictionary
+    // of required components for each action?
+    switch(action.typ) {
+    case 'Move': 
+        if (!getMoveComponent(unit))
+            return false;
+        break;
+    case 'Attack':
+        if (!getAttackerComponent(unit))
+            return false;
+        break;
+    case 'Harvest':
+        if (!getHarvesterComponent(unit))
+            return false;
+        break;
+    case 'Build':
+        if (!getBuilderComponent(unit))
+            return false;
+        break;
+    case 'Produce':
+        if (!getProducerComponent(unit))
+            return false;
+        break;
+    }
+    return true;
 }
 
 // Returns a list of update packets, one for each player
@@ -177,14 +212,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     const cancelProduction = () => {
-        if (unit.actionQueue[0].typ === "Produce") {
-            unit.actionQueue.shift();
-            const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
-            if (p) {
-                // refund
-                owner.resources += p.productionState.originalCost;
-                p.productionState = undefined;
-            }
+        const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
+        if (p) {
+            // refund
+            console.log(`[game] Refunding production cost from unit ${unit.id}`);
+            owner.resources += p.productionState.originalCost;
+            p.productionState = undefined;
         }
     }
 
