@@ -3,6 +3,7 @@ import { Multiplayer } from '../Multiplayer'
 
 type Props = {
     selectedUnits: Set<UnitId>,
+    setSelectedUnits: (us: Set<UnitId>) => void,
     units: UnitState[],
 }
 
@@ -28,7 +29,7 @@ export function BottomUnitView (props: Props) {
                     return unit;
                 });
 
-            return (<MultiUnitView units={units} />);
+            return (<MultiUnitView units={units} select={(id) => props.setSelectedUnits(new Set([id]))} />);
         }
     })();
 
@@ -41,7 +42,7 @@ export function BottomUnitView (props: Props) {
 
 function HealthBar(props: {hp: number, maxHp: number}) {
     const outer = {
-        height: "1px",
+        height: "3px",
         width: "100%",
         backgroundColor: "black",
     };
@@ -57,42 +58,82 @@ function HealthBar(props: {hp: number, maxHp: number}) {
     );
 }
 
+function ProductionProgressBar(props: {percent: number}) {
+    const outer = {
+        height: "15px",
+        width: "100%",
+        backgroundColor: "transparent",
+        border: "1px solid #333",
+        borderRadius: "3px",
+    };
+    const bar = {
+        width: `${props.percent}%`,
+        height: '100%',
+        backgroundColor: '#00ee00',
+    };
+    return (
+        <div style={outer}>
+            <div style={bar} />
+        </div>
+    );
+}
+
+
 function SingleUnitView(props: {unit: UnitState}) {
     const health = props.unit.components.find(c => c.type === "Hp") as Hp | undefined;
 
     const productionComponent = props.unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility;
-    const productionProgress = productionComponent?.productionState?.timeLeft;
+    const productionProgress = (() => {
+        if (!productionComponent)
+            return;
+        if (!productionComponent.productionState)
+            return;
+
+        const left = productionComponent.productionState.timeLeft;
+        const full = productionComponent.productionState.originalTimeToProduce;
+        const percent = ((full-left)/full) * 100;
+        return percent;
+    })();
         
     return (
         <div>
             <h2>{props.unit.kind}</h2>
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
             { health && <h3>{health.hp}/{health.maxHp}</h3> }
-            { productionProgress && <h3>{productionProgress}</h3> }
             <span>{props.unit.status}</span>
+            { productionProgress && <ProductionProgressBar percent={productionProgress} /> }
         </div>
     );
 }
 
 // TODO select on click
-function UnitIcon(props: {unit: UnitState}) {
+function UnitIcon(props: {unit: UnitState, onClick: () => void}) {
     const u = props.unit;
 
     // TODO component getters to shared code
     const health = u.components.find(c => c.type === "Hp") as Hp | undefined;
 
     return (
-        <div className="UnitIcon">
+        <div
+            className="UnitIcon"
+            onClick={props.onClick}
+        >
             {u.kind}
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
         </div>
     );
 }
 
-function MultiUnitView(props: {units: UnitState[]}) {
+function MultiUnitView(props: {units: UnitState[], select: (id: UnitId) => void }) {
     return (
         <div className="MultiUnitView">
-            { props.units.map(u => <UnitIcon key={u.id} unit={u} />) }
+            { props.units.map(u => 
+                <UnitIcon
+                    key={u.id}
+                    unit={u}
+                    onClick={() => props.select(u.id)}
+                />)
+            }
         </div>
     );
 }

@@ -6,6 +6,8 @@ import { Minimap } from './Minimap';
 import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
+import { PrecountCounter } from './components/PrecountCounter'
+import { Chat } from './components/Chat';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -31,6 +33,8 @@ function App() {
   const [serverState, setServerState] = useState<Game | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
+
+  const [messages, setMessages] = useState<string[]>([]);
  
   const updateMatchState = useCallback(() => {
     multiplayer.getMatchState()
@@ -123,32 +127,67 @@ function App() {
         </div>
       }
 
-      {/*<div className="chat">
-          <ul>
-            {lines}
-          </ul>
-          <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
-      </div>*/}
+      {
+        <Chat
+          sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
+          messages={messages}
+        />
+      }
 
       { !serverState &&
         <div className="card">
+          <h1>Welcome to (for the lack of a better name) BartekRTS</h1>
+          <p>To play, either join an existing match, or create a new one. You will
+          need two people to play; the game won't start until two people join. You can
+          only join matches in the "lobby" state, you can't join matches that have already started
+          </p>
+          <p>The game is designed to be able to be refreshed at any time. If you experience any
+          weird behavior or crashes, refreshing the page should help and will reconnect you
+          back to your game.</p>
+          <p><strong>GLHF!</strong></p>
+          <br />
           <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
           <button onClick={() => multiplayer.createMatch()}>Create</button>
         </div>
       }
 
-      { serverState && lastUpdatePacket &&
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Precount' &&
+        <PrecountCounter count={lastUpdatePacket.state.count} />
+      }
+
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Lobby' &&
+        <div className="card">
+          <span>Waiting for the other player to join</span>
+        </div>
+      }
+
+      { lastUpdatePacket && 
+        lastUpdatePacket.state.id === 'Paused' &&
+        <div className="card">
+          <span>Game paused</span>
+        </div>
+      }
+
+      { serverState &&
+        lastUpdatePacket && 
+        (lastUpdatePacket.state.id === 'Precount' || lastUpdatePacket.state.id === 'Play' || lastUpdatePacket.state.id === 'Paused')
+        &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette
+            resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
             units={lastUpdatePacket.units}
             multiplayer={multiplayer}
             selectedAction={selectedAction}
             setSelectedAction={setSelectedAction}
+            notify={(msg) => setMessages(m => [...m, msg]) }
           />
           <BottomUnitView
             selectedUnits={selectedUnits}
+            setSelectedUnits={setSelectedUnits}
             units={lastUpdatePacket.units}
           />
           <ResourceView resources={lastUpdatePacket.player.resources} />
@@ -158,6 +197,7 @@ function App() {
               playerIndex={multiplayer.getPlayerIndex() || 0} // TODO really need a match class to fix this undefined
               unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
+              selectedAction={selectedAction}
               select={boardSelectUnits}
               mapClick={mapClick}
               unitRightClick={unitRightClick}

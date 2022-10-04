@@ -29,29 +29,54 @@
 
 .card {
   padding: 2em;
+  padding-left: 12em;
+  padding-right: 12em;
   background-color: #555;
 }
 
+.card p {
+  font-size: 1.2em;
+}
 
 .read-the-docs {
   color: #888;
 }
 
 .CommandPalette {
+  z-index: 2;
   position: absolute;
   right: 0;
   bottom: 0;
   width: 350px;
   height: 200px;
-  z-index: 2;
-  padding: 10px;
 
   display: grid;
   grid-template-columns: 25% 25% 25% 25%;
   grid-column-gap: 5px;
 
+  padding: 10px;
   gap: 5px;
   background-color: #555;
+  color: white;
+
+  border-radius: 10px 0 0 0;
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
+}
+
+.CommandPaletteHint {
+  position: absolute;
+  top: -80px;
+  left: 0px;
+  width: 320px;
+  height: 50px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+  background-color: rgba(150, 150, 150, 0.3);
+  color: white;
+
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
 }
 
 .CommandPalette > button {
@@ -61,7 +86,32 @@
 }
 
 .CommandPalette > button.active {
-  background-color: #33cc33;
+  background-color: #339933;
+}
+
+.CommandPalette > button .tooltip {
+  opacity: 0;
+  width: 96%;
+  box-sizing: border-box;
+  background-color: #1a1a1a;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 10px;
+
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
+  transition: 0.2s opacity;
+  
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 110%;
+  margin-left: -48%;
+}
+
+.CommandPalette > button:hover .tooltip {
+  opacity: 1;
 }
 
 .chat {
@@ -72,16 +122,21 @@
 }
 
 .MainMenu {
+  z-index: 2;
   width: 300px;
   position: absolute;
   top: 5%;
   right: 10px;
-  z-index: 2;
+
   background-color: #555;
+  color: white;
+
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 10px;
+
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
 }
 
 .MainMenuButton {
@@ -89,18 +144,26 @@
   top: 10px;
   right: 10px;
   z-index: 10;
+
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
 }
 
 .BottomUnitView {
+  z-index: 2;
   position: absolute;
   bottom: 0;
   left: 320px;
   width: 400px;
   height: 200px;
+
   background-color: #555;
-  z-index: 2;
+  color: white;
+  
   padding: 8px;
   overflow: hidden;
+
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
 }
 
 .BottomUnitView .MultiUnitView {
@@ -113,6 +176,12 @@
   padding: 5px;
   border-radius: 3px;
   border: 1px solid black;
+  transition: 0.2s border-color;
+  cursor: pointer;
+}
+
+.BottomUnitView .UnitIcon:hover {
+  border-color: lime;
 }
 
 .ResourceView {
@@ -123,12 +192,17 @@
   width: 150px;
   height: 40px;
   padding: 10px;
+
   background-color: #555;
+  color: white;
+
+  box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
 }
 
 @media (prefers-color-scheme: light) {
   .card, .CommandPalette, .MainMenu, .BottomUnitView, .ResourceView {
     background-color: #eee;
+    color: black;
   }
 }
 

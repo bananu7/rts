@@ -2,7 +2,7 @@ import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder,
-    ActionFollow, ActionAttack,
+    Action, ActionFollow, ActionAttack,
     PlayerState,
 } from './types';
 
@@ -17,8 +17,7 @@ export function newGame(map: GameMap): Game {
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
-        // TODO making it 5000 for now until resources arrive
-        players: [{resources: 5000}, {resources: 5000}],
+        players: [{resources: 50}, {resources: 50}],
         board: {
             map: map,
         },
@@ -50,6 +49,13 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
             return;
         }
 
+        // Don't even add/set actions that the unit won't accept
+        const accept = willAcceptAction(u, c.action);
+        if (!accept) {
+            console.info(`[game] Rejecting action ${c.action.typ} for unit ${u.id}`);
+            return;
+        }
+
         console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`);
 
         if (c.shift)
@@ -57,6 +63,34 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
         else
             u.actionQueue = [c.action];
     });
+}
+
+function willAcceptAction(unit: Unit, action: Action) {
+    // TODO maybe this should be better streamlined, like in a dictionary
+    // of required components for each action?
+    switch(action.typ) {
+    case 'Move': 
+        if (!getMoveComponent(unit))
+            return false;
+        break;
+    case 'Attack':
+        if (!getAttackerComponent(unit))
+            return false;
+        break;
+    case 'Harvest':
+        if (!getHarvesterComponent(unit))
+            return false;
+        break;
+    case 'Build':
+        if (!getBuilderComponent(unit))
+            return false;
+        break;
+    case 'Produce':
+        if (!getProducerComponent(unit))
+            return false;
+        break;
+    }
+    return true;
 }
 
 // Returns a list of update packets, one for each player
@@ -116,6 +150,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             tickNumber: g.tickNumber,
             units: unitUpdates,
             player: p,
+            state: g.state,
         }
     });
 }
@@ -174,6 +209,16 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     const stopMoving = () => {
         unit.pathToNext = null;
+    }
+
+    const cancelProduction = () => {
+        const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
+        if (p) {
+            // refund
+            console.log(`[game] Refunding production cost from unit ${unit.id}`);
+            owner.resources += p.productionState.originalCost;
+            p.productionState = undefined;
+        }
     }
 
     const clearCurrentAction = () => {
@@ -296,6 +341,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         case 'Stop': {
             stopMoving();
+            // TODO dedicated cancel action
+            cancelProduction();
+
             unit.actionQueue = [];
             break;
         }
@@ -417,14 +465,22 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!p.productionState) {
                 const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
-                const time = utp.productionTime;
                 const cost = utp.productionCost;
+
+                if (cost > owner.resources) {
+                    console.info("[game] Unit ordered to produce but player doesn't have enough resources");
+                    clearCurrentAction();
+                    break;
+                }
 
                 owner.resources -= cost;
 
+                const time = utp.productionTime;
                 p.productionState = {
                     unitType: cmd.unitToProduce,
-                    timeLeft: time
+                    timeLeft: time,
+                    originalCost: cost,
+                    originalTimeToProduce: time,
                 };
             }
 
@@ -441,7 +497,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 ));
 
                 // TODO - build queue
-                unit.actionQueue.shift();
+                clearCurrentAction();
                 p.productionState = undefined;
             }
 

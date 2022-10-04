@@ -60,18 +60,32 @@ export function createStartingUnits(): Unit[] {
 
     let lastUnitId = 1;
 
+    // top left
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:6}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
     startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
     startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:30, y:10}));
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:90, y:90}));
 
-    [{x:30, y:30}, {x:33, y:30}, {x:36, y:30},{x:39, y:30}].forEach(p => {
-        startingUnits.push(createUnit(lastUnitId++, 1, 'Trooper', p));
-    });
+    // TODO proper starting location placement/orientation
+    // bottom right
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:88}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:84}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
+
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:80, y:85}));
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
+
+    // left expo
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:54}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:58}));
+
+    // right expo
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:40}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:44}));
+    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:48}));
 
     return startingUnits;
 }

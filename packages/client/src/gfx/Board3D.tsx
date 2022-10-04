@@ -9,119 +9,27 @@ import {
 
 import * as THREE from 'three';
 
-//import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-//import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
-
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
+import { Unit3D } from './Unit3D'
 
-type Unit3DProps = {
-    unit: UnitState,
-    selected: boolean,
-    click?: (id: UnitId, button: number) => void,
-    enemy: boolean,
-}
-export function Unit3D(props: Unit3DProps) {
-    //const [catalog] = useState(() => require('../../assets/catalog.json'));
-    //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
+import { SelectedAction } from '../components/CommandPalette'
 
-    const onClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
-
-        if (props.click)
-            props.click(props.unit.id, e.nativeEvent.button);
-    }
-
-    // TODO better color choices
-    const ownerToColor = (owner: number) => {
-        switch(owner) {
-        case 0: return 0xdddddd;
-        case 1: return 0x1111ee;
-        case 2: return 0xee1111;
-        }
-    };
-
-    const color = ownerToColor(props.unit.owner);
-
-    // TODO proper unit catalog
-    const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
-    const unitSize = isBuilding ? 5 : 1;
-
-    /* TODO - debug path view
-    const path = props.unit.actionQueue.map(a => {
-        return new THREE.Vector3(a.target.x, 1, a.target.y);
-    })*/
-
-    // smoothing
-    const unitGroupRef = useRef<THREE.Group>(null);
-    const softSnapVelocity =
-        unitGroupRef.current ?
-        { x: props.unit.position.x - unitGroupRef.current.position.x,
-          y: props.unit.position.y - unitGroupRef.current.position.z
-        }
-        :
-        { x: 0, y: 0 };
-
-    const SMOOTHING_TIME = 100;
-    const SMOOTHING_SCALE = 1000 / SMOOTHING_TIME;
-
-    const smoothingVelocity = {
-        x: props.unit.velocity.x + softSnapVelocity.x * SMOOTHING_SCALE,
-        y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
-    }
-
-    // TODO - this will be replaced with animations etc
-    let indicatorColor = 0xeeeeee;
-    if (props.unit.status === 'Moving')
-        indicatorColor = 0x55ff55;
-    else if (props.unit.status === 'Attacking')
-        indicatorColor = 0xff5555;
-    else if (props.unit.status === 'Harvesting')
-        indicatorColor = 0x5555ff;
-    // indicate discrepancy between server and us
-    else if (smoothingVelocity.x > 0 || smoothingVelocity.y > 0)
-        indicatorColor = 0xffff55;
-
-    useFrame((s, dt) => {
-        if(!unitGroupRef.current)
-            return;
-
-        // TODO - temporary fix to bring units where they're needed quickly
-        if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
-            unitGroupRef.current.position.x = props.unit.position.x;
-            unitGroupRef.current.position.z = props.unit.position.y;
-            return;
-        }
-
-        unitGroupRef.current.position.x += smoothingVelocity.x * dt;
-        unitGroupRef.current.position.z += smoothingVelocity.y * dt;
-    });
+function BuildPreview(props: {position: Position, building: string}) {
+    const unitSize = 5;
 
     return (
-        <group>
-            {/*<Line3D points={path} />*/}
-            <group
-                ref={unitGroupRef}
-                position={[0, 1, 0]}
-                name={`Unit_${props.unit.id}`}
-            >
-                <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
-                    <coneGeometry args={[0.5, 2, 8]} />
-                    <meshBasicMaterial color={indicatorColor} />
-                </mesh>
-                <mesh
-                    onClick={ onClick }
-                    onContextMenu={ onClick }
-                    castShadow
-                    receiveShadow
-                >
-                    <boxGeometry args={[unitSize, 2, unitSize]} />
-                    <meshStandardMaterial color={color} />
-                </mesh>
-                { props.selected && <SelectionCircle size={unitSize} enemy={props.enemy} /> }    
-            </group>
+        <group position={[props.position.x, 2, props.position.y]}>
+            <mesh>
+                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <meshBasicMaterial color={0x33cc33} transparent={true} opacity={0.5} />
+            </mesh>
+            <mesh>
+                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <meshBasicMaterial color={0x00ff00} wireframe={true}/>
+            </mesh>
         </group>
     );
 }
@@ -132,11 +40,14 @@ export interface Props {
     unitStates: UnitState[];
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
+    selectedAction: SelectedAction | undefined;
     mapClick: (p: Position) => void;
     unitRightClick: (u: UnitId) => void;
 }
 
 export function Board3D(props: Props) {
+    const [pointer, setPointer] = useState<{x:number, y:number}>({x: 0, y: 0});
+
     const handleUnitClick = (u: UnitId, b: number) => {
         // Add unit to selection
         if (b === 0) {
@@ -199,8 +110,18 @@ export function Board3D(props: Props) {
 
     return (
         <group ref={groupRef} dispose={null} name="ship">
-            <Map3D map={props.board.map} click={handleMapClick} selectInBox={selectInBox} />
+            <Map3D
+                map={props.board.map}
+                click={handleMapClick}
+                selectInBox={selectInBox}
+                pointerMove={setPointer}
+            />
             { units }
+            {
+                props.selectedAction &&
+                props.selectedAction.action === 'Build' &&
+                <BuildPreview building={props.selectedAction.building} position={pointer}/>
+            }
         </group>
     );
 }

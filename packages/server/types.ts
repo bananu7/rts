@@ -62,6 +62,7 @@ export type CommandPacket = {
 }
 
 export type UpdatePacket = {
+    state: GameState,
     tickNumber: number,
     units: UnitState[],
     player: PlayerState,
@@ -119,6 +120,11 @@ export type UnitProductionCapability = {
 export type CurrentProductionState = {
     unitType: string,
     timeLeft: number,
+
+    // TODO - im not sure about those two, but it was convenient to do it like that
+    // when in doubt - remove and pull that info from the unit blueprint
+    originalTimeToProduce: number,
+    originalCost: number,
 }
 export type ProductionFacility = {
     type: 'ProductionFacility',
@@ -143,11 +149,6 @@ export type TilePos = { x: number, y: number }
 
 export type PlayerIndex = number
 export type UserId = string
-
-export type PlayerEntry = {
-    index: number,
-    user: UserId,
-}
 
 export type Unit = {
     id: number,
