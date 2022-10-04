@@ -16,6 +16,7 @@ export function Minimap(props: Props) {
         backgroundColor: '#11cc11',
         boxSizing: 'border-box',
         overflow: 'hidden',
+        boxShadow: '0px 0px 37px 0px rgba(0,0,0,0.5)',
     };
 
     const unitStyle = {
