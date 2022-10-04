@@ -13,10 +13,11 @@ export function Minimap(props: Props) {
         bottom: 0,
         width: '300px',
         height: '300px',
-        backgroundColor: '#11cc11',
+        backgroundColor: '#11aa11',
         boxSizing: 'border-box',
         overflow: 'hidden',
         boxShadow: '0px 0px 37px 0px rgba(0,0,0,0.5)',
+        borderRadius: '0 10px 0 0',
     };
 
     const unitStyle = {

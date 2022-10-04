@@ -18,6 +18,32 @@ export type SelectedAction =
 | { action: 'Build', building: string }
 | { action: 'Harvest' };
 
+type ButtonProps = {
+    x?: number,
+    y: number,
+    active: boolean,
+    onClick:() => void,
+    children: React.ReactNode,
+}
+
+function Button(props: ButtonProps) {
+    const style = {
+        gridRow: `${props.y} / span 1`,
+    };
+
+    if (props.x) {
+        (style as any)["gridColumn"] = `${props.x} / span 1`;
+    }
+
+    return (
+        <button
+            className={props.active ? "active" : ""}
+            style={style}
+            onClick={props.onClick}
+        >{props.children}</button>
+    );
+}
+
 type Props = {
     resources: number, // used to check if the player can afford stuff
     selectedUnits: Set<UnitId>,
@@ -77,11 +103,24 @@ export function CommandPalette(props: Props) {
             () => produce(up.unitType) :
             () => props.notify("Not enough resources.");
 
-        return (<button
-            key={`produce_${up.unitType}`}
-            style={{gridRow: "2 / span 1"}}
-            onClick={click}
-        >Produce {up.unitType}</button>);
+        return (
+            <Button
+                key={`produce_${up.unitType}`}
+                active={false}
+                y={2}
+                onClick={click}
+            >
+            Produce {up.unitType}
+            <span className="tooltip">
+                <strong>{up.unitType}</strong>
+                <span style={{float:"right"}}>{cost}💰</span>
+                <br /><br/>
+                This excellent unit will serve you well, and I
+                would tell you how but the tooltip data isn't
+                populated for units yet.
+            </span>
+            </Button>
+        );
     });
 
     const availableBuildings = (() => {
@@ -110,19 +149,30 @@ export function CommandPalette(props: Props) {
         const active = 
             props.selectedAction &&
             props.selectedAction.action === 'Build' &&
-            props.selectedAction.building === b;
+            props.selectedAction.building === b || false;
 
         const click = props.resources >= cost ?
             () => build(b, {x: 50, y: 50}) :
             () => props.notify("Not enough resources.");
 
         return (
-            <button
+            <Button
                 key={`build_${b}`}
-                className={active ? "active" : ""}
-                style={{gridRow: "2 / span 1"}}
+                active={active}
+                y={2}
                 onClick={click}
-            >Build {b}</button>
+            >
+            Build {b}
+            <span className="tooltip">
+                <strong>{b}</strong>
+                <span style={{float:"right"}}>{cost}💰</span>
+                <br /><br/>
+                This building probably does something, but that
+                information would need to be stored in a dictionary
+                somewhere and pulled in during button/tooltip creation.
+            </span>
+
+            </Button>
         );
     })
 
@@ -150,28 +200,38 @@ export function CommandPalette(props: Props) {
             { hint && <span className="CommandPaletteHint">{hint}</span> }
             {
                 canMove &&
-                <button
-                    key="move"
-                    style={{gridColumn: "1 / span 1", gridRow: "1 / span 1"}}
-                    className={props.selectedAction && props.selectedAction.action === 'Move' ? "active" : ""}
+                <Button
+                    key="Move"
+                    x={1} y={1}
+                    active={props.selectedAction && props.selectedAction.action === 'Move' || false}
                     onClick={() => props.setSelectedAction({ action: 'Move'})}
-                >Move</button>
+                >
+                    <span style={{fontSize: "2em"}}>➜</span>
+                    <span className="tooltip">Move a unit to a specific location or order it to follow a unit.</span>
+                </Button>
             }
 
-            <button
+            <Button
                 key="stop"
-                style={{gridColumn: "2 / span 1", gridRow: "1 / span 1"}}
+                x={2} y={1}
+                active={false}
                 onClick={stop}
-            >Stop</button>
+            >
+                <span style={{fontSize: "2em"}}>✖</span>
+                <span className="tooltip">Stop the current action and all the queued ones.</span>
+            </Button>
 
             {
                 canAttack &&
-                <button
+                <Button
                     key="attack"
-                    style={{gridColumn: "3 / span 1", gridRow: "1 / span 1"}}
-                    className={props.selectedAction && props.selectedAction.action === 'Attack' ? "active" : ""}
+                    x={3} y={1}
+                    active={props.selectedAction && props.selectedAction.action === 'Attack' || false}
                     onClick={() => props.setSelectedAction({ action: 'Attack'})}
-                >Attack</button>
+                >
+                    <span style={{fontSize: "2em"}}>🪓</span>
+                    <span className="tooltip">Attack an enemy unit or move towards a point and attack any enemy units on the way</span>
+                </Button>
             }
 
             { productionButtons }

@@ -47,7 +47,7 @@ button {
   transition: border-color 0.2s;
 }
 button:hover {
-  border-color: #64ff6c;
+  border-color: #ccc;
 }
 
 @media (prefers-color-scheme: light) {
