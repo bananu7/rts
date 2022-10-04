@@ -145,11 +145,6 @@ export type TilePos = { x: number, y: number }
 export type PlayerIndex = number
 export type UserId = string
 
-export type PlayerEntry = {
-    index: number,
-    user: UserId,
-}
-
 export type Unit = {
     id: number,
     actionQueue: Action[],

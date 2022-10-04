@@ -1,11 +1,11 @@
-import geckos, { Data, iceServers } from '@geckos.io/server'
+import geckos, { Data, iceServers, ServerChannel } from '@geckos.io/server'
 import http from 'http'
 import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 
 import {newGame, startGame, tick, command} from './game.js';
-import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, PlayerEntry } from './types.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
 
@@ -16,6 +16,12 @@ try {
 catch (err) { }
 
 console.log(`Starting RTS server - ${version}`);
+
+type PlayerEntry = {
+    index: number,
+    user: UserId,
+    channel?: ServerChannel,
+}
 
 type Match = {
     game: Game,
@@ -71,9 +77,19 @@ app.post('/create', async (req, res) => {
     const TICK_MS = 50;
     setInterval(() => {
         const updatePackets = tick(TICK_MS, game);
-        // TODO - those updates can't be broadcasted, need a way
-        // to address players individually
-        io.room(matchId).emit('tick', updatePackets[0]);
+        const match = matches.find(m => m.matchId === matchId);
+
+        if (!match)
+            throw new Error("Match scheduled for update doesn't exist");
+
+        match.players.forEach((p, i) => {
+            // TODO: handle players without channels better?
+            if (!p.channel)
+                return;
+
+            p.channel.emit('tick', updatePackets[i]);
+        });
+        // io.room(matchId).emit('tick', updatePackets[0]);
     }, TICK_MS);
 
     console.log(`Match ${matchId} created`);
@@ -180,6 +196,8 @@ io.onConnection(channel => {
             channel.emit('connection failure', packet.matchId, {reliable: true});
             return;
         }
+
+        playerEntry.channel = channel;
 
         channel.join(String(packet.matchId));
 
