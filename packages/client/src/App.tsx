@@ -7,6 +7,7 @@ import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
 import { PrecountCounter } from './components/PrecountCounter'
+import { Chat } from './components/Chat';
 
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
@@ -32,6 +33,8 @@ function App() {
   const [serverState, setServerState] = useState<Game | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
+
+  const [messages, setMessages] = useState<string[]>([]);
  
   const updateMatchState = useCallback(() => {
     multiplayer.getMatchState()
@@ -124,12 +127,12 @@ function App() {
         </div>
       }
 
-      {/*<div className="chat">
-          <ul>
-            {lines}
-          </ul>
-          <button onClick={ () => multiplayer.sendChatMessage("lol") }>Chat</button>
-      </div>*/}
+      {
+        <Chat
+          sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
+          messages={messages}
+        />
+      }
 
       { !serverState &&
         <div className="card">
@@ -174,11 +177,13 @@ function App() {
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           <CommandPalette
+            resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
             units={lastUpdatePacket.units}
             multiplayer={multiplayer}
             selectedAction={selectedAction}
             setSelectedAction={setSelectedAction}
+            notify={(msg) => setMessages(m => [...m, msg]) }
           />
           <BottomUnitView
             selectedUnits={selectedUnits}

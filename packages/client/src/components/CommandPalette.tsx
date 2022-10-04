@@ -19,11 +19,13 @@ export type SelectedAction =
 | { action: 'Harvest' };
 
 type Props = {
+    resources: number, // used to check if the player can afford stuff
     selectedUnits: Set<UnitId>,
     selectedAction: SelectedAction | undefined,
     setSelectedAction: (a: SelectedAction | undefined) => void,
     units: UnitState[],
     multiplayer: Multiplayer,
+    notify: (text: string) => void,
 }
 export function CommandPalette(props: Props) {
     if (props.selectedUnits.size === 0) {
@@ -61,20 +63,26 @@ export function CommandPalette(props: Props) {
         if (!productionComponent)
             return [];
 
-        return productionComponent.unitsProduced.map(up => up.unitType);
+        return productionComponent.unitsProduced;
     })();
 
     // TODO: produce just one unit from the set like SC?
     const produce = (utype: string) => 
         props.multiplayer.produceCommand(Array.from(props.selectedUnits), utype);
 
-    const productionButtons = productionUnits.map(ut =>
-        <button
-            key={`produce_${ut}`}
+
+    const productionButtons = productionUnits.map(up => {
+        const cost = up.productionCost;
+        const click = props.resources >= cost ?
+            () => produce(up.unitType) :
+            () => props.notify("Not enough resources.");
+
+        return (<button
+            key={`produce_${up.unitType}`}
             style={{gridRow: "2 / span 1"}}
-            onClick={() => produce(ut)}
-        >Produce {ut}</button>
-    );
+            onClick={click}
+        >Produce {up.unitType}</button>);
+    });
 
     const availableBuildings = (() => {
         // TODO if no selected units then doesn't make sense to repeat this check
@@ -97,17 +105,23 @@ export function CommandPalette(props: Props) {
     // TODO - second click to determine position
     const buildButtons = availableBuildings.map(bp => {
         const b = bp.buildingType;
+        const cost = bp.buildCost;
+
         const active = 
             props.selectedAction &&
             props.selectedAction.action === 'Build' &&
             props.selectedAction.building === b;
+
+        const click = props.resources >= cost ?
+            () => build(b, {x: 50, y: 50}) :
+            () => props.notify("Not enough resources.");
 
         return (
             <button
                 key={`build_${b}`}
                 className={active ? "active" : ""}
                 style={{gridRow: "2 / span 1"}}
-                onClick={() => build(b, {x: 50, y: 50})}
+                onClick={click}
             >Build {b}</button>
         );
     })
