@@ -91,6 +91,8 @@
 
 .CommandPalette > button .tooltip {
   opacity: 0;
+  visibility: hidden;
+
   width: 96%;
   box-sizing: border-box;
   background-color: #1a1a1a;
@@ -112,6 +114,7 @@
 
 .CommandPalette > button:hover .tooltip {
   opacity: 1;
+  visibility: visible;
 }
 
 .chat {
