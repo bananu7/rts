@@ -91,6 +91,10 @@ function App() {
     if (!lastUpdatePacket)
       return;
 
+    // if the target unit is selected, it shouldn't target itself
+    // TODO what about special abilities such as healing?
+    selectedUnits.delete(targetId);
+
     if (selectedUnits.size === 0)
       return;
 
