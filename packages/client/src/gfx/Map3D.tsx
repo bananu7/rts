@@ -41,11 +41,15 @@ export function Map3D(props: Map3DProps) {
         props.pointerMove({x: e.point.x, y: e.point.z});
     }, [props.pointerMove]);
     const pointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
+        // TODO - only do select if no action?
+        // maybe send drag up instead of handling it here
         if (drag && e.nativeEvent.button === 0) {
             props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
         }
         setDrag(undefined);
         setPointer(undefined);
+
+        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button);
     }, [drag]);
 
     const selectionBoxSize = (drag && pointer) ? {

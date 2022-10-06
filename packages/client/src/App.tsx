@@ -68,20 +68,25 @@ function App() {
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
-  const mapClick = useCallback((p: Position) => {
+  const mapClick = useCallback((p: Position, button: number) => {
     if (selectedUnits.size === 0)
       return;
 
-    const action = selectedAction ?? { action: 'Move' };
-    switch(action.action) {
-    case 'Move':
+    // TODO key being pressed and then RMB is attack move
+    switch (button) {
+    case 0:
+      if (!selectedAction) {
+        setSelectedUnits(new Set());
+      } else if (selectedAction.action === 'Move') {
+        multiplayer.moveCommand(Array.from(selectedUnits), p);
+      } else if (selectedAction.action === 'Attack') {
+        multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+      } else if (selectedAction.action === 'Build') {
+        multiplayer.buildCommand(Array.from(selectedUnits), selectedAction.building, p);
+      }
+      break;
+    case 2:
       multiplayer.moveCommand(Array.from(selectedUnits), p);
-      break;
-    case 'Attack':
-      multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
-      break;
-    case 'Build':
-      multiplayer.buildCommand(Array.from(selectedUnits), action.building, p);
       break;
     }
 
@@ -133,14 +138,14 @@ function App() {
     else if (e.keyCode === 65) { // a
      setSelectedAction({ action: 'Attack' })
     }
-    else if (e.keyCode === 87) { // a
+    else if (e.keyCode === 87) { // w
       multiplayer.stopCommand(Array.from(selectedUnits));
       setSelectedAction(undefined);
     }
     else {
      console.log(e.keyCode);
     }
-  }, []);
+  }, [selectedAction, selectedUnits]);
 
   return (
     <div className="App" onKeyDown={keydown} tabIndex={0}>

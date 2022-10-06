@@ -41,7 +41,7 @@ export interface Props {
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     selectedAction: SelectedAction | undefined;
-    mapClick: (p: Position) => void;
+    mapClick: (p: Position, button: number) => void;
     unitRightClick: (u: UnitId) => void;
 }
 
@@ -58,15 +58,6 @@ export function Board3D(props: Props) {
             props.unitRightClick(u);
         }
     }
-
-    const handleMapClick = (p: Position, button: number) => {
-        if (button === 2) {
-            props.mapClick(p);
-        }
-        else if (button === 0) {
-            props.select(new Set());
-        }
-    };
 
     const units = props.unitStates.map(u => 
     (<Unit3D
@@ -112,7 +103,7 @@ export function Board3D(props: Props) {
         <group ref={groupRef} dispose={null} name="ship">
             <Map3D
                 map={props.board.map}
-                click={handleMapClick}
+                click={props.mapClick}
                 selectInBox={selectInBox}
                 pointerMove={setPointer}
             />
