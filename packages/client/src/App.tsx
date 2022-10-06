@@ -52,6 +52,13 @@ function App() {
         updateMatchState();
       }
     });
+
+
+    console.log("[App] Bartek RTS starting");
+    console.log(`[App] HTTP_API_URL = ${HTTP_API_URL}`);
+    fetch(HTTP_API_URL + '/version')
+    .then(res => res.text())
+    .then(res => console.log("[App] Server version: " + res));
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);

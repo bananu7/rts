@@ -25,6 +25,10 @@ export class Multiplayer {
     onMatchConnected?: OnMatchConnected;
 
     constructor(userId: string) {
+        console.log("[Multiplayer] First-time init");
+        console.log(`[Multiplayer] GECKOS_URL = ${GECKOS_URL}`);
+        console.log(`[Multiplayer] GECKOS_PORT = ${GECKOS_PORT}`);
+
         this.channel = geckos({
           url: GECKOS_URL,
           port: GECKOS_PORT
