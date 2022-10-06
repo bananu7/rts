@@ -119,18 +119,6 @@ function App() {
 
   return (
     <div className="App">
-      { showMainMenu &&
-        <div className="MainMenu">
-          <h3>Main menu</h3>
-          <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
-          { !serverState && <button>Play</button> }
-          { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
-          { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
-          { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
-          { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
-        </div>
-      }
-
       {
         <Chat
           sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
@@ -182,6 +170,18 @@ function App() {
         &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
+          { showMainMenu &&
+            <div className="MainMenu">
+              <h3>Main menu</h3>
+              <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
+              { !serverState && <button>Play</button> }
+              { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+              { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+              { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
+              { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
+            </div>
+          }
+            
           <CommandPalette
             resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
