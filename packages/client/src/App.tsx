@@ -63,6 +63,7 @@ function App() {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
+  // TODO should this be part of ADT because undefined is annoying af
   const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
@@ -124,8 +125,25 @@ function App() {
     }
   }
 
+  // TODO track key down state for stuff like a-move clicks
+  const keydown = useCallback((e: React.KeyboardEvent) => {
+    if (e.keyCode === 27) { // esc
+     setSelectedAction(undefined);
+    }
+    else if (e.keyCode === 65) { // a
+     setSelectedAction({ action: 'Attack' })
+    }
+    else if (e.keyCode === 87) { // a
+      multiplayer.stopCommand(Array.from(selectedUnits));
+      setSelectedAction(undefined);
+    }
+    else {
+     console.log(e.keyCode);
+    }
+  }, []);
+
   return (
-    <div className="App">
+    <div className="App" onKeyDown={keydown} tabIndex={0}>
       {
         <Chat
           sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
