@@ -151,7 +151,9 @@ function App() {
           <p><strong>GLHF!</strong></p>
           <br />
           <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
-          <button onClick={() => multiplayer.createMatch()}>Create</button>
+          <div style={{textAlign:"center"}}>
+            <button onClick={() => multiplayer.createMatch()}>Create</button>
+          </div>
         </div>
       }
 

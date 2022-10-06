@@ -38,6 +38,11 @@
   font-size: 1.2em;
 }
 
+.MatchTable {
+  width: 100%;
+  text-align: center;
+}
+
 .read-the-docs {
   color: #888;
 }
