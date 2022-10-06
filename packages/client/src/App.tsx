@@ -212,6 +212,18 @@ function App() {
           <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
         </>
       }
+
+      { lastUpdatePacket &&
+        lastUpdatePacket.state.id === "GameEnded" &&
+        <div className="card">
+          <h2>Game Over</h2>
+          <button onClick={() => {
+            setLastUpdatePacket(null);
+            setServerState(null);
+            multiplayer.leaveMatch();
+          }}>Return to main menu</button>
+        </div>
+      }
     </div>
   )
 }
