@@ -76,7 +76,7 @@ function App() {
     switch (button) {
     case 0:
       if (!selectedAction) {
-        setSelectedUnits(new Set());
+        break;
       } else if (selectedAction.action === 'Move') {
         multiplayer.moveCommand(Array.from(selectedUnits), p);
       } else if (selectedAction.action === 'Attack') {
