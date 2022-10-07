@@ -419,13 +419,21 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!hc.resourcesCarried) {
                 const HARVESTING_DISTANCE = 2;
+                const HARVESTING_RESOURCE_COUNT = 8;
+
                 switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
                 case 'Unreachable':
                     clearCurrentAction();
                     break;
                 case 'ReachedTarget':
-                    // TODO - harvesting time
-                    hc.resourcesCarried = 50;
+                    if (hc.harvestingProgress >= hc.harvestingTime) {
+                        hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
+                        // TODO - reset harvesting at any other action
+                        // maybe i could use some "exit state function"?
+                        hc.harvestingProgress = 0;
+                    } else {
+                        hc.harvestingProgress += dt;
+                    }
                     break;
                 }
             } else {
@@ -454,7 +462,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     clearCurrentAction();
                     break;
                 case 'ReachedTarget':
-                    // TODO - harvesting time
                     owner.resources += hc.resourcesCarried;
                     hc.resourcesCarried = undefined;
                     break;

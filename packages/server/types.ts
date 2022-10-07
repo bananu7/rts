@@ -101,6 +101,7 @@ export type Harvester = {
     type: 'Harvester',
     harvestingTime: Milliseconds,
     harvestingValue: number,
+    harvestingProgress: number,
     resourcesCarried?: number,
 }
 export type Resource = { 
