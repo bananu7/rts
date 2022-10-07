@@ -60,6 +60,10 @@ export function Board3D(props: Props) {
     const groupRef = useRef<THREE.Group>(null);
 
     const selectInBox = (box: Box) => {
+        // TODO - this is a hotfix; Board shouldn't make those decisions...
+        if (props.selectedAction)
+            return;
+
         function isInBox(p: Position, b: Box) {
             const x1 = b.x1 < b.x2 ? b.x1 : b.x2;
             const x2 = b.x1 < b.x2 ? b.x2 : b.x1;
