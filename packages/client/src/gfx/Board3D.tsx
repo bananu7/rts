@@ -41,38 +41,18 @@ export interface Props {
     select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     selectedAction: SelectedAction | undefined;
-    mapClick: (p: Position) => void;
-    unitRightClick: (u: UnitId) => void;
+    mapClick: (p: Position, button: number) => void;
+    unitClick: (u: UnitId, button: number) => void;
 }
 
 export function Board3D(props: Props) {
     const [pointer, setPointer] = useState<{x:number, y:number}>({x: 0, y: 0});
 
-    const handleUnitClick = (u: UnitId, b: number) => {
-        // Add unit to selection
-        if (b === 0) {
-            // TODO shiftclick
-            //props.select(props.selectedUnits.add(u));
-            props.select(new Set([u]));
-        } else if (b === 2) {
-            props.unitRightClick(u);
-        }
-    }
-
-    const handleMapClick = (p: Position, button: number) => {
-        if (button === 2) {
-            props.mapClick(p);
-        }
-        else if (button === 0) {
-            props.select(new Set());
-        }
-    };
-
     const units = props.unitStates.map(u => 
     (<Unit3D
         key={u.id}
         unit={u}
-        click={handleUnitClick}
+        click={props.unitClick}
         selected={props.selectedUnits.has(u.id)}
         enemy={u.owner !== props.playerIndex}
     />));
@@ -80,6 +60,10 @@ export function Board3D(props: Props) {
     const groupRef = useRef<THREE.Group>(null);
 
     const selectInBox = (box: Box) => {
+        // TODO - this is a hotfix; Board shouldn't make those decisions...
+        if (props.selectedAction)
+            return;
+
         function isInBox(p: Position, b: Box) {
             const x1 = b.x1 < b.x2 ? b.x1 : b.x2;
             const x2 = b.x1 < b.x2 ? b.x2 : b.x1;
@@ -112,7 +96,7 @@ export function Board3D(props: Props) {
         <group ref={groupRef} dispose={null} name="ship">
             <Map3D
                 map={props.board.map}
-                click={handleMapClick}
+                click={props.mapClick}
                 selectInBox={selectInBox}
                 pointerMove={setPointer}
             />

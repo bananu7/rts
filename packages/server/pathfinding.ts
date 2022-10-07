@@ -29,7 +29,7 @@ class HashMap<K,V> {
         this.hash = f;
     }
 
-    get(key: K): V {
+    get(key: K): V | undefined {
         return this.map.get(this.hash(key));
     }
 
@@ -51,16 +51,16 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
     q.add([start, 0]);
 
-    const cameFrom = new HashMap<TilePos, TilePos>(explode);
+    const cameFrom = new HashMap<TilePos, TilePos | undefined>(explode);
     const costSoFar = new HashMap<TilePos, number>(explode);
 
-    cameFrom.set(start, null);
+    cameFrom.set(start, undefined);
     costSoFar.set(start, 0);
 
     const explodedB = explode(b);
 
     while (!q.isEmpty()) {
-        const [current, v] = q.poll();
+        const [current, v] = q.poll() as [TilePos, number]; // TODO this `as` looks like a bug in pqueue typing
 
         if (explodedB === explode(current))
             break;
@@ -71,9 +71,11 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
             .filter(e => m.tiles[explode(e)] === 0);
 
         for (let next of options) {
-            const newCost = costSoFar.get(current) + 1 // cost of moving one tile
+            // costSoFar will always contain this element here
+            const newCost = costSoFar.get(current)! + 1 // cost of moving one tile
+            const costOfNext = costSoFar.get(next);
 
-            if (!costSoFar.get(next) || newCost < costSoFar.get(next)) {
+            if (!costOfNext || newCost < costOfNext) {
                 costSoFar.set(next, newCost);
                 const priority = newCost + heuristic(b, next);
                 q.add([next, priority]);
@@ -94,7 +96,8 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
     while(explode(current) !== explodedStart) {
         path.push(current);
-        current = cameFrom.get(current);
+        // The idea is that this never fails because it represents a found path
+        current = cameFrom.get(current) as TilePos;
     }
 
     path.reverse();

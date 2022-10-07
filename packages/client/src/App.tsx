@@ -52,28 +52,41 @@ function App() {
         updateMatchState();
       }
     });
+
+
+    console.log("[App] Bartek RTS starting");
+    console.log(`[App] HTTP_API_URL = ${HTTP_API_URL}`);
+    fetch(HTTP_API_URL + '/version')
+    .then(res => res.text())
+    .then(res => console.log("[App] Server version: " + res));
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
+  // TODO should this be part of ADT because undefined is annoying af
   const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
-  const mapClick = useCallback((p: Position) => {
+  const mapClick = useCallback((p: Position, button: number) => {
     if (selectedUnits.size === 0)
       return;
 
-    const action = selectedAction ?? { action: 'Move' };
-    switch(action.action) {
-    case 'Move':
+    // TODO key being pressed and then RMB is attack move
+    switch (button) {
+    case 0:
+      if (!selectedAction) {
+        break;
+      } else if (selectedAction.action === 'Move') {
+        multiplayer.moveCommand(Array.from(selectedUnits), p);
+      } else if (selectedAction.action === 'Attack') {
+        multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+      } else if (selectedAction.action === 'Build') {
+        multiplayer.buildCommand(Array.from(selectedUnits), selectedAction.building, p);
+      }
+      break;
+    case 2:
       multiplayer.moveCommand(Array.from(selectedUnits), p);
-      break;
-    case 'Attack':
-      multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
-      break;
-    case 'Build':
-      multiplayer.buildCommand(Array.from(selectedUnits), action.building, p);
       break;
     }
 
@@ -81,17 +94,9 @@ function App() {
 
   }, [selectedAction, selectedUnits]);
 
-  const boardSelectUnits = (units: Set<UnitId>) => {
-    setSelectedAction(undefined);
-    setSelectedUnits(units);
-  };
-
   // TODO it feels like it shouldn't be be here, maybe GameController component?
-  const unitRightClick = (targetId: UnitId) => {
+  const unitClick = useCallback((targetId: UnitId, button: number) => {
     if (!lastUpdatePacket)
-      return;
-
-    if (selectedUnits.size === 0)
       return;
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
@@ -100,33 +105,69 @@ function App() {
       return;
     }
 
-    // TODO properly understand alliances
-    if (target.owner === 0) { // neutral
-      // TODO actually check if can harvest and is resource
-      multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
-    }
-    else if (target.owner === multiplayer.getPlayerIndex()) {
-      multiplayer.followCommand(Array.from(selectedUnits), targetId);
-    }
-    else if (target.owner !== multiplayer.getPlayerIndex()) {
-      multiplayer.attackCommand(Array.from(selectedUnits), targetId);
-    }
-  }
+    // if the target unit is selected, it shouldn't target itself
+    // TODO what about special abilities such as healing?
+    selectedUnits.delete(targetId);
 
-  return (
-    <div className="App">
-      { showMainMenu &&
-        <div className="MainMenu">
-          <h3>Main menu</h3>
-          <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
-          { !serverState && <button>Play</button> }
-          { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
-          { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
-          { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
-          { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
-        </div>
+    switch (button) {
+    case 0:
+      if (!selectedAction) {
+        setSelectedUnits(new Set([targetId]));
+        break;
       }
 
+      if (selectedUnits.size === 0) {
+        break;
+      }
+
+      if (selectedAction.action === 'Move') {
+        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+      } else if (selectedAction.action === 'Attack') {
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+      }
+      break;
+    case 2:
+      // TODO properly understand alliances
+      if (target.owner === 0) { // neutral
+        // TODO actually check if can harvest and is resource
+        multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+      }
+      else if (target.owner === multiplayer.getPlayerIndex()) {
+        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+      }
+      else if (target.owner !== multiplayer.getPlayerIndex()) {
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+      }
+      break;
+    }
+  }, [lastUpdatePacket, selectedAction, selectedUnits]);
+
+  const boardSelectUnits = (units: Set<UnitId>) => {
+    setSelectedAction(undefined);
+    setSelectedUnits(units);
+  };
+
+  // TODO track key down state for stuff like a-move clicks
+  const keydown = useCallback((e: React.KeyboardEvent) => {
+    if (e.keyCode === 27) { // esc
+     setSelectedAction(undefined);
+    }
+    else if (e.keyCode === 65) { // a
+     setSelectedAction({ action: 'Attack' })
+    }
+    else if (e.keyCode === 87) { // w
+      multiplayer.stopCommand(Array.from(selectedUnits));
+      setSelectedAction(undefined);
+    }
+    else {
+     console.log(e.keyCode);
+    }
+  }, [selectedAction, selectedUnits]);
+
+  const style = selectedAction ? { cursor: "pointer"} : { };
+
+  return (
+    <div className="App" onKeyDown={keydown} tabIndex={0} style={style}>
       {
         <Chat
           sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
@@ -147,7 +188,9 @@ function App() {
           <p><strong>GLHF!</strong></p>
           <br />
           <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
-          <button onClick={() => multiplayer.createMatch()}>Create</button>
+          <div style={{textAlign:"center"}}>
+            <button onClick={() => multiplayer.createMatch()}>Create</button>
+          </div>
         </div>
       }
 
@@ -176,6 +219,18 @@ function App() {
         &&
         <>
           <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
+          { showMainMenu &&
+            <div className="MainMenu">
+              <h3>Main menu</h3>
+              <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
+              { !serverState && <button>Play</button> }
+              { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+              { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+              { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
+              { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
+            </div>
+          }
+            
           <CommandPalette
             resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
@@ -200,11 +255,23 @@ function App() {
               selectedAction={selectedAction}
               select={boardSelectUnits}
               mapClick={mapClick}
-              unitRightClick={unitRightClick}
+              unitClick={unitClick}
             />
           </View3D>
           <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
         </>
+      }
+
+      { lastUpdatePacket &&
+        lastUpdatePacket.state.id === "GameEnded" &&
+        <div className="card">
+          <h2>Game Over</h2>
+          <button onClick={() => {
+            setLastUpdatePacket(null);
+            setServerState(null);
+            multiplayer.leaveMatch();
+          }}>Return to main menu</button>
+        </div>
       }
     </div>
   )

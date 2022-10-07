@@ -50,6 +50,10 @@ app.get('/listMatches', (req, res) => {
     res.send(JSON.stringify(matchInfos));
 });
 
+app.get('/version', (req, res) => {
+    res.send(version);
+});
+
 app.get('/getMatchState', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {

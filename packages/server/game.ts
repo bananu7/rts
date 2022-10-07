@@ -31,10 +31,16 @@ export function startGame(g: Game) {
     g.state = {id: 'Precount', count: 0};
 }
 
+function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
+    if (value === null || value === undefined) return false;
+    const testDummy: TValue = value;
+    return true;
+}
+
 export function command(c: CommandPacket, g: Game, playerIndex: number) {
-    const us = c.unitIds
+    const us: Unit[] = c.unitIds
         .map(id => g.units.find(u => id === u.id))
-        .filter(u => u) // non-null
+        .filter(notEmpty) // non-null
     ;
 
     if (us.length === 0)
@@ -208,12 +214,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return;
 
     const stopMoving = () => {
-        unit.pathToNext = null;
+        unit.pathToNext = undefined;
     }
 
     const cancelProduction = () => {
         const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
-        if (p) {
+        if (p && p.productionState) {
             // refund
             console.log(`[game] Refunding production cost from unit ${unit.id}`);
             owner.resources += p.productionState.originalCost;
@@ -257,7 +263,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     // TODO - that will cause stutter at shift-clicked moves
                     unit.velocity.x = 0;
                     unit.velocity.y = 0;
-                    unit.pathToNext = null;
+                    unit.pathToNext = undefined;
                     return true;
                 } else {
                     nextPathStep = unit.pathToNext[0];
@@ -446,7 +452,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 case 'ReachedTarget':
                     // TODO - harvesting time
                     owner.resources += hc.resourcesCarried;
-                    hc.resourcesCarried = null;
+                    hc.resourcesCarried = undefined;
                     break;
                 }
             }
@@ -465,6 +471,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!p.productionState) {
                 const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
+                if (!utp) {
+                    console.info("[game] Unit orderded to produce but it can't produce this unit type");
+                    clearCurrentAction();
+                    break;
+                }
+
                 const cost = utp.productionCost;
 
                 if (cost > owner.resources) {

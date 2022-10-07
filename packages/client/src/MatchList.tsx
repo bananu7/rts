@@ -39,7 +39,7 @@ export function MatchList(props: Props) {
     );
 
     return (
-        <table>
+        <table className="MatchTable">
             <thead>
                 <tr>
                     <th>Match id</th>
