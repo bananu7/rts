@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 type Props = {
     messages: string[],
@@ -9,9 +9,24 @@ export function Chat(props: Props) {
     const [lastIndex, setLastIndex] = useState(0);
 
     // TODO - make chat disappear after some time
-    const messages = props.messages.slice(props.messages.length-1).map((m, i) => 
-        <span key={i}>{m}</span>
-    );
+    const messages =
+        props.messages.slice(props.messages.length-5).map((m, i) => 
+            <span key={i}>{m}</span>
+        );
+
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (ref.current) {
+            ref.current.style.visibility = "visible";
+        }
+        const hide = setTimeout(() => {
+            if (ref.current) {
+                ref.current.style.visibility = "hidden";
+            }
+        }, 2000);
+        return () => clearTimeout(hide);
+    }, [props.messages]);
 
     const style = {
         position: "absolute",
@@ -24,7 +39,7 @@ export function Chat(props: Props) {
     } as React.CSSProperties;
 
     return (
-        <div style={style} className="Chat">
+        <div ref={ref} style={style} className="Chat">
             { messages }
         </div>
     );
