@@ -17,13 +17,15 @@ const UNIT_CATALOG : Catalog = {
             { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
             { buildingType: 'Barracks', buildTime: 5000, buildCost: 150},
         ]},
+        { type: 'Vision', range: 10 },
     ],
     'Base': () => [
         { type: 'Hp', maxHp: 1000, hp: 1000 },
         { type: 'Building' },
         { type: 'ProductionFacility', unitsProduced: [
             { unitType: 'Harvester', productionTime: 5000, productionCost: 50 }
-        ]}
+        ]},
+        { type: 'Vision', range: 5 },
     ],
     'ResourceNode': () => [
         { type: 'Resource', value: 100 }
@@ -33,12 +35,14 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Building' },
         { type: 'ProductionFacility', unitsProduced: [
             {unitType: 'Trooper', productionTime: 5000, productionCost: 50}
-        ]}
+        ]},
+        { type: 'Vision', range: 5 },
     ],
     'Trooper': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
         { type: 'Attacker', damage: 10, cooldown: 500, range: 6 }
+        { type: 'Vision', range: 10 },
     ]
 };
 

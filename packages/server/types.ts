@@ -81,7 +81,7 @@ export type UnitState = {
 }
 
 // Components
-export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder;
+export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder | Vision;
 export type Hp = {
     type: 'Hp',
     maxHp: number,
@@ -142,6 +142,11 @@ export type Builder = {
     type: 'Builder',
     buildingsProduced: BuildCapability[],
     currentlyBuilding?: UnitId,
+}
+
+export type Vision = {
+    type: 'Vision',
+    range: number,
 }
 
 // Internal Game stuff

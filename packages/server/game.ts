@@ -1,7 +1,7 @@
 import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder,
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Action, ActionFollow, ActionAttack,
     PlayerState,
 } from './types';
@@ -183,6 +183,10 @@ const getProducerComponent = (unit: Unit) => {
 
 const getBuilderComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Builder') as Builder;
+}
+
+const getVisionComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Vision') as Vision;
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
