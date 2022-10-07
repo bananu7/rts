@@ -213,10 +213,6 @@ function updateUnits(dt: Milliseconds, g: Game) {
 }
 
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
-    // if no actions are queued, the unit is considered idle
-    if (unit.actionQueue.length === 0)
-        return;
-
     const stopMoving = () => {
         unit.pathToNext = undefined;
     }
@@ -338,6 +334,58 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return 'Moving';
     }
 
+    const findClosestUnitBy = (p: (u: Unit) => boolean) => {
+        const units = g.units.filter(p);
+
+        if (units.length === 0) {
+            return;
+        }
+
+        units.sort((ba, bb) => {
+            return distance(unit.position, ba.position) - distance(unit.position, bb.position);
+        });
+        
+        return units[0];
+    }
+
+    const detectNearbyEnemy = () => {
+        const vision = getVisionComponent(unit);
+        if (!vision) {
+            return;
+        }
+
+        // TODO query range for optimizations
+        const target = findClosestUnitBy(u => 
+            u.owner !== unit.owner &&
+            u.owner !== 0
+        );
+        if (!target)
+            return;
+
+        if (distance(unit.position, target.position) > vision.range) {
+            return;
+        }
+
+        return target;
+    }
+
+    // Idle state
+    if (unit.actionQueue.length === 0) {
+        const ac = getAttackerComponent(unit);
+
+        // TODO run away when attacked
+        if (!ac) {
+            return;
+        }
+
+        const closestTarget = detectNearbyEnemy(); 
+        if (closestTarget) {
+            moveTowards(closestTarget.position, ac.range);
+        }
+        
+        return;
+    }
+
     const cmd = unit.actionQueue[0];
     const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
@@ -395,6 +443,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 // SC in that case just cancels the attack command - TODO decide
                 moveTowards(target.position, ac.range);
             } else {
+                // TODO - attack cooldown
                 const hp = getHpComponent(target);
                 if (hp) {
                     hp.hp -= ac.damage;
@@ -439,22 +488,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             } else {
                 const DROPOFF_DISTANCE = 2;
                 // TODO cache the dropoff base
-
                 // TODO - resource dropoff component
-                const bases = g.units.filter(u => 
-                    u.owner == unit.owner &&
+                const target = findClosestUnitBy(u => 
+                    u.owner === unit.owner &&
                     u.kind === 'Base'
                 );
 
-                if (bases.length === 0) {
-                    // no base to dropoff to
+                if (!target)
                     break;
-                }
-
-                bases.sort((ba, bb) => {
-                    return distance(unit.position, ba.position) - distance(unit.position, bb.position);
-                });
-                const target = bases[0];
 
                 switch(moveTowards(target.position, DROPOFF_DISTANCE)) {
                 case 'Unreachable':
