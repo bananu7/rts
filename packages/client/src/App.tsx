@@ -267,9 +267,9 @@ function App() {
         <div className="card">
           <h2>Game Over</h2>
           <button onClick={() => {
+            multiplayer.leaveMatch();
             setLastUpdatePacket(null);
             setServerState(null);
-            multiplayer.leaveMatch();
           }}>Return to main menu</button>
         </div>
       }
