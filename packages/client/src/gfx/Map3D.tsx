@@ -48,8 +48,6 @@ export function Map3D(props: Map3DProps) {
         }
         setDrag(undefined);
         setPointer(undefined);
-
-        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button);
     }, [drag]);
 
     const selectionBoxSize = (drag && pointer) ? {
@@ -97,6 +95,7 @@ export function Map3D(props: Map3DProps) {
             <mesh 
                 name="Click Mesh"
                 onContextMenu={rawClick}
+                onClick={rawClick}
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
                 onPointerMove={pointerMove}

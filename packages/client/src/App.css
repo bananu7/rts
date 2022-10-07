@@ -53,15 +53,15 @@
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 350px;
-  height: 200px;
+  width: 320px;
+  height: 280px;
 
   display: grid;
-  grid-template-columns: 25% 25% 25% 25%;
-  grid-column-gap: 5px;
+  grid-template-columns: 75px 75px 75px;
+  grid-template-rows: 75px 75px 75px;
 
   padding: 10px;
-  gap: 5px;
+  gap: 10px;
   background-color: #555;
   color: white;
 

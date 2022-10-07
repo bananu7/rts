@@ -266,10 +266,10 @@ function App() {
         lastUpdatePacket.state.id === "GameEnded" &&
         <div className="card">
           <h2>Game Over</h2>
-          <button onClick={() => {
+          <button onClick={async () => {
+            await multiplayer.leaveMatch();
             setLastUpdatePacket(null);
             setServerState(null);
-            multiplayer.leaveMatch();
           }}>Return to main menu</button>
         </div>
       }

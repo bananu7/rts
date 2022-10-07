@@ -72,6 +72,7 @@ export function CommandPalette(props: Props) {
     // TODO browse all units?
     const canMove = Boolean(units[0].components.find(c => c.type === 'Mover'));
     const canAttack = Boolean(units[0].components.find(c => c.type === 'Attacker'));
+    const canHarvest = Boolean(units[0].components.find(c => c.type === 'Harvester'));
 
     const stop = () => {
         props.multiplayer.stopCommand(Array.from(props.selectedUnits));
@@ -108,7 +109,7 @@ export function CommandPalette(props: Props) {
             <Button
                 key={`produce_${up.unitType}`}
                 active={false}
-                y={2}
+                y={3}
                 onClick={click}
             >
             Produce {up.unitType}
@@ -162,7 +163,7 @@ export function CommandPalette(props: Props) {
             <Button
                 key={`build_${b}`}
                 active={active}
-                y={2}
+                y={3}
                 onClick={click}
             >
             Build {b}
@@ -213,6 +214,20 @@ export function CommandPalette(props: Props) {
                     <span className="tooltip">Move a unit to a specific location or order it to follow a unit.</span>
                 </Button>
             }
+
+            {
+                canHarvest &&
+                <Button
+                    key="Harvest"
+                    x={1} y={2}
+                    active={props.selectedAction && props.selectedAction.action === 'Harvest' || false}
+                    onClick={() => props.setSelectedAction({ action: 'Harvest'})}
+                >
+                    <span style={{fontSize: "2.3em"}}>⛏️</span>
+                    <span className="tooltip">Harvest a resource node</span>
+                </Button>
+            }
+
 
             <Button
                 key="stop"
