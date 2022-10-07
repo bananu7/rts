@@ -42,28 +42,17 @@ export interface Props {
     selectedUnits: Set<UnitId>;
     selectedAction: SelectedAction | undefined;
     mapClick: (p: Position, button: number) => void;
-    unitRightClick: (u: UnitId) => void;
+    unitClick: (u: UnitId, button: number) => void;
 }
 
 export function Board3D(props: Props) {
     const [pointer, setPointer] = useState<{x:number, y:number}>({x: 0, y: 0});
 
-    const handleUnitClick = (u: UnitId, b: number) => {
-        // Add unit to selection
-        if (b === 0) {
-            // TODO shiftclick
-            //props.select(props.selectedUnits.add(u));
-            props.select(new Set([u]));
-        } else if (b === 2) {
-            props.unitRightClick(u);
-        }
-    }
-
     const units = props.unitStates.map(u => 
     (<Unit3D
         key={u.id}
         unit={u}
-        click={handleUnitClick}
+        click={props.unitClick}
         selected={props.selectedUnits.has(u.id)}
         enemy={u.owner !== props.playerIndex}
     />));

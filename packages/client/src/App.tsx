@@ -94,21 +94,9 @@ function App() {
 
   }, [selectedAction, selectedUnits]);
 
-  const boardSelectUnits = (units: Set<UnitId>) => {
-    setSelectedAction(undefined);
-    setSelectedUnits(units);
-  };
-
   // TODO it feels like it shouldn't be be here, maybe GameController component?
-  const unitRightClick = (targetId: UnitId) => {
+  const unitClick = useCallback((targetId: UnitId, button: number) => {
     if (!lastUpdatePacket)
-      return;
-
-    // if the target unit is selected, it shouldn't target itself
-    // TODO what about special abilities such as healing?
-    selectedUnits.delete(targetId);
-
-    if (selectedUnits.size === 0)
       return;
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
@@ -117,18 +105,47 @@ function App() {
       return;
     }
 
-    // TODO properly understand alliances
-    if (target.owner === 0) { // neutral
-      // TODO actually check if can harvest and is resource
-      multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+    // if the target unit is selected, it shouldn't target itself
+    // TODO what about special abilities such as healing?
+    selectedUnits.delete(targetId);
+
+    switch (button) {
+    case 0:
+      if (!selectedAction) {
+        setSelectedUnits(new Set([targetId]));
+        break;
+      }
+
+      if (selectedUnits.size === 0) {
+        break;
+      }
+
+      if (selectedAction.action === 'Move') {
+        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+      } else if (selectedAction.action === 'Attack') {
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+      }
+      break;
+    case 2:
+      // TODO properly understand alliances
+      if (target.owner === 0) { // neutral
+        // TODO actually check if can harvest and is resource
+        multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+      }
+      else if (target.owner === multiplayer.getPlayerIndex()) {
+        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+      }
+      else if (target.owner !== multiplayer.getPlayerIndex()) {
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+      }
+      break;
     }
-    else if (target.owner === multiplayer.getPlayerIndex()) {
-      multiplayer.followCommand(Array.from(selectedUnits), targetId);
-    }
-    else if (target.owner !== multiplayer.getPlayerIndex()) {
-      multiplayer.attackCommand(Array.from(selectedUnits), targetId);
-    }
-  }
+  }, [lastUpdatePacket, selectedAction, selectedUnits]);
+
+  const boardSelectUnits = (units: Set<UnitId>) => {
+    setSelectedAction(undefined);
+    setSelectedUnits(units);
+  };
 
   // TODO track key down state for stuff like a-move clicks
   const keydown = useCallback((e: React.KeyboardEvent) => {
@@ -147,8 +164,10 @@ function App() {
     }
   }, [selectedAction, selectedUnits]);
 
+  const style = selectedAction ? { cursor: "pointer"} : { };
+
   return (
-    <div className="App" onKeyDown={keydown} tabIndex={0}>
+    <div className="App" onKeyDown={keydown} tabIndex={0} style={style}>
       {
         <Chat
           sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
@@ -236,7 +255,7 @@ function App() {
               selectedAction={selectedAction}
               select={boardSelectUnits}
               mapClick={mapClick}
-              unitRightClick={unitRightClick}
+              unitClick={unitClick}
             />
           </View3D>
           <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
