@@ -155,6 +155,8 @@ export class Multiplayer {
 
         this.channel.emit('spectate', data);
     }
+
+    // TODO - no way to stop spectating
     
     async leaveMatch() {
         if (!this.matchId)

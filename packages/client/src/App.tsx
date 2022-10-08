@@ -41,6 +41,12 @@ function App() {
     .then(s => setServerState(s));
   }, []);
 
+  const leaveMatch = async () => {
+    await multiplayer.leaveMatch();
+    setLastUpdatePacket(null);
+    setServerState(null);
+  };
+
   useEffect(() => {
     multiplayer.setup({
       onUpdatePacket: (p:UpdatePacket) => {
@@ -184,13 +190,21 @@ function App() {
     }
   }, [selectedAction, selectedUnits]);
 
-  const style = selectedAction ? { cursor: "pointer"} : { };
+  const appDivStyle = selectedAction ? { cursor: "pointer"} : { };
+
+  const showGame =
+    serverState &&
+    lastUpdatePacket &&
+    ( lastUpdatePacket.state.id === 'Precount'||
+      lastUpdatePacket.state.id === 'Play' ||
+      lastUpdatePacket.state.id === 'Paused'
+    );
 
   return (
-    <div className="App" onKeyDown={keydown} tabIndex={0} style={style}>
+    <div className="App" onKeyDown={keydown} tabIndex={0} style={appDivStyle}>
       {
         <Chat
-          sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
+          sendMessage={(msg) => multiplayer.sendChatMessage(msg)}
           messages={messages}
         />
       }
@@ -236,24 +250,29 @@ function App() {
         </div>
       }
 
-      { serverState &&
-        lastUpdatePacket && 
-        (lastUpdatePacket.state.id === 'Precount' || lastUpdatePacket.state.id === 'Play' || lastUpdatePacket.state.id === 'Paused')
-        &&
+      {
+        serverState &&
         <>
-          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
+         <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           { showMainMenu &&
             <div className="MainMenu">
               <h3>Main menu</h3>
               <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
               { !serverState && <button>Play</button> }
-              { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+              { serverState && <button onClick={async () => {
+                await leaveMatch();
+                setShowMainMenu(false);
+              }}>Leave game</button> }
               { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
               { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
               { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
             </div>
           }
-            
+        </>
+      }
+
+      { showGame &&
+        <>
           <CommandPalette
             resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
@@ -289,11 +308,7 @@ function App() {
         lastUpdatePacket.state.id === "GameEnded" &&
         <div className="card">
           <h2>Game Over</h2>
-          <button onClick={async () => {
-            await multiplayer.leaveMatch();
-            setLastUpdatePacket(null);
-            setServerState(null);
-          }}>Return to main menu</button>
+          <button onClick={leaveMatch}>Return to main menu</button>
         </div>
       }
     </div>
