@@ -9,14 +9,14 @@ import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 
-type Click = (p: Position, button: number) => void;
+type Click = (p: Position, button: number, shift: boolean) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 export type Box = { x1: number, y1: number, x2: number, y2: number };
 
 type Map3DProps = {
     map: GameMap,
     click: Click,
-    selectInBox: (box: Box) => void;
+    selectInBox: (box: Box, shift: boolean) => void;
 
     pointerMove: (p: {x: number, y: number}) => void;
 }
@@ -26,7 +26,7 @@ export function Map3D(props: Map3DProps) {
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button);
+        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
     };
 
     // selection box
@@ -44,7 +44,7 @@ export function Map3D(props: Map3DProps) {
         // TODO - only do select if no action?
         // maybe send drag up instead of handling it here
         if (drag && e.nativeEvent.button === 0) {
-            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
+            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z}, e.nativeEvent.shiftKey);
         }
         setDrag(undefined);
         setPointer(undefined);

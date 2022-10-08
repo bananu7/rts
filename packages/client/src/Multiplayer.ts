@@ -68,6 +68,12 @@ export class Multiplayer {
                 this.onUpdatePacket && this.onUpdatePacket(u);
             })
 
+            this.channel.on('spectating', (data: Data) => {
+                this.matchId = (data as {matchId: string}).matchId;
+                localStorage.setItem('matchId', this.matchId);
+                this.onMatchConnected && this.onMatchConnected(this.matchId);
+            });
+
             this.channel.on('connected', (data: Data) => {
                 if (!this.matchId) {
                     throw "Server responded with connection but the multiplayer isn't initialized to a match";
@@ -139,6 +145,18 @@ export class Multiplayer {
             this.channel.emit('connect', data);
         });
     };
+
+    spectateMatch(matchId: string) {
+        console.log(`[Multiplayer] spectating match ${matchId}`)
+        const data : IdentificationPacket = {
+            userId: this.userId,
+            matchId
+        };
+
+        this.channel.emit('spectate', data);
+    }
+
+    // TODO - no way to stop spectating
     
     async leaveMatch() {
         if (!this.matchId)
@@ -179,14 +197,14 @@ export class Multiplayer {
         this.channel.emit('chat message', 'msg')
     }
 
-    moveCommand(unitIds: UnitId[], target: Position) {
+    moveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Move',
                 target
             },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd)
     }
@@ -202,38 +220,38 @@ export class Multiplayer {
         this.channel.emit('command', cmd)
     }
 
-    followCommand(unitIds: UnitId[], target: UnitId) {
+    followCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Follow',
                 target
             },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    attackCommand(unitIds: UnitId[], target: UnitId) {
+    attackCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Attack',
             target
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    attackMoveCommand(unitIds: UnitId[], target: Position) {
+    attackMoveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'AttackMove',
             target
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
@@ -250,7 +268,7 @@ export class Multiplayer {
         this.channel.emit('command', cmd);
     }
 
-    buildCommand(unitIds: UnitId[], building: string, position: Position) {
+    buildCommand(unitIds: UnitId[], building: string, position: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Build',
@@ -258,19 +276,19 @@ export class Multiplayer {
             position
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    harvestCommand(unitIds: UnitId[], target: UnitId) {
+    harvestCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Harvest',
             target,
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }

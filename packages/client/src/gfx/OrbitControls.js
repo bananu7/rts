@@ -916,15 +916,15 @@ class OrbitControls extends EventDispatcher {
 					break;
 
 				case MOUSE.ROTATE:
-
-					if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
+					// for RTS - shift/ctrl click is used for selection
+					if (event.metaKey) {
 
 						if ( scope.enablePan === false ) return;
 
 						handleMouseDownPan( event );
 
 						state = STATE.PAN;
-
+					
 					} else {
 
 						if ( scope.enableRotate === false ) return;

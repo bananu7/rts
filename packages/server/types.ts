@@ -72,7 +72,7 @@ export type UnitState = {
     id: number,
     kind: string,
     status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
-    position: Position,
+    readonly position: Position,
     velocity: Position, // TODO - Position to Vec2
     direction: number,
     owner: number,
@@ -81,7 +81,7 @@ export type UnitState = {
 }
 
 // Components
-export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder;
+export type Component = Hp | Attacker | Mover | Building | ProductionFacility | Harvester | Resource | Builder | Vision;
 export type Hp = {
     type: 'Hp',
     maxHp: number,
@@ -90,8 +90,9 @@ export type Hp = {
 export type Attacker = {
     type: 'Attacker',
     damage: number,
-    cooldown: Milliseconds,
+    attackRate: Milliseconds,
     range: number,
+    cooldown: Milliseconds,
 }
 export type Mover = {
     type: 'Mover',
@@ -101,6 +102,8 @@ export type Harvester = {
     type: 'Harvester',
     harvestingTime: Milliseconds,
     harvestingValue: number,
+    // state
+    harvestingProgress: number,
     resourcesCarried?: number,
 }
 export type Resource = { 
@@ -144,6 +147,11 @@ export type Builder = {
     currentlyBuilding?: UnitId,
 }
 
+export type Vision = {
+    type: 'Vision',
+    range: number,
+}
+
 // Internal Game stuff
 export type TilePos = { x: number, y: number }
 
@@ -151,15 +159,15 @@ export type PlayerIndex = number
 export type UserId = string
 
 export type Unit = {
-    id: number,
+    readonly id: number,
     actionQueue: Action[],
-    kind: string, // TODO should this be in a component
-    owner: PlayerIndex,
-    position: Position,
+    readonly kind: string, // TODO should this be in a component
+    readonly owner: PlayerIndex,
+    readonly position: Position,
     direction: number,
-    velocity: Position,
+    readonly velocity: Position,
 
-    components: Component[],
+    readonly components: Component[],
 
     pathToNext?: TilePos[],
 }

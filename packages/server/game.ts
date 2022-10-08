@@ -1,7 +1,7 @@
 import {
     Milliseconds,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder,
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Action, ActionFollow, ActionAttack,
     PlayerState,
 } from './types';
@@ -185,6 +185,10 @@ const getBuilderComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Builder') as Builder;
 }
 
+const getVisionComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Vision') as Vision;
+}
+
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
     const presence: PresenceMap = new Map();
@@ -208,11 +212,21 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
-function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
-    // if no actions are queued, the unit is considered idle
-    if (unit.actionQueue.length === 0)
-        return;
+function directionTo(a: Position, b: Position) {
+    return Math.atan2(b.y-a.y, b.x-a.x);
+}
 
+function vecSet(a: Position, b: Position) {
+    a.x = b.x;
+    a.y = b.y;
+}
+
+function vecAdd(a: Position, b: Position) {
+    a.x += b.x;
+    a.y += b.y;
+}
+
+function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     const stopMoving = () => {
         unit.pathToNext = undefined;
     }
@@ -252,7 +266,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // can reach next path setp
             if (dst < distanceLeft) {
                 // set the unit to the reached path step
-                unit.position = nextPathStep;
+                vecSet(unit.position, nextPathStep);
                 // subtract from distance "budget"
                 distanceLeft -= dst;
                 // pop the current path step off
@@ -278,9 +292,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
 
                 // TODO - slow starts and braking
-                unit.velocity = checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence);
+                vecSet(unit.velocity, checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence));
 
-                unit.position = sum(unit.position, unit.velocity);
+                vecAdd(unit.position, unit.velocity);
                 return false;
             }
         }
@@ -291,7 +305,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     const findUnitPosition = (targetId: UnitId) => {
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (target)
-            return target.position;
+            return { x: target.position.x, y: target.position.y };
         else
             return;
     }
@@ -334,14 +348,136 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return 'Moving';
     }
 
+    const findClosestUnitBy = (p: (u: Unit) => boolean) => {
+        const units = g.units.filter(p);
+
+        if (units.length === 0) {
+            return;
+        }
+
+        units.sort((ba, bb) => {
+            return distance(unit.position, ba.position) - distance(unit.position, bb.position);
+        });
+        
+        return units[0];
+    }
+
+    const detectNearbyEnemy = () => {
+        const vision = getVisionComponent(unit);
+        if (!vision) {
+            return;
+        }
+
+        // TODO query range for optimizations
+        const target = findClosestUnitBy(u => 
+            u.owner !== unit.owner &&
+            u.owner !== 0
+        );
+        if (!target)
+            return;
+
+        if (distance(unit.position, target.position) > vision.range) {
+            return;
+        }
+
+        return target;
+    }
+
+    const attemptDamage = (ac: Attacker, target: Unit) => {
+        if (ac.cooldown === 0) {
+            // TODO - attack cooldown
+            const hp = getHpComponent(target);
+            if (hp) {
+                hp.hp -= ac.damage;
+            }
+            ac.cooldown = ac.attackRate;
+        }
+    }
+
+    const aggro = (ac: Attacker, target: Unit) => {
+        // if out of range, just move to target
+        if (distance(unit.position, target.position) > ac.range) {
+            // Right now the attack command is upheld even if the unit can't move
+            // SC in that case just cancels the attack command - TODO decide
+            moveTowards(target.position, ac.range);
+        } else {
+            unit.direction = directionTo(unit.position, target.position);
+            attemptDamage(ac, target);
+        }
+    }
+
+    // Update passive cooldowns
+    {
+        const ac = getAttackerComponent(unit);
+        if (ac) {
+            ac.cooldown -= dt;
+            if (ac.cooldown < 0)
+                ac.cooldown = 0;
+        }
+    }
+
+    // Idle state
+    if (unit.actionQueue.length === 0) {
+        const ac = getAttackerComponent(unit);
+
+        // TODO run away when attacked
+        if (!ac) {
+            return;
+        }
+
+        const target = detectNearbyEnemy(); 
+        if (!target) {
+            return;   
+        }
+
+        // TODO - aggro state should depend on the initial aggro location
+        // stop location needs to be stored somewhere
+        aggro(ac, target);
+        
+        return;
+    }
+
     const cmd = unit.actionQueue[0];
     const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
     switch (cmd.typ) {
         case 'Move': {
-            if (moveTowards(cmd.target, 0.1) !== 'Moving') {
+            if (moveTowards(cmd.target, 0.2) !== 'Moving') {
                 clearCurrentAction();
             }
+            break;
+        }
+
+        case 'AttackMove': {
+            const ac = getAttackerComponent(unit);
+            // TODO just execute move to go together with formation
+            if (!ac) {
+                return;
+            }
+
+            const closestTarget = detectNearbyEnemy();
+            if (closestTarget) {
+                const MAX_PATH_DEVIATION = 5;
+
+                // TODO compute
+                const pathDeviation = 0; //computePathDeviation(unit);
+                if (pathDeviation > MAX_PATH_DEVIATION) {
+                    // lose aggro
+                    // TODO: aggro hysteresis?
+                    // just move
+                    if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                        clearCurrentAction();
+                    }
+                } else {
+                    aggro(ac, closestTarget);
+                }
+            } else {
+                // just move
+                if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                    clearCurrentAction();
+                }
+            }
+
             break;
         }
 
@@ -385,17 +521,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 break;
             }
 
-            // if out of range, just move to target
-            if (distance(unit.position, target.position) > ac.range) {
-                // Right now the attack command is upheld even if the unit can't move
-                // SC in that case just cancels the attack command - TODO decide
-                moveTowards(target.position, ac.range);
-            } else {
-                const hp = getHpComponent(target);
-                if (hp) {
-                    hp.hp -= ac.damage;
-                }
-            }
+            aggro(ac, target);
             break;
         }
 
@@ -415,34 +541,34 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!hc.resourcesCarried) {
                 const HARVESTING_DISTANCE = 2;
+                const HARVESTING_RESOURCE_COUNT = 8;
+
                 switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
                 case 'Unreachable':
                     clearCurrentAction();
                     break;
                 case 'ReachedTarget':
-                    // TODO - harvesting time
-                    hc.resourcesCarried = 50;
+                    if (hc.harvestingProgress >= hc.harvestingTime) {
+                        hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
+                        // TODO - reset harvesting at any other action
+                        // maybe i could use some "exit state function"?
+                        hc.harvestingProgress = 0;
+                    } else {
+                        hc.harvestingProgress += dt;
+                    }
                     break;
                 }
             } else {
                 const DROPOFF_DISTANCE = 2;
                 // TODO cache the dropoff base
-
                 // TODO - resource dropoff component
-                const bases = g.units.filter(u => 
-                    u.owner == unit.owner &&
+                const target = findClosestUnitBy(u => 
+                    u.owner === unit.owner &&
                     u.kind === 'Base'
                 );
 
-                if (bases.length === 0) {
-                    // no base to dropoff to
+                if (!target)
                     break;
-                }
-
-                bases.sort((ba, bb) => {
-                    return distance(unit.position, ba.position) - distance(unit.position, bb.position);
-                });
-                const target = bases[0];
 
                 switch(moveTowards(target.position, DROPOFF_DISTANCE)) {
                 case 'Unreachable':
@@ -450,7 +576,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     clearCurrentAction();
                     break;
                 case 'ReachedTarget':
-                    // TODO - harvesting time
                     owner.resources += hc.resourcesCarried;
                     hc.resourcesCarried = undefined;
                     break;
@@ -557,12 +682,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 clearCurrentAction();
                 break;
             }
-            break;
-        }
-
-        default: {
-            console.warn(`[game] action of type ${cmd.typ} ignored because of no handler`);
-            clearCurrentAction();
             break;
         }
     }

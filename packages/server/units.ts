@@ -11,19 +11,21 @@ const UNIT_CATALOG : Catalog = {
     'Harvester': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 5, cooldown: 1000, range: 2 },
-        { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20 },
+        { type: 'Attacker', damage: 5, attackRate: 1000, range: 2, cooldown: 0 },
+        { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20, harvestingProgress: 0 },
         { type: 'Builder', buildingsProduced: [
             { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
             { buildingType: 'Barracks', buildTime: 5000, buildCost: 150},
         ]},
+        { type: 'Vision', range: 10 },
     ],
     'Base': () => [
         { type: 'Hp', maxHp: 1000, hp: 1000 },
         { type: 'Building' },
         { type: 'ProductionFacility', unitsProduced: [
             { unitType: 'Harvester', productionTime: 5000, productionCost: 50 }
-        ]}
+        ]},
+        { type: 'Vision', range: 5 },
     ],
     'ResourceNode': () => [
         { type: 'Resource', value: 100 }
@@ -33,12 +35,14 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Building' },
         { type: 'ProductionFacility', unitsProduced: [
             {unitType: 'Trooper', productionTime: 5000, productionCost: 50}
-        ]}
+        ]},
+        { type: 'Vision', range: 5 },
     ],
     'Trooper': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 10, cooldown: 500, range: 6 }
+        { type: 'Attacker', damage: 10, attackRate: 500, range: 6, cooldown: 0 },
+        { type: 'Vision', range: 10 },
     ]
 };
 
@@ -65,8 +69,10 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
     startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:30, y:10}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:29, y:25}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:33, y:25}));
 
     // TODO proper starting location placement/orientation
     // bottom right
@@ -75,7 +81,9 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
 
     startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:80, y:85}));
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:62, y:90}));
     startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:66, y:90}));
 
     // left expo
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));

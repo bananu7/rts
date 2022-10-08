@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
-import { MatchList } from './MatchList';
-import { Minimap } from './Minimap';
+import { MatchList } from './components/MatchList';
+import { Minimap } from './components/Minimap';
 import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
@@ -41,6 +41,12 @@ function App() {
     .then(s => setServerState(s));
   }, []);
 
+  const leaveMatch = async () => {
+    await multiplayer.leaveMatch();
+    setLastUpdatePacket(null);
+    setServerState(null);
+  };
+
   useEffect(() => {
     multiplayer.setup({
       onUpdatePacket: (p:UpdatePacket) => {
@@ -68,7 +74,7 @@ function App() {
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
-  const mapClick = useCallback((p: Position, button: number) => {
+  const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
       return;
 
@@ -78,15 +84,17 @@ function App() {
       if (!selectedAction) {
         break;
       } else if (selectedAction.action === 'Move') {
-        multiplayer.moveCommand(Array.from(selectedUnits), p);
+        multiplayer.moveCommand(Array.from(selectedUnits), p, shift);
       } else if (selectedAction.action === 'Attack') {
-        multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+        multiplayer.attackMoveCommand(Array.from(selectedUnits), p, shift);
       } else if (selectedAction.action === 'Build') {
-        multiplayer.buildCommand(Array.from(selectedUnits), selectedAction.building, p);
+        // Only send one harvester to build
+        // TODO send the closest one
+        multiplayer.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p, shift);
       }
       break;
     case 2:
-      multiplayer.moveCommand(Array.from(selectedUnits), p);
+      multiplayer.moveCommand(Array.from(selectedUnits), p, shift);
       break;
     }
 
@@ -95,7 +103,7 @@ function App() {
   }, [selectedAction, selectedUnits]);
 
   // TODO it feels like it shouldn't be be here, maybe GameController component?
-  const unitClick = useCallback((targetId: UnitId, button: number) => {
+  const unitClick = useCallback((targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket)
       return;
 
@@ -112,7 +120,21 @@ function App() {
     switch (button) {
     case 0:
       if (!selectedAction) {
-        setSelectedUnits(new Set([targetId]));
+        if (shift) {
+          // shift-click means add if not there, but remove if there
+          setSelectedUnits(prev => {
+            const units = new Set(prev);
+            if (units.has(targetId)) {
+              units.delete(targetId);
+            }
+            else {
+              units.add(targetId);
+            } 
+            return units;
+          });
+        } else {
+          setSelectedUnits(new Set([targetId]));
+        }
         break;
       }
 
@@ -121,30 +143,34 @@ function App() {
       }
 
       if (selectedAction.action === 'Move') {
-        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+        multiplayer.followCommand(Array.from(selectedUnits), targetId, shift);
       } else if (selectedAction.action === 'Attack') {
-        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
     case 2:
       // TODO properly understand alliances
       if (target.owner === 0) { // neutral
         // TODO actually check if can harvest and is resource
-        multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+        multiplayer.harvestCommand(Array.from(selectedUnits), targetId, shift);
       }
       else if (target.owner === multiplayer.getPlayerIndex()) {
-        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+        multiplayer.followCommand(Array.from(selectedUnits), targetId, shift);
       }
       else if (target.owner !== multiplayer.getPlayerIndex()) {
-        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
     }
   }, [lastUpdatePacket, selectedAction, selectedUnits]);
 
-  const boardSelectUnits = (units: Set<UnitId>) => {
+  const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
     setSelectedAction(undefined);
-    setSelectedUnits(units);
+    if (shift) {
+      setSelectedUnits(units => new Set([...units, ...newUnits]));
+    } else {
+      setSelectedUnits(newUnits);
+    }
   };
 
   // TODO track key down state for stuff like a-move clicks
@@ -164,13 +190,21 @@ function App() {
     }
   }, [selectedAction, selectedUnits]);
 
-  const style = selectedAction ? { cursor: "pointer"} : { };
+  const appDivStyle = selectedAction ? { cursor: "pointer"} : { };
+
+  const showGame =
+    serverState &&
+    lastUpdatePacket &&
+    ( lastUpdatePacket.state.id === 'Precount'||
+      lastUpdatePacket.state.id === 'Play' ||
+      lastUpdatePacket.state.id === 'Paused'
+    );
 
   return (
-    <div className="App" onKeyDown={keydown} tabIndex={0} style={style}>
+    <div className="App" onKeyDown={keydown} tabIndex={0} style={appDivStyle}>
       {
         <Chat
-          sendMessage={(msg) => multiplayer.sendChatMessage("lol")}
+          sendMessage={(msg) => multiplayer.sendChatMessage(msg)}
           messages={messages}
         />
       }
@@ -187,7 +221,10 @@ function App() {
           back to your game.</p>
           <p><strong>GLHF!</strong></p>
           <br />
-          <MatchList joinMatch={(matchId) => multiplayer.joinMatch(matchId)} />
+          <MatchList
+            joinMatch={matchId => multiplayer.joinMatch(matchId)}
+            spectateMatch={matchId => multiplayer.spectateMatch(matchId)}
+          />
           <div style={{textAlign:"center"}}>
             <button onClick={() => multiplayer.createMatch()}>Create</button>
           </div>
@@ -213,24 +250,29 @@ function App() {
         </div>
       }
 
-      { serverState &&
-        lastUpdatePacket && 
-        (lastUpdatePacket.state.id === 'Precount' || lastUpdatePacket.state.id === 'Play' || lastUpdatePacket.state.id === 'Paused')
-        &&
+      {
+        serverState &&
         <>
-          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
+         <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           { showMainMenu &&
             <div className="MainMenu">
               <h3>Main menu</h3>
               <h4>You are player #{multiplayer.getPlayerIndex()}</h4>
               { !serverState && <button>Play</button> }
-              { serverState && <button onClick={() => { multiplayer.leaveMatch(); setServerState(null); }}>Leave game</button> }
+              { serverState && <button onClick={async () => {
+                await leaveMatch();
+                setShowMainMenu(false);
+              }}>Leave game</button> }
               { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
               { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
               { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
             </div>
           }
-            
+        </>
+      }
+
+      { showGame &&
+        <>
           <CommandPalette
             resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
@@ -266,11 +308,7 @@ function App() {
         lastUpdatePacket.state.id === "GameEnded" &&
         <div className="card">
           <h2>Game Over</h2>
-          <button onClick={async () => {
-            await multiplayer.leaveMatch();
-            setLastUpdatePacket(null);
-            setServerState(null);
-          }}>Return to main menu</button>
+          <button onClick={leaveMatch}>Return to main menu</button>
         </div>
       }
     </div>

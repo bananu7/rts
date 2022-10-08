@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { MatchInfo } from 'server/types'
-import { HTTP_API_URL } from './config'
+import { HTTP_API_URL } from '../config'
 
 type Props = {
     joinMatch: (matchId: string) => void;
+    spectateMatch: (matchId: string) => void;
 }
 
 export function MatchList(props: Props) {
@@ -25,18 +26,21 @@ export function MatchList(props: Props) {
         };
     }, []);
 
-    const matchRows = matches.map(m => 
-        <tr key={m.matchId}>
+    const matchRows = matches.map(m => {
+        const joinable = m.status.id == "Lobby";
+
+        return (<tr key={m.matchId}>
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
             <td>{m.status.id}</td>
             <td>
-                { m.status.id == "Lobby" &&
-                    <button onClick={() => props.joinMatch(m.matchId)}>Join</button>
-                }
+                <button disabled={!joinable} onClick={() => props.joinMatch(m.matchId)}>Join</button>
             </td>
-        </tr>
-    );
+            <td>
+                <button onClick={() => props.spectateMatch(m.matchId)}>Spectate</button>
+            </td>
+        </tr>);
+    });
 
     return (
         <table className="MatchTable">
