@@ -82,7 +82,9 @@ function App() {
       } else if (selectedAction.action === 'Attack') {
         multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
       } else if (selectedAction.action === 'Build') {
-        multiplayer.buildCommand(Array.from(selectedUnits), selectedAction.building, p);
+        // Only send one harvester to build
+        // TODO send the closest one
+        multiplayer.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p);
       }
       break;
     case 2:

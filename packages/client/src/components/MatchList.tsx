@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { MatchInfo } from 'server/types'
-import { HTTP_API_URL } from './config'
+import { HTTP_API_URL } from '../config'
 
 type Props = {
     joinMatch: (matchId: string) => void;
