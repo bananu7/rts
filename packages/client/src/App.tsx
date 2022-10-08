@@ -95,7 +95,7 @@ function App() {
   }, [selectedAction, selectedUnits]);
 
   // TODO it feels like it shouldn't be be here, maybe GameController component?
-  const unitClick = useCallback((targetId: UnitId, button: number) => {
+  const unitClick = useCallback((targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket)
       return;
 
@@ -112,7 +112,13 @@ function App() {
     switch (button) {
     case 0:
       if (!selectedAction) {
-        setSelectedUnits(new Set([targetId]));
+        if (shift) {
+          console.log("shift")
+          setSelectedUnits(units => units.add(targetId));
+        } else {
+          console.log("no shift")
+          setSelectedUnits(new Set([targetId]));
+        }
         break;
       }
 
@@ -142,9 +148,14 @@ function App() {
     }
   }, [lastUpdatePacket, selectedAction, selectedUnits]);
 
-  const boardSelectUnits = (units: Set<UnitId>) => {
+  const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
+    console.log("boardSelectUnits", newUnits)
     setSelectedAction(undefined);
-    setSelectedUnits(units);
+    if (shift) {
+      setSelectedUnits(units => new Set([...units, ...newUnits]));
+    } else {
+      setSelectedUnits(newUnits);
+    }
   };
 
   // TODO track key down state for stuff like a-move clicks

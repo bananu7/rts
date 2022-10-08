@@ -16,7 +16,7 @@ export type Box = { x1: number, y1: number, x2: number, y2: number };
 type Map3DProps = {
     map: GameMap,
     click: Click,
-    selectInBox: (box: Box) => void;
+    selectInBox: (box: Box, shift: boolean) => void;
 
     pointerMove: (p: {x: number, y: number}) => void;
 }
@@ -44,7 +44,7 @@ export function Map3D(props: Map3DProps) {
         // TODO - only do select if no action?
         // maybe send drag up instead of handling it here
         if (drag && e.nativeEvent.button === 0) {
-            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z});
+            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z}, e.nativeEvent.shiftKey);
         }
         setDrag(undefined);
         setPointer(undefined);

@@ -38,11 +38,12 @@ export interface Props {
     board: Board;
     playerIndex: number;
     unitStates: UnitState[];
-    select: (ids: Set<UnitId>) => void;
     selectedUnits: Set<UnitId>;
     selectedAction: SelectedAction | undefined;
+
+    select: (ids: Set<UnitId>, shift: boolean) => void;
     mapClick: (p: Position, button: number) => void;
-    unitClick: (u: UnitId, button: number) => void;
+    unitClick: (u: UnitId, button: number, shift: boolean) => void;
 }
 
 export function Board3D(props: Props) {
@@ -59,7 +60,7 @@ export function Board3D(props: Props) {
 
     const groupRef = useRef<THREE.Group>(null);
 
-    const selectInBox = (box: Box) => {
+    const selectInBox = (box: Box, shift: boolean) => {
         // TODO - this is a hotfix; Board shouldn't make those decisions...
         if (props.selectedAction)
             return;
@@ -77,7 +78,8 @@ export function Board3D(props: Props) {
             .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);
 
-        props.select(new Set(selection));
+        console.log("select in box");
+        props.select(new Set(selection), shift);
     };
 
     useEffect(() => {

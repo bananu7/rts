@@ -41,7 +41,7 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
 type Unit3DProps = {
     unit: UnitState,
     selected: boolean,
-    click?: (id: UnitId, button: number) => void,
+    click?: (id: UnitId, button: number, shift: boolean) => void,
     enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
@@ -52,7 +52,7 @@ export function Unit3D(props: Unit3DProps) {
         e.stopPropagation();
 
         if (props.click)
-            props.click(props.unit.id, e.nativeEvent.button);
+            props.click(props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
     }
 
     // TODO better color choices
