@@ -42,7 +42,7 @@ export interface Props {
     selectedAction: SelectedAction | undefined;
 
     select: (ids: Set<UnitId>, shift: boolean) => void;
-    mapClick: (p: Position, button: number) => void;
+    mapClick: (p: Position, button: number, shift: boolean) => void;
     unitClick: (u: UnitId, button: number, shift: boolean) => void;
 }
 
@@ -78,7 +78,6 @@ export function Board3D(props: Props) {
             .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);
 
-        console.log("select in box");
         props.select(new Set(selection), shift);
     };
 

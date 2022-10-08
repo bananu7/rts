@@ -195,14 +195,14 @@ export class Multiplayer {
         this.channel.emit('chat message', 'msg')
     }
 
-    moveCommand(unitIds: UnitId[], target: Position) {
+    moveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Move',
                 target
             },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd)
     }
@@ -218,38 +218,38 @@ export class Multiplayer {
         this.channel.emit('command', cmd)
     }
 
-    followCommand(unitIds: UnitId[], target: UnitId) {
+    followCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
                 typ: 'Follow',
                 target
             },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    attackCommand(unitIds: UnitId[], target: UnitId) {
+    attackCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Attack',
             target
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    attackMoveCommand(unitIds: UnitId[], target: Position) {
+    attackMoveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'AttackMove',
             target
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
@@ -266,7 +266,7 @@ export class Multiplayer {
         this.channel.emit('command', cmd);
     }
 
-    buildCommand(unitIds: UnitId[], building: string, position: Position) {
+    buildCommand(unitIds: UnitId[], building: string, position: Position, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Build',
@@ -274,19 +274,19 @@ export class Multiplayer {
             position
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }
 
-    harvestCommand(unitIds: UnitId[], target: UnitId) {
+    harvestCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
             action: {
             typ: 'Harvest',
             target,
         },
             unitIds,
-            shift: false,
+            shift,
         };
         this.channel.emit('command', cmd);
     }

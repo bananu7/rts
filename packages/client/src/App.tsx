@@ -68,7 +68,7 @@ function App() {
 
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
-  const mapClick = useCallback((p: Position, button: number) => {
+  const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
       return;
 
@@ -78,17 +78,17 @@ function App() {
       if (!selectedAction) {
         break;
       } else if (selectedAction.action === 'Move') {
-        multiplayer.moveCommand(Array.from(selectedUnits), p);
+        multiplayer.moveCommand(Array.from(selectedUnits), p, shift);
       } else if (selectedAction.action === 'Attack') {
-        multiplayer.attackMoveCommand(Array.from(selectedUnits), p);
+        multiplayer.attackMoveCommand(Array.from(selectedUnits), p, shift);
       } else if (selectedAction.action === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
-        multiplayer.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p);
+        multiplayer.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p, shift);
       }
       break;
     case 2:
-      multiplayer.moveCommand(Array.from(selectedUnits), p);
+      multiplayer.moveCommand(Array.from(selectedUnits), p, shift);
       break;
     }
 
@@ -137,29 +137,28 @@ function App() {
       }
 
       if (selectedAction.action === 'Move') {
-        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+        multiplayer.followCommand(Array.from(selectedUnits), targetId, shift);
       } else if (selectedAction.action === 'Attack') {
-        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
     case 2:
       // TODO properly understand alliances
       if (target.owner === 0) { // neutral
         // TODO actually check if can harvest and is resource
-        multiplayer.harvestCommand(Array.from(selectedUnits), targetId);
+        multiplayer.harvestCommand(Array.from(selectedUnits), targetId, shift);
       }
       else if (target.owner === multiplayer.getPlayerIndex()) {
-        multiplayer.followCommand(Array.from(selectedUnits), targetId);
+        multiplayer.followCommand(Array.from(selectedUnits), targetId, shift);
       }
       else if (target.owner !== multiplayer.getPlayerIndex()) {
-        multiplayer.attackCommand(Array.from(selectedUnits), targetId);
+        multiplayer.attackCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
     }
   }, [lastUpdatePacket, selectedAction, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
-    console.log("boardSelectUnits", newUnits)
     setSelectedAction(undefined);
     if (shift) {
       setSelectedUnits(units => new Set([...units, ...newUnits]));

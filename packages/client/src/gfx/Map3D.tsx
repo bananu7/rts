@@ -9,7 +9,7 @@ import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 
-type Click = (p: Position, button: number) => void;
+type Click = (p: Position, button: number, shift: boolean) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 export type Box = { x1: number, y1: number, x2: number, y2: number };
 
@@ -26,7 +26,7 @@ export function Map3D(props: Map3DProps) {
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button);
+        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
     };
 
     // selection box
