@@ -68,6 +68,12 @@ export class Multiplayer {
                 this.onUpdatePacket && this.onUpdatePacket(u);
             })
 
+            this.channel.on('spectating', (data: Data) => {
+                this.matchId = (data as {matchId: string}).matchId;
+                localStorage.setItem('matchId', this.matchId);
+                this.onMatchConnected && this.onMatchConnected(this.matchId);
+            });
+
             this.channel.on('connected', (data: Data) => {
                 if (!this.matchId) {
                     throw "Server responded with connection but the multiplayer isn't initialized to a match";
@@ -139,6 +145,16 @@ export class Multiplayer {
             this.channel.emit('connect', data);
         });
     };
+
+    spectateMatch(matchId: string) {
+        console.log(`[Multiplayer] spectating match ${matchId}`)
+        const data : IdentificationPacket = {
+            userId: this.userId,
+            matchId
+        };
+
+        this.channel.emit('spectate', data);
+    }
     
     async leaveMatch() {
         if (!this.matchId)

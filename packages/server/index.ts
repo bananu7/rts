@@ -23,10 +23,16 @@ type PlayerEntry = {
     channel?: ServerChannel,
 }
 
+type SpectatorEntry = {
+    user: UserId,
+    channel: ServerChannel,
+}
+
 type Match = {
     game: Game,
     matchId: string,
     players: PlayerEntry[],
+    spectators: SpectatorEntry[],
 }
 
 const app = express()
@@ -76,7 +82,7 @@ app.post('/create', async (req, res) => {
     const map = await getMap('assets/map.png');
     const game = newGame(map);
     const matchId = String(++lastMatchId); // TODO
-    matches.push({ game, matchId, players: [] });
+    matches.push({ game, matchId, players: [], spectators: [] });
 
     const TICK_MS = 50;
     setInterval(() => {
@@ -93,6 +99,10 @@ app.post('/create', async (req, res) => {
 
             p.channel.emit('tick', updatePackets[i]);
         });
+
+        match.spectators.forEach((s, i) => 
+            s.channel.emit('tick', updatePackets[0])
+        );
         // io.room(matchId).emit('tick', updatePackets[0]);
     }, TICK_MS);
 
@@ -183,20 +193,47 @@ io.onConnection(channel => {
         console.log(`${channel.id} got disconnected`)
     })
 
+    channel.on('spectate', (data: Data) => {
+        const packet = data as IdentificationPacket;
+
+        const m = matches.find(m => m.matchId === packet.matchId);
+        if (!m) {
+            console.warn("Received a spectate request to a match that doesn't exist");
+            channel.emit('spectate failure', packet.matchId, {reliable: true});
+            return;
+        }
+
+        const spectatorEntry = {
+            channel,
+            user: packet.userId,
+        }
+
+        m.spectators.push(spectatorEntry);
+
+        channel.userData = {
+            matchId: packet.matchId
+        };
+
+        channel.join(String(packet.matchId));
+        channel.emit('spectating', {matchId: packet.matchId}, {reliable: true});
+
+        console.log(`[index] Channel of user ${packet.userId} spectating match ${packet.matchId}`);
+    });
+
     channel.on('connect', (data: Data) => {
         // TODO properly validate data format
         const packet = data as IdentificationPacket;
         
         const m = matches.find(m => m.matchId === packet.matchId);
         if (!m) {
-            console.warn("Received a connect request to a match that doesn't exist");
+            console.warn("[index] Received a connect request to a match that doesn't exist");
             channel.emit('connection failure', packet.matchId, {reliable: true});
             return;
         }
 
         const playerEntry = m.players.find(p => p.user === packet.userId);
         if (!playerEntry) {
-            console.warn(`Received a connect request to a match(${packet.matchId}) that the user(${packet.userId}) hasn't joined`);
+            console.warn(`[index] Received a connect request to a match(${packet.matchId}) that the user(${packet.userId}) hasn't joined`);
             channel.emit('connection failure', packet.matchId, {reliable: true});
             return;
         }
