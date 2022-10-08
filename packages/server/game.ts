@@ -216,6 +216,16 @@ function directionTo(a: Position, b: Position) {
     return Math.atan2(b.y-a.y, b.x-a.x);
 }
 
+function vecSet(a: Position, b: Position) {
+    a.x = b.x;
+    a.y = b.y;
+}
+
+function vecAdd(a: Position, b: Position) {
+    a.x += b.x;
+    a.y += b.y;
+}
+
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     const stopMoving = () => {
         unit.pathToNext = undefined;
@@ -256,7 +266,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // can reach next path setp
             if (dst < distanceLeft) {
                 // set the unit to the reached path step
-                unit.position = nextPathStep;
+                vecSet(unit.position, nextPathStep);
                 // subtract from distance "budget"
                 distanceLeft -= dst;
                 // pop the current path step off
@@ -282,9 +292,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
 
                 // TODO - slow starts and braking
-                unit.velocity = checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence);
+                vecSet(unit.velocity, checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence));
 
-                unit.position = sum(unit.position, unit.velocity);
+                vecAdd(unit.position, unit.velocity);
                 return false;
             }
         }
@@ -295,7 +305,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     const findUnitPosition = (targetId: UnitId) => {
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (target)
-            return target.position;
+            return { x: target.position.x, y: target.position.y };
         else
             return;
     }

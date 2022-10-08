@@ -69,8 +69,10 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
     startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:30, y:10}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:29, y:25}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
+    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:33, y:25}));
 
     // TODO proper starting location placement/orientation
     // bottom right
@@ -79,7 +81,9 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
 
     startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:80, y:85}));
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:62, y:90}));
     startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
+    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:66, y:90}));
 
     // left expo
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));

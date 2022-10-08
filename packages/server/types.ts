@@ -72,7 +72,7 @@ export type UnitState = {
     id: number,
     kind: string,
     status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
-    position: Position,
+    readonly position: Position,
     velocity: Position, // TODO - Position to Vec2
     direction: number,
     owner: number,
@@ -159,15 +159,15 @@ export type PlayerIndex = number
 export type UserId = string
 
 export type Unit = {
-    id: number,
+    readonly id: number,
     actionQueue: Action[],
-    kind: string, // TODO should this be in a component
-    owner: PlayerIndex,
-    position: Position,
+    readonly kind: string, // TODO should this be in a component
+    readonly owner: PlayerIndex,
+    readonly position: Position,
     direction: number,
-    velocity: Position,
+    readonly velocity: Position,
 
-    components: Component[],
+    readonly components: Component[],
 
     pathToNext?: TilePos[],
 }
