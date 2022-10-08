@@ -11,7 +11,7 @@ const UNIT_CATALOG : Catalog = {
     'Harvester': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 5, cooldown: 1000, range: 2 },
+        { type: 'Attacker', damage: 5, attackRate: 1000, range: 2, cooldown: 0 },
         { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20, harvestingProgress: 0 },
         { type: 'Builder', buildingsProduced: [
             { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
@@ -41,7 +41,7 @@ const UNIT_CATALOG : Catalog = {
     'Trooper': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
-        { type: 'Attacker', damage: 10, cooldown: 500, range: 6 },
+        { type: 'Attacker', damage: 10, attackRate: 500, range: 6, cooldown: 0 },
         { type: 'Vision', range: 10 },
     ]
 };

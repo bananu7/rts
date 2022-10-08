@@ -212,6 +212,10 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
+function directionTo(a: Position, b: Position) {
+    return Math.atan2(b.y-a.y, b.x-a.x);
+}
+
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     const stopMoving = () => {
         unit.pathToNext = undefined;
@@ -369,6 +373,39 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return target;
     }
 
+    const attemptDamage = (ac: Attacker, target: Unit) => {
+        if (ac.cooldown === 0) {
+            // TODO - attack cooldown
+            const hp = getHpComponent(target);
+            if (hp) {
+                hp.hp -= ac.damage;
+            }
+            ac.cooldown = ac.attackRate;
+        }
+    }
+
+    const aggro = (ac: Attacker, target: Unit) => {
+        // if out of range, just move to target
+        if (distance(unit.position, target.position) > ac.range) {
+            // Right now the attack command is upheld even if the unit can't move
+            // SC in that case just cancels the attack command - TODO decide
+            moveTowards(target.position, ac.range);
+        } else {
+            unit.direction = directionTo(unit.position, target.position);
+            attemptDamage(ac, target);
+        }
+    }
+
+    // Update passive cooldowns
+    {
+        const ac = getAttackerComponent(unit);
+        if (ac) {
+            ac.cooldown -= dt;
+            if (ac.cooldown < 0)
+                ac.cooldown = 0;
+        }
+    }
+
     // Idle state
     if (unit.actionQueue.length === 0) {
         const ac = getAttackerComponent(unit);
@@ -378,10 +415,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return;
         }
 
-        const closestTarget = detectNearbyEnemy(); 
-        if (closestTarget) {
-            moveTowards(closestTarget.position, ac.range);
+        const target = detectNearbyEnemy(); 
+        if (!target) {
+            return;   
         }
+
+        // TODO - aggro state should depend on the initial aggro location
+        // stop location needs to be stored somewhere
+        aggro(ac, target);
         
         return;
     }
@@ -391,9 +432,42 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     switch (cmd.typ) {
         case 'Move': {
-            if (moveTowards(cmd.target, 0.1) !== 'Moving') {
+            if (moveTowards(cmd.target, 0.2) !== 'Moving') {
                 clearCurrentAction();
             }
+            break;
+        }
+
+        case 'AttackMove': {
+            const ac = getAttackerComponent(unit);
+            // TODO just execute move to go together with formation
+            if (!ac) {
+                return;
+            }
+
+            const closestTarget = detectNearbyEnemy();
+            if (closestTarget) {
+                const MAX_PATH_DEVIATION = 5;
+
+                // TODO compute
+                const pathDeviation = 0; //computePathDeviation(unit);
+                if (pathDeviation > MAX_PATH_DEVIATION) {
+                    // lose aggro
+                    // TODO: aggro hysteresis?
+                    // just move
+                    if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                        clearCurrentAction();
+                    }
+                } else {
+                    aggro(ac, closestTarget);
+                }
+            } else {
+                // just move
+                if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                    clearCurrentAction();
+                }
+            }
+
             break;
         }
 
@@ -437,18 +511,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 break;
             }
 
-            // if out of range, just move to target
-            if (distance(unit.position, target.position) > ac.range) {
-                // Right now the attack command is upheld even if the unit can't move
-                // SC in that case just cancels the attack command - TODO decide
-                moveTowards(target.position, ac.range);
-            } else {
-                // TODO - attack cooldown
-                const hp = getHpComponent(target);
-                if (hp) {
-                    hp.hp -= ac.damage;
-                }
-            }
+            aggro(ac, target);
             break;
         }
 
@@ -609,12 +672,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 clearCurrentAction();
                 break;
             }
-            break;
-        }
-
-        default: {
-            console.warn(`[game] action of type ${cmd.typ} ignored because of no handler`);
-            clearCurrentAction();
             break;
         }
     }

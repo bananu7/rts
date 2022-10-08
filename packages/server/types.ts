@@ -90,8 +90,9 @@ export type Hp = {
 export type Attacker = {
     type: 'Attacker',
     damage: number,
-    cooldown: Milliseconds,
+    attackRate: Milliseconds,
     range: number,
+    cooldown: Milliseconds,
 }
 export type Mover = {
     type: 'Mover',
@@ -101,6 +102,7 @@ export type Harvester = {
     type: 'Harvester',
     harvestingTime: Milliseconds,
     harvestingValue: number,
+    // state
     harvestingProgress: number,
     resourcesCarried?: number,
 }
