@@ -113,10 +113,18 @@ function App() {
     case 0:
       if (!selectedAction) {
         if (shift) {
-          console.log("shift")
-          setSelectedUnits(units => units.add(targetId));
+          // shift-click means add if not there, but remove if there
+          setSelectedUnits(prev => {
+            const units = new Set(prev);
+            if (units.has(targetId)) {
+              units.delete(targetId);
+            }
+            else {
+              units.add(targetId);
+            } 
+            return units;
+          });
         } else {
-          console.log("no shift")
           setSelectedUnits(new Set([targetId]));
         }
         break;
