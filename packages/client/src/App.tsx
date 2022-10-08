@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
-import { MatchList } from './MatchList';
-import { Minimap } from './Minimap';
+import { MatchList } from './components/MatchList';
+import { Minimap } from './components/Minimap';
 import { CommandPalette, SelectedAction } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
