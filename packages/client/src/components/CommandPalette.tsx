@@ -212,7 +212,7 @@ export function CommandPalette(props: Props) {
                     active={props.selectedAction && props.selectedAction.action === 'Move' || false}
                     onClick={() => props.setSelectedAction({ action: 'Move'})}
                 >
-                    <span style={{fontSize: "2em"}}>➜</span>
+                    <span style={{fontSize: "2.3em"}}>➜</span>
                     <span className="tooltip">Move a unit to a specific location or order it to follow a unit.</span>
                 </Button>
             }
@@ -237,7 +237,7 @@ export function CommandPalette(props: Props) {
                 active={false}
                 onClick={stop}
             >
-                <span style={{fontSize: "2em"}}>✖</span>
+                <span style={{fontSize: "2.3em"}}>✖</span>
                 <span className="tooltip">Stop the current action and all the queued ones.</span>
             </Button>
 
@@ -249,7 +249,7 @@ export function CommandPalette(props: Props) {
                     active={props.selectedAction && props.selectedAction.action === 'Attack' || false}
                     onClick={() => props.setSelectedAction({ action: 'Attack'})}
                 >
-                    <span style={{fontSize: "2em"}}>🪓</span>
+                    <span style={{fontSize: "2.3em"}}>⚔️</span>
                     <span className="tooltip">Attack an enemy unit or move towards a point and attack any enemy units on the way</span>
                 </Button>
             }
