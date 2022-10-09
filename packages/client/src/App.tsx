@@ -146,6 +146,8 @@ function App() {
         multiplayer.followCommand(Array.from(selectedUnits), targetId, shift);
       } else if (selectedAction.action === 'Attack') {
         multiplayer.attackCommand(Array.from(selectedUnits), targetId, shift);
+      } else if (selectedAction.action === 'Harvest') {
+        multiplayer.harvestCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
     case 2:
