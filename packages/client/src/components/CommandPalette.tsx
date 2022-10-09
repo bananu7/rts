@@ -181,23 +181,25 @@ export function CommandPalette(props: Props) {
     })
 
     let hint = "";
+    /* TODO - contextual hints disabled for now
+    maybe a tutorial mode would help?
     if (props.selectedAction) {
         switch (props.selectedAction.action) {
             case 'Build':
-                hint = `Right-click on the map to build a ${props.selectedAction.building}.`;
+                hint = `Left-click on the map to build a ${props.selectedAction.building}.`;
                 break;
             case 'Move':
-                hint = "Right-click on the map to move, or on a unit to follow it.";
+                hint = "Left-click on the map to move, or on a unit to follow it.";
                 break;
             case 'Attack':
-                hint = "Right-click on an enemy unit to attack it, or on the map to move-attack there.";
+                hint = "Left-click on an enemy unit to attack it, or on the map to move-attack there.";
                 break;
             case 'Harvest':
-                hint = "Right-click on a resource node to start harvesting it automatically.";
+                hint = "Left-click on a resource node to start harvesting it automatically.";
                 break;
         }
     }
-
+    */
 
     return (
         <div className="CommandPalette">
