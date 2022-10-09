@@ -94,6 +94,16 @@ export function Unit3D(props: Unit3DProps) {
         y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
     }
 
+    // Bring the unit to the proper position before first paint
+    useLayoutEffect(() => {
+        if(!unitGroupRef.current)
+            return;
+
+        unitGroupRef.current.position.x = props.unit.position.x;
+        unitGroupRef.current.position.z = props.unit.position.y;
+    }, []);
+
+    // Softly interpolate the unit position when it's moving.
     useFrame((s, dt) => {
         if(!unitGroupRef.current)
             return;
