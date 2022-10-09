@@ -100,6 +100,7 @@ export function CommandPalette(props: Props) {
 
     const productionButtons = productionUnits.map(up => {
         const cost = up.productionCost;
+        const time = Math.floor(up.productionTime/1000);
         const canAfford = props.resources >= cost;
         const click = canAfford ?
             () => produce(up.unitType) :
@@ -116,6 +117,7 @@ export function CommandPalette(props: Props) {
             <span className="tooltip">
                 <strong>{up.unitType}</strong>
                 <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span>
+                <span style={{float:"right"}}>{time}🕑</span>
                 <br /><br/>
                 This excellent unit will serve you well, and I
                 would tell you how but the tooltip data isn't
@@ -147,6 +149,7 @@ export function CommandPalette(props: Props) {
     const buildButtons = availableBuildings.map(bp => {
         const b = bp.buildingType;
         const cost = bp.buildCost;
+        const time = Math.floor(bp.buildTime / 1000);
 
         const active = 
             props.selectedAction &&
@@ -170,6 +173,7 @@ export function CommandPalette(props: Props) {
             <span className="tooltip">
                 <strong>{b}</strong>
                 <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span>
+                <span style={{float:"right"}}>{time}🕑</span>
                 <br /><br/>
                 This building probably does something, but that
                 information would need to be stored in a dictionary

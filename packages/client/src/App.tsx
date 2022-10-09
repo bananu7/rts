@@ -52,6 +52,9 @@ function App() {
       onUpdatePacket: (p:UpdatePacket) => {
         setLastUpdatePacket(p);
         setSelectedUnits(su => new Set(p.units.map(u => u.id).filter(id => su.has(id))));
+
+        // TODO verify if currently selected units can still perform the action
+        // such as building
       },
       onMatchConnected: (matchId: string) => {
         console.log(`[App] Connected to a match ${matchId}`);
