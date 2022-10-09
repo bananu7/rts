@@ -1,5 +1,5 @@
 import { useRef, useLayoutEffect } from 'react'
-import { extend, ReactThreeFiber } from 'react-three-fiber';
+import { extend, ReactThreeFiber } from '@react-three/fiber';
 import { Line } from 'three';
 
 // Add class `Line` as `Line_` to react-three-fiber's extend function. This
