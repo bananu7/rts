@@ -48,7 +48,7 @@ export function Map3D(props: Map3DProps) {
         }
         setDrag(undefined);
         setPointer(undefined);
-    }, [drag]);
+    }, [drag, props.selectInBox]);
 
     const selectionBoxSize = (drag && pointer) ? {
         x: Math.abs(drag.x - pointer.x),

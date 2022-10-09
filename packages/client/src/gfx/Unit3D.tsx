@@ -68,7 +68,8 @@ export function Unit3D(props: Unit3DProps) {
 
     // TODO proper unit catalog
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
-    const unitSize = isBuilding ? 5 : 1;
+    const unitSize = isBuilding ? 4 : 1;
+    const selectorSize = isBuilding ? 3 : 1;
 
     /* TODO - debug path view
     const path = props.unit.actionQueue.map(a => {
@@ -93,6 +94,16 @@ export function Unit3D(props: Unit3DProps) {
         y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
     }
 
+    // Bring the unit to the proper position before first paint
+    useLayoutEffect(() => {
+        if(!unitGroupRef.current)
+            return;
+
+        unitGroupRef.current.position.x = props.unit.position.x;
+        unitGroupRef.current.position.z = props.unit.position.y;
+    }, []);
+
+    // Softly interpolate the unit position when it's moving.
     useFrame((s, dt) => {
         if(!unitGroupRef.current)
             return;
@@ -123,7 +134,7 @@ export function Unit3D(props: Unit3DProps) {
                     onContextMenu={ onClick }
                     onClick={ onClick }
                 >
-                    <cylinderGeometry args={[unitSize, unitSize, 2, 12]} />
+                    <cylinderGeometry args={[selectorSize, selectorSize, 2, 12]} />
                     <meshBasicMaterial
                         colorWrite={false}
                         depthWrite={false}
@@ -131,7 +142,7 @@ export function Unit3D(props: Unit3DProps) {
                 </mesh>
 
                 { props.selected &&
-                    <SelectionCircle size={unitSize} enemy={props.enemy} />
+                    <SelectionCircle size={selectorSize} enemy={props.enemy} />
                 }
 
                 <mesh

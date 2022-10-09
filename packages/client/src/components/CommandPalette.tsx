@@ -100,6 +100,7 @@ export function CommandPalette(props: Props) {
 
     const productionButtons = productionUnits.map(up => {
         const cost = up.productionCost;
+        const time = Math.floor(up.productionTime/1000);
         const canAfford = props.resources >= cost;
         const click = canAfford ?
             () => produce(up.unitType) :
@@ -116,6 +117,7 @@ export function CommandPalette(props: Props) {
             <span className="tooltip">
                 <strong>{up.unitType}</strong>
                 <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span>
+                <span style={{float:"right"}}>{time}🕑</span>
                 <br /><br/>
                 This excellent unit will serve you well, and I
                 would tell you how but the tooltip data isn't
@@ -147,6 +149,7 @@ export function CommandPalette(props: Props) {
     const buildButtons = availableBuildings.map(bp => {
         const b = bp.buildingType;
         const cost = bp.buildCost;
+        const time = Math.floor(bp.buildTime / 1000);
 
         const active = 
             props.selectedAction &&
@@ -170,6 +173,7 @@ export function CommandPalette(props: Props) {
             <span className="tooltip">
                 <strong>{b}</strong>
                 <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span>
+                <span style={{float:"right"}}>{time}🕑</span>
                 <br /><br/>
                 This building probably does something, but that
                 information would need to be stored in a dictionary
@@ -181,23 +185,25 @@ export function CommandPalette(props: Props) {
     })
 
     let hint = "";
+    /* TODO - contextual hints disabled for now
+    maybe a tutorial mode would help?
     if (props.selectedAction) {
         switch (props.selectedAction.action) {
             case 'Build':
-                hint = `Right-click on the map to build a ${props.selectedAction.building}.`;
+                hint = `Left-click on the map to build a ${props.selectedAction.building}.`;
                 break;
             case 'Move':
-                hint = "Right-click on the map to move, or on a unit to follow it.";
+                hint = "Left-click on the map to move, or on a unit to follow it.";
                 break;
             case 'Attack':
-                hint = "Right-click on an enemy unit to attack it, or on the map to move-attack there.";
+                hint = "Left-click on an enemy unit to attack it, or on the map to move-attack there.";
                 break;
             case 'Harvest':
-                hint = "Right-click on a resource node to start harvesting it automatically.";
+                hint = "Left-click on a resource node to start harvesting it automatically.";
                 break;
         }
     }
-
+    */
 
     return (
         <div className="CommandPalette">
@@ -210,7 +216,7 @@ export function CommandPalette(props: Props) {
                     active={props.selectedAction && props.selectedAction.action === 'Move' || false}
                     onClick={() => props.setSelectedAction({ action: 'Move'})}
                 >
-                    <span style={{fontSize: "2em"}}>➜</span>
+                    <span style={{fontSize: "2.3em"}}>➜</span>
                     <span className="tooltip">Move a unit to a specific location or order it to follow a unit.</span>
                 </Button>
             }
@@ -235,7 +241,7 @@ export function CommandPalette(props: Props) {
                 active={false}
                 onClick={stop}
             >
-                <span style={{fontSize: "2em"}}>✖</span>
+                <span style={{fontSize: "2.3em"}}>✖</span>
                 <span className="tooltip">Stop the current action and all the queued ones.</span>
             </Button>
 
@@ -247,7 +253,7 @@ export function CommandPalette(props: Props) {
                     active={props.selectedAction && props.selectedAction.action === 'Attack' || false}
                     onClick={() => props.setSelectedAction({ action: 'Attack'})}
                 >
-                    <span style={{fontSize: "2em"}}>🪓</span>
+                    <span style={{fontSize: "2.3em"}}>⚔️</span>
                     <span className="tooltip">Attack an enemy unit or move towards a point and attack any enemy units on the way</span>
                 </Button>
             }
