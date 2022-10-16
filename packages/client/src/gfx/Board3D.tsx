@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, Suspense, useLayoutEffect, useMemo } from 'react'
+import { useCallback, useEffect, useState, useRef, Suspense, useLayoutEffect, useMemo, memo, Ref } from 'react'
 
 import {
     useLoader, Canvas, useFrame,
@@ -47,7 +47,12 @@ export interface Props {
 }
 
 export function Board3D(props: Props) {
-    const [pointer, setPointer] = useState<{x:number, y:number}>({x: 0, y: 0});
+    //console.log("rendering board");
+    const pointer = useRef({ x: 0, y: 0 });
+    const setPointer = useCallback((p: Position) => {
+        pointer.current.x = p.x;
+        pointer.current.y = p.y;
+    }, [pointer]);
 
     const units = props.unitStates.map(u => 
     (<Unit3D
@@ -105,8 +110,10 @@ export function Board3D(props: Props) {
             {
                 props.selectedAction &&
                 props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer}/>
+                <BuildPreview building={props.selectedAction.building} position={pointer.current}/>
             }
         </group>
     );
 }
+
+//export const Board3D = memo(Board3D_, (a,b) => true);
