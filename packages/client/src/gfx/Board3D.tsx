@@ -47,7 +47,6 @@ export interface Props {
 }
 
 export function Board3D(props: Props) {
-    //console.log("rendering board");
     const pointer = useRef({ x: 0, y: 0 });
     const setPointer = useCallback((p: Position) => {
         pointer.current.x = p.x;
@@ -86,20 +85,8 @@ export function Board3D(props: Props) {
         props.select(new Set(selection), shift);
     };
 
-    useEffect(() => {
-        if (!groupRef.current)
-            return;
-
-        /*
-        const box = new THREE.Box3().setFromObject(groupRef.current);
-        const size = box.getSize(new THREE.Vector3()).length();
-        const center = box.getCenter(new THREE.Vector3());
-        groupRef.current.position.sub(center);
-        */
-    });
-
     return (
-        <group ref={groupRef} dispose={null} name="ship">
+        <group name="board">
             <Map3D
                 map={props.board.map}
                 click={props.mapClick}
@@ -115,5 +102,3 @@ export function Board3D(props: Props) {
         </group>
     );
 }
-
-//export const Board3D = memo(Board3D_, (a,b) => true);
