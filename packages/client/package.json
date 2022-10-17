@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "copy": "rm -rf ../server/client && cp -R dist ../server/client",
     "preview": "vite preview"
   },
   "dependencies": {
