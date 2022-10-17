@@ -4,16 +4,9 @@ import * as THREE from 'three';
 
 // This class is used to avoid recreating the three geometry with the same parameters
 export class ThreeCache {
-    boxes: Map<number, THREE.BoxGeometry>;
-    cylinders: Map<number, THREE.CylinderGeometry>;
-    standardMaterials: Map<number, THREE.MeshStandardMaterial>;
+    constructor() { }
 
-    constructor() {
-        this.boxes = new Map();
-        this.cylinders = new Map();
-        this.standardMaterials = new Map();
-    }
-
+    boxes: Map<number, THREE.BoxGeometry> = new Map();
     getBoxGeometry(size: number) {
         const cached = this.boxes.get(size);
         if (cached) {
@@ -25,6 +18,7 @@ export class ThreeCache {
         }
     }
 
+    cylinders: Map<number, THREE.CylinderGeometry> = new Map();
     getCylinderGeometry(size: number) {
         const cached = this.cylinders.get(size);
         if (cached) {
@@ -36,6 +30,7 @@ export class ThreeCache {
         }
     }
     
+    standardMaterials: Map<number, THREE.MeshStandardMaterial> = new Map();
     getStandardMaterial(color: number) {
         const cached = this.standardMaterials.get(color);
         if (cached) {
@@ -43,6 +38,18 @@ export class ThreeCache {
         } else {
             const material = new THREE.MeshStandardMaterial({color});
             this.standardMaterials.set(color, material);
+            return material;
+        }
+    }
+
+    basicMaterials: Map<number, THREE.MeshBasicMaterial> = new Map();
+    getBasicMaterial(color: number) {
+        const cached = this.basicMaterials.get(color);
+        if (cached) {
+            return cached;
+        } else {
+            const material = new THREE.MeshBasicMaterial({color});
+            this.basicMaterials.set(color, material);
             return material;
         }
     }

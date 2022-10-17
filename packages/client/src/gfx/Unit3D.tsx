@@ -47,10 +47,8 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
              // TODO unit should rotate
             rotation={[0, 0, -1.57]}
             geometry={coneGeometry}
-
-        >            
-            <meshBasicMaterial color={indicatorColor} />
-        </mesh>
+            material={cache.getBasicMaterial(indicatorColor)}
+        />
     );
 }
 
