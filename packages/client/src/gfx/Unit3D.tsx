@@ -16,7 +16,18 @@ import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
+import { ThreeCache } from './ThreeCache'
 
+const cache = new ThreeCache();
+
+const invisibleMaterial = new THREE.MeshBasicMaterial({
+    colorWrite: false,
+    depthWrite: false,
+    transparent: true,
+    opacity:0,
+});
+
+const coneGeometry = new THREE.ConeGeometry(0.5, 2, 8);
 function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
     // TODO - this will be replaced with animations etc
     let indicatorColor = 0xeeeeee;
@@ -31,8 +42,13 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
         indicatorColor = 0xffff55;
 
     return (
-        <mesh position={[0, 5, 0]} rotation={[0, -props.unit.direction, -1.57]}>
-            <coneGeometry args={[0.5, 2, 8]} />
+        <mesh
+            position={[0, 5, 0]}
+             // TODO unit should rotate
+            rotation={[0, 0, -1.57]}
+            geometry={coneGeometry}
+
+        >            
             <meshBasicMaterial color={indicatorColor} />
         </mesh>
     );
@@ -56,11 +72,12 @@ export function Unit3D(props: Unit3DProps) {
     }
 
     // TODO better color choices
-    const ownerToColor = (owner: number) => {
+    const ownerToColor = (owner: number): number => {
         switch(owner) {
         case 0: return 0xdddddd;
         case 1: return 0x1111ee;
         case 2: return 0xee1111;
+        default: return 0xff00ff;
         }
     };
 
@@ -108,6 +125,8 @@ export function Unit3D(props: Unit3DProps) {
         if(!unitGroupRef.current)
             return;
 
+        unitGroupRef.current.rotation.y = -props.unit.direction;
+
         // TODO - temporary fix to bring units where they're needed quickly
         if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
             unitGroupRef.current.position.x = props.unit.position.x;
@@ -121,7 +140,6 @@ export function Unit3D(props: Unit3DProps) {
 
     return (
         <group>
-            {/*<Line3D points={path} />*/}
             <group
                 ref={unitGroupRef}
                 position={[0, 1, 0]}
@@ -133,13 +151,9 @@ export function Unit3D(props: Unit3DProps) {
                 <mesh
                     onContextMenu={ onClick }
                     onClick={ onClick }
-                >
-                    <cylinderGeometry args={[selectorSize, selectorSize, 2, 12]} />
-                    <meshBasicMaterial
-                        colorWrite={false}
-                        depthWrite={false}
-                    />
-                </mesh>
+                    geometry={cache.getCylinderGeometry(selectorSize)}
+                    material={invisibleMaterial}
+                />
 
                 { props.selected &&
                     <SelectionCircle size={selectorSize} enemy={props.enemy} />
@@ -148,10 +162,9 @@ export function Unit3D(props: Unit3DProps) {
                 <mesh
                     castShadow
                     receiveShadow
-                >
-                    <boxGeometry args={[unitSize, 2, unitSize]} />
-                    <meshStandardMaterial color={color} />
-                </mesh>
+                    geometry={cache.getBoxGeometry(unitSize)}
+                    material={cache.getStandardMaterial(color)}
+                />
             </group>
         </group>
     );

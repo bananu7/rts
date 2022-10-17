@@ -1,12 +1,22 @@
 import * as THREE from 'three';
 import { useRef, useEffect } from 'react'
 
+const enemyMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff0000
+});
+
+const friendlyMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00
+});
+
+const ringGeometry = new THREE.RingGeometry(1, 1.1, 32);
+
 export function SelectionCircle(props: { size: number, enemy?: boolean }) {
     const innerRadius = props.size;
     const outerRadius = props.size * 1.1;
     const segments = 32;
 
-    const ref = useRef<THREE.RingGeometry>(null);
+    const ref = useRef<THREE.Mesh>(null);
 
     useEffect(() => {
         if (!ref.current)
@@ -16,18 +26,12 @@ export function SelectionCircle(props: { size: number, enemy?: boolean }) {
 
     return (
         <mesh
+            ref={ref}
             name="SelectionRing"
             position={[0, 0, 0]}
+            material={props.enemy ? enemyMaterial : friendlyMaterial}
+            geometry={ringGeometry}
         >
-            <ringGeometry
-                ref={ref}
-                args={[innerRadius, outerRadius, segments]}
-            />
-            <meshBasicMaterial
-                color={props.enemy ? 0xff0000 : 0x00ff00}
-                opacity={1.0}
-                transparent={false}
-            />
         </mesh>
     );
 }
