@@ -1,8 +1,9 @@
 
-import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect, useCallback, memo } from 'react'
 
 import {
-    ThreeEvent
+    ThreeEvent,
+    useFrame
 } from '@react-three/fiber'
 
 import * as THREE from 'three';
@@ -30,30 +31,25 @@ export function Map3D(props: Map3DProps) {
     };
 
     // selection box
-    const [drag, setDrag] = useState<{x:number, y:number}|undefined>(undefined);
-    const [pointer, setPointer] = useState<{x:number, y:number}|undefined>(undefined);
+    const drag = useRef<{x: number, y: number} | undefined>(undefined);
+    const pointer = useRef({ x: 0, y: 0 });
     const pointerDown = useCallback((e: ThreeEvent<PointerEvent>) => {
         if (e.nativeEvent.button === 0)
-            setDrag({x: e.point.x, y: e.point.z});
+            drag.current = {x: e.point.x, y: e.point.z};
     }, []);
     const pointerMove = useCallback((e: ThreeEvent<PointerEvent>) => {
-        setPointer({x: e.point.x, y: e.point.z});
+        pointer.current.x = e.point.x;
+        pointer.current.y = e.point.z;;
         props.pointerMove({x: e.point.x, y: e.point.z});
     }, [props.pointerMove]);
     const pointerUp = useCallback((e: ThreeEvent<PointerEvent>) => {
         // TODO - only do select if no action?
         // maybe send drag up instead of handling it here
-        if (drag && e.nativeEvent.button === 0) {
-            props.selectInBox({x1: drag.x, y1: drag.y, x2: e.point.x, y2: e.point.z}, e.nativeEvent.shiftKey);
+        if (drag.current && e.nativeEvent.button === 0) {
+            props.selectInBox({x1: drag.current.x, y1: drag.current.y, x2: e.point.x, y2: e.point.z}, e.nativeEvent.shiftKey);
         }
-        setDrag(undefined);
-        setPointer(undefined);
-    }, [drag, props.selectInBox]);
-
-    const selectionBoxSize = (drag && pointer) ? {
-        x: Math.abs(drag.x - pointer.x),
-        y: Math.abs(drag.y - pointer.y)
-    } : undefined;
+        drag.current = undefined;
+    }, [drag.current, props.selectInBox]);
 
     // actual map
     const w = props.map.w;
@@ -90,6 +86,30 @@ export function Map3D(props: Map3DProps) {
         if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
     }, [props.map])
 
+    const sbxRef = useRef<THREE.Mesh>(null);
+    useFrame(() => {
+        if (!sbxRef.current)
+            return;
+
+        if (!drag.current) {
+            sbxRef.current.visible = false;
+            return;
+        } else {
+            sbxRef.current.visible = true;
+        }
+
+        const selectionBoxSize = {
+            x: Math.abs(drag.current.x - pointer.current.x),
+            y: Math.abs(drag.current.y - pointer.current.y)
+        };
+
+        const sbx = pointer.current.x - selectionBoxSize.x / 2 * (pointer.current.x > drag.current.x ? 1 : -1);
+        const sby = pointer.current.y - selectionBoxSize.y / 2 * (pointer.current.y > drag.current.y ? 1 : -1);
+
+        sbxRef.current.position.set(sbx, 2, sby);
+        sbxRef.current.scale.set(selectionBoxSize.x, selectionBoxSize.y, 1);
+    })
+
     return (
         <group name="Game Map">
             <mesh 
@@ -105,18 +125,15 @@ export function Map3D(props: Map3DProps) {
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
-            {drag && pointer && selectionBoxSize && <mesh
+            <mesh
                 name="SelectionBox"
-                position={[
-                    pointer.x - selectionBoxSize.x / 2 * (pointer.x > drag.x ? 1 : -1),
-                    2,
-                    pointer.y - selectionBoxSize.y / 2 * (pointer.y > drag.y ? 1 : -1)
-                ]}
+                position={[0,2,0]}
                 rotation={[-Math.PI/2, 0, 0]}
+                ref={sbxRef}
             >
-                <planeGeometry args={[selectionBoxSize.x, selectionBoxSize.y]}/>
+                <planeGeometry args={[1, 1]}/>
                 <meshBasicMaterial wireframe color={0x00ff00} />
-            </mesh>}
+            </mesh>
 
             <instancedMesh
                 ref={ref}
