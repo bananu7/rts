@@ -298,7 +298,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
                 const velocity = {
                     x: Math.cos(angle) * distancePerTick,
-                    y: Math.sin(angle) * distancePerTick
+                    y: -Math.sin(angle) * distancePerTick
                 };
 
                 vecSet(unit.velocity, velocity);
@@ -723,7 +723,7 @@ function sum(a: Position, b: Position) {
 }
 
 function angleFromTo(a: Position, b: Position) {
-    return Math.atan2(b.y-a.y, b.x-a.x);
+    return (Math.atan2(a.y-b.y, b.x-a.x) + Math.PI * 2) % (Math.PI * 2);
 }
 
 function unitVector(a: Position, b: Position) {
@@ -787,14 +787,15 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
 
     // we start with an empty horizon
     type Obstacle = [number, number];
-    let obstacles: Obstacle[] = [];    
+    let obstacles: Obstacle[] = [];
+
+    const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
+        return a <= d && b >= c;
+    }
+
     function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
         if (p[1] <= p[0]) {
             throw "Only positive spans smaller than 180 accepted"
-        }
-
-        const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
-            return a <= d && b >= c;
         }
 
         const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
@@ -823,7 +824,7 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
         const relativePos = difference(u.position, currentPos); //relative pos of enemy unit
         const distance = magnitude(relativePos);
 
-        if (distance > 5)
+        if (distance > 6)
             continue;
 
         const alpha = 2 * Math.asin(radius / distance);
@@ -846,13 +847,16 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
 
     const d = unit.direction;
     const nearestGapAngle = (() => {
-        for (const o of obstacles) {
-            if (o[1] < d) {
-                // TODO look at the next obstacle and aim in the middle
-                return o[1];
-            }
+        //obstacles.sort(([a,b], [c,d]) => a-c);
+
+        // see if current direction is blocked
+        const o = obstacles.find(o => overlap(o, [d, d]));
+        // if yes, aim for its edge (TODO)
+        if (o) {
+            return Math.abs(o[0] - d) < Math.abs(o[1] - d) ? o[0] : o[1];
+        } else {
+            return d;
         }
-        return d;
     })();
 
     /*
