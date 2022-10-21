@@ -827,7 +827,7 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
             continue;
 
         const alpha = 2 * Math.asin(radius / distance);
-        const beta = Math.atan2(-relativePos.y, -relativePos.x);
+        const beta = Math.atan2(-relativePos.y, relativePos.x);
 
         const a0 = wrap360(beta - alpha/2);
         const a1 = wrap360(beta + alpha/2);

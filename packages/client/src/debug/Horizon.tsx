@@ -8,8 +8,8 @@ const material = new THREE.MeshBasicMaterial({
 const ringGeometry = new THREE.RingGeometry(1, 1.1, 32);
 
 export function Horizon(props: { obstacles: [number, number][]}) {
-    const innerRadius = 5
-    const outerRadius = 5 * 1.1;
+    const innerRadius = 2
+    const outerRadius = 5;
     const segments = 32;
 
     const ref = useRef<THREE.Group>(null);
@@ -31,7 +31,14 @@ export function Horizon(props: { obstacles: [number, number][]}) {
             material={material}
             geometry={ringGeometry}
         >
-            <ringGeometry args={[innerRadius, outerRadius, segments, thetaStart, thetaLength]} />
+            <ringGeometry args={[
+                innerRadius,
+                outerRadius,
+                segments,
+                1,
+                thetaStart,
+                thetaLength]}
+            />
         </mesh>);
     });
 
