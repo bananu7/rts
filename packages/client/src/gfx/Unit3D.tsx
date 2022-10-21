@@ -18,6 +18,8 @@ import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 
+import { Horizon } from '../debug/Horizon'
+
 const cache = new ThreeCache();
 
 const invisibleMaterial = new THREE.MeshBasicMaterial({
@@ -155,6 +157,10 @@ export function Unit3D(props: Unit3DProps) {
 
                 { props.selected &&
                     <SelectionCircle size={selectorSize} enemy={props.enemy} />
+                }
+                {
+                    props.selected && props.unit.debug &&
+                        <Horizon obstacles={props.unit.debug.obstacles} />
                 }
 
                 <mesh

@@ -794,7 +794,7 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
         }
 
         const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
-            return a <= d && b <= c;
+            return a <= d && b >= c;
         }
 
         const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
@@ -897,18 +897,20 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
 
 // TODO duplication with pathfinding
 function getSurroundingPos(p: TilePos): TilePos[] {
-    return [
-        {x: p.x, y: p.y},
+    const SCAN_SIZE = 5;
 
-        {x: p.x+1, y: p.y},
-        {x: p.x+1, y: p.y+1},
-        {x: p.x, y: p.y+1},
-        {x: p.x-1, y: p.y+1},
-        {x: p.x-1, y: p.y},
-        {x: p.x-1, y: p.y-1},
-        {x: p.x, y: p.y-1},
-        {x: p.x+1, y: p.y-1}
-    ]
+    const tiles = [];
+    for (let x = p.x - SCAN_SIZE; x < p.x + SCAN_SIZE; x ++) {
+        for (let y = p.y - SCAN_SIZE; y < p.y + SCAN_SIZE; y ++) {
+            // TODO map size
+            if (x < 0 || y < 0 || x > 99 || y > 99)
+                continue;
+
+            tiles.push({x,y});
+        }
+    }
+
+    return tiles;
 }
 
 function createTilesInfluenced(pos: Position, size: number) {
