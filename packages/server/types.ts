@@ -69,6 +69,8 @@ export type UpdatePacket = {
 }
 
 export type UnitState = {
+    debug?: any;
+
     id: number,
     kind: string,
     status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
@@ -159,6 +161,8 @@ export type PlayerIndex = number
 export type UserId = string
 
 export type Unit = {
+    debug?: any;
+
     readonly id: number,
     actionQueue: Action[],
     readonly kind: string, // TODO should this be in a component

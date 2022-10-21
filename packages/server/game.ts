@@ -147,6 +147,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
                 owner: u.owner,
                 kind: u.kind,
                 components: u.components,
+                debug: u.debug,
             }
         });
 
@@ -199,8 +200,13 @@ function updateUnits(dt: Milliseconds, g: Game) {
         presence.set(explodedIndex, us);
     }
 
+    // calculate updates and velocities
     for (const unit of g.units) {
         updateUnit(dt, g, unit, presence);
+    }
+    // move everything at once
+    for (const unit of g.units) {
+        vecAdd(unit.position, unit.velocity);
     }
 
     g.units = g.units.filter(u => {
@@ -228,6 +234,8 @@ function vecAdd(a: Position, b: Position) {
 
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     const stopMoving = () => {
+        unit.velocity.x = 0;
+        unit.velocity.y = 0;
         unit.pathToNext = undefined;
     }
 
@@ -265,8 +273,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             const dst = distance(unit.position, nextPathStep);
             // can reach next path setp
             if (dst < distanceLeft) {
-                // set the unit to the reached path step
-                vecSet(unit.position, nextPathStep);
                 // subtract from distance "budget"
                 distanceLeft -= dst;
                 // pop the current path step off
@@ -275,9 +281,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 // if there are no more path steps to do, we've reached the destination
                 if (unit.pathToNext.length === 0) {
                     // TODO - that will cause stutter at shift-clicked moves
-                    unit.velocity.x = 0;
-                    unit.velocity.y = 0;
-                    unit.pathToNext = undefined;
+                    stopMoving();
                     return true;
                 } else {
                     nextPathStep = unit.pathToNext[0];
@@ -298,8 +302,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 };
 
                 vecSet(unit.velocity, velocity);
-
-                vecAdd(unit.position, unit.velocity);
                 return false;
             }
         }
@@ -785,7 +787,7 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
 
     // we start with an empty horizon
     type Obstacle = [number, number];
-    let obstacles: Obstacle[] = [[0, Math.PI * 2]];    
+    let obstacles: Obstacle[] = [];    
     function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
         if (p[1] <= p[0]) {
             throw "Only positive spans smaller than 180 accepted"
@@ -840,6 +842,7 @@ function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): n
                 obstacles = updateObstacles([a0, Math.PI * 2], obstacles);
         }
     }
+    unit.debug = { obstacles };
 
     const d = unit.direction;
     const nearestGapAngle = (() => {
