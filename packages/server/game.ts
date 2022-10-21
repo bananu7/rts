@@ -289,10 +289,15 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
                 unit.direction = angleFromTo(unit.position, nextPathStep);
 
-                const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
-
                 // TODO - slow starts and braking
-                vecSet(unit.velocity, checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence));
+                const angle = checkMovePossibility(unit, g.board.map, presence);
+
+                const velocity = {
+                    x: Math.cos(angle) * distancePerTick,
+                    y: Math.sin(angle) * distancePerTick
+                };
+
+                vecSet(unit.velocity, velocity);
 
                 vecAdd(unit.position, unit.velocity);
                 return false;
@@ -735,14 +740,16 @@ function eliminated(g: Game): PlayerIndex[] {
 }
 
 
-function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
+function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): number {
+    const currentPos = unit.position;
+
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
     // Disable collisions for harvesting units
     if (unit.actionQueue.length > 0 &&
         unit.actionQueue[0].typ === 'Harvest'
     ) {
-        return desiredVelocity;
+        return unit.direction;
     }
 
     const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
@@ -750,13 +757,104 @@ function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity:
         allTilesInfluenced
         .map(t => presence.get(explode(t)))
         .map(ps => ps ?? [])
-        .flat(2);
+        .flat(2)
+        .filter(u => u.id !== unit.id);
 
-    let separation = {x:0, y:0};
+    // first try to avoid the other units
+    // build the view horizon
+
+    const wrap360 = (x: number) => {
+        if (x < 0)
+            return x + Math.PI*2;
+        else if (x > Math.PI*2)
+            return x - Math.PI*2;
+        else
+            return x;
+    }
+
+    function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
+        const good = [];
+        const bad = [];
+        for (var i = 0; i < a.length; i++)
+            if (f(a[i]))
+                good.push(a[i]);
+            else
+                bad.push(a[i]);
+        return [good, bad]
+    }
+
+    // we start with an empty horizon
+    type Obstacle = [number, number];
+    let obstacles: Obstacle[] = [[0, Math.PI * 2]];    
+    function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
+        if (p[1] <= p[0]) {
+            throw "Only positive spans smaller than 180 accepted"
+        }
+
+        const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
+            return a <= d && b <= c;
+        }
+
+        const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
+            if (os.length == 0){
+                return newO;
+            }
+            const min = Math.min(os[0][0], newO[0]);
+            const max = Math.max(os[os.length - 1][1], newO[1]);
+            return [min, max];
+        }
+
+        // find all obstacles that have at least partial overlap with the new one
+        const [overlapping, rest] = partition(obstacles, o => overlap(o, p));
+
+        // replace them all with one that covers that section
+        const merged = merge(overlapping, p);
+        rest.push(merged);
+
+        return rest;
+    }
+
     for (const u of otherUnitsNearby) {
-        if (u.id === unit.id)
+        // todo establish real radius
+        const radius = 1;
+
+        const relativePos = difference(u.position, currentPos); //relative pos of enemy unit
+        const distance = magnitude(relativePos);
+
+        if (distance > 5)
             continue;
 
+        const alpha = 2 * Math.asin(radius / distance);
+        const beta = Math.atan2(-relativePos.y, -relativePos.x);
+
+        const a0 = wrap360(beta - alpha/2);
+        const a1 = wrap360(beta + alpha/2);
+
+        if (a0 < a1) {
+            obstacles = updateObstacles([a0, a1], obstacles);
+        }
+        else {
+            if (a1 !== 0)
+                obstacles = updateObstacles([0, a1], obstacles);
+            if (a0 != Math.PI * 2)
+                obstacles = updateObstacles([a0, Math.PI * 2], obstacles);
+        }
+    }
+
+    const d = unit.direction;
+    const nearestGapAngle = (() => {
+        for (const o of obstacles) {
+            if (o[1] < d) {
+                // TODO look at the next obstacle and aim in the middle
+                return o[1];
+            }
+        }
+        return d;
+    })();
+
+    /*
+    let separation = {x:0, y:0};
+    for (const u of otherUnitsNearby) {
         let localSeparation = difference(currentPos, u.position);
 
         // the force gets stronger the closer it is
@@ -772,12 +870,14 @@ function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity:
         separation = sum(separation, localSeparation);
 
         // push other unit apart (but only if it can move)
+        /*
         if (u.components.find(c => c.type === 'Mover')) {
             u.position.x -= localSeparation.x;
             u.position.y -= localSeparation.y;
-        }
-    }
+        }*
+    }*/
 
+    /*
     // limit maximum    
     const MAX_SEPARATION_FORCE = 3;
     separation = clampVector(separation, MAX_SEPARATION_FORCE);
@@ -786,9 +886,10 @@ function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity:
     //terrainAvoidance = 
 
     const velocity = sum(desiredVelocity, separation);
+    */
 
     // this should still acceleration not velocity directly...
-    return velocity;
+    return nearestGapAngle;
 }
 
 // TODO duplication with pathfinding
