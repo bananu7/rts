@@ -252,6 +252,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         let nextPathStep = unit.pathToNext[0];
         let distanceLeft = distancePerTick;
 
+        unit.debug ??= {};
+        unit.debug.pathToNext = unit.pathToNext;
         while (distanceLeft > 0) {
             const dst = distance(unit.position, nextPathStep);
             // can reach next path setp

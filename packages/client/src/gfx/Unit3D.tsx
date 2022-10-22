@@ -88,11 +88,6 @@ export function Unit3D(props: Unit3DProps) {
     const unitSize = isBuilding ? 4 : 1;
     const selectorSize = isBuilding ? 3 : 1;
 
-    /* TODO - debug path view
-    const path = props.unit.actionQueue.map(a => {
-        return new THREE.Vector3(a.target.x, 1, a.target.y);
-    })*/
-
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
     const softSnapVelocity =
@@ -152,8 +147,19 @@ export function Unit3D(props: Unit3DProps) {
         ]} />;
     })();
 
+    // TODO - debug path view
+    //const target = props.unit.actionQueue.map(a => {
+    //    return new THREE.Vector3(a.target.x, 1, a.target.y);
+    //})
+    const path = props.unit.debug?.pathToNext?.map((a: any) => {
+        return new THREE.Vector3(a.x, 1, a.y);
+    });
+
     return (
         <group>
+            {
+                props.selected && path && <Line3D points={path} />
+            }
             <group
                 ref={unitGroupRef}
                 position={[0, 1, 0]}
@@ -172,10 +178,12 @@ export function Unit3D(props: Unit3DProps) {
                 { props.selected &&
                     <SelectionCircle size={selectorSize} enemy={props.enemy} />
                 }
-                {
+                {/*
                     props.selected && props.unit.debug &&
                         <Horizon obstacles={props.unit.debug.obstacles} />
-                }
+                */}
+
+                { props.selected && arrowHelper }
 
                 <mesh
                     castShadow

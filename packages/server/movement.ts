@@ -9,7 +9,7 @@ import { notEmpty } from './tsutil.js'
 
 export function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): Position {
     const currentPos = unit.position;
-    unit.debug = {};
+    unit.debug ??= {};
 
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
