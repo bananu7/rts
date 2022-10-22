@@ -10,6 +10,7 @@ import * as V from './vector.js'
 import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits } from './units.js'
+import { notEmpty } from './tsutil.js'
 
 export function newGame(map: GameMap): Game {
     const units = createStartingUnits();
@@ -29,12 +30,6 @@ export function newGame(map: GameMap): Game {
 export function startGame(g: Game) {
     console.log("[game] Game starting precount");
     g.state = {id: 'Precount', count: 0};
-}
-
-function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-    if (value === null || value === undefined) return false;
-    const testDummy: TValue = value;
-    return true;
 }
 
 export function command(c: CommandPacket, g: Game, playerIndex: number) {

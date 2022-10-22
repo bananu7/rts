@@ -5,9 +5,11 @@ import {
 } from './types';
 
 import * as V from './vector.js'
+import { notEmpty } from './tsutil.js'
 
 export function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): Position {
     const currentPos = unit.position;
+    unit.debug = {};
 
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
@@ -61,7 +63,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
                 obstacles = updateObstacles([a0, Math.PI * 2], obstacles);
         }
     }
-    unit.debug = { obstacles };
+    unit.debug.obstacles = obstacles;
 
     // propose steering basing on gaps in visible units
     const d = unit.direction;
@@ -119,14 +121,30 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     separation = V.clamp(separation, MAX_SEPARATION_FORCE);
 
     // push off of terrain
+    const terrainAvoidance = {x: 0, y:0};
     {
         const terrainNearby =
             allTilesInfluenced
-            .map(t => gm.tiles[explode(t)] === 0 ? t : undefined)
-            .filter(t => t);
-    }
-    const terrainAvoidance = {x: 0, y:0};
+            .map(t => gm.tiles[explode(t)] !== 0 ? t : undefined)
+            .filter(notEmpty);
+        unit.debug.terrainNearby = terrainNearby;
 
+        for (const t of terrainNearby) {
+            const diff = V.difference(currentPos, t);
+            const distance = V.magnitude(diff);
+
+            // TODO radius etc
+            if (distance > 1.5) {
+                continue;
+            }
+
+            // convert to unit vector
+            diff.x /= distance;
+            diff.y /= distance;
+            V.vecAdd(terrainAvoidance, diff);
+        }
+    }
+    unit.debug.terrainAvoidance = terrainAvoidance;
 
     let velocity = {
         x: Math.cos(nearestGapAngle) * 1,
@@ -134,6 +152,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     };
 
     V.vecAdd(velocity, separation);
+    //V.vecAdd(velocity, terrainAvoidance);
     
     return velocity;
 }

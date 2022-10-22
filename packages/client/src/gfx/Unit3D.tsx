@@ -138,6 +138,20 @@ export function Unit3D(props: Unit3DProps) {
         unitGroupRef.current.position.z += smoothingVelocity.y * dt;
     });
 
+    const arrowHelper = (() => {
+        if (!props.unit.debug?.terrainAvoidance)
+            return undefined;
+
+        const tavDir = new THREE.Vector3(props.unit.debug.terrainAvoidance.x, 0, props.unit.debug.terrainAvoidance.y);
+        const tavLen = tavDir.length() * 3;
+        tavDir.normalize();
+        return <arrowHelper args={[
+            tavDir,
+            new THREE.Vector3( 0, 0, 0 ),
+            tavLen,
+        ]} />;
+    })();
+
     return (
         <group>
             <group
