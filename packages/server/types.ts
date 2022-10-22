@@ -211,3 +211,5 @@ export type GameState = {
 } | {
     id: 'GameEnded',
 }
+
+export type PresenceMap = Map<number, Unit[]>;

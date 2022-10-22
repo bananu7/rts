@@ -1,15 +1,15 @@
 import {
-    Milliseconds,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    Milliseconds, Position,
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Action, ActionFollow, ActionAttack,
     PlayerState,
 } from './types';
 
+import * as V from './vector.js'
 import { pathFind } from './pathfinding.js'
+import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits } from './units.js'
-
-type PresenceMap = Map<number, Unit[]>;
 
 export function newGame(map: GameMap): Game {
     const units = createStartingUnits();
@@ -206,7 +206,7 @@ function updateUnits(dt: Milliseconds, g: Game) {
     }
     // move everything at once
     for (const unit of g.units) {
-        vecAdd(unit.position, unit.velocity);
+        V.vecAdd(unit.position, unit.velocity);
     }
 
     g.units = g.units.filter(u => {
@@ -216,20 +216,6 @@ function updateUnits(dt: Milliseconds, g: Game) {
         
         return hp.hp > 0;
     });
-}
-
-function directionTo(a: Position, b: Position) {
-    return Math.atan2(b.y-a.y, b.x-a.x);
-}
-
-function vecSet(a: Position, b: Position) {
-    a.x = b.x;
-    a.y = b.y;
-}
-
-function vecAdd(a: Position, b: Position) {
-    a.x += b.x;
-    a.y += b.y;
 }
 
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
@@ -326,7 +312,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
 
     const moveTowards = (targetPos: Position, range: number): MoveResult => {
-        if (distance(targetPos, unit.position) < range) {
+        if (V.distance(targetPos, unit.position) < range) {
             return 'ReachedTarget'; // nothing to do
         }
 
@@ -341,7 +327,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
             const PATH_RECOMPUTE_DISTANCE_THRESHOLD = 3;
-            if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
+            if (V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
                 if (!computePathTo(targetPos))
                     return 'Unreachable';
             }
@@ -363,7 +349,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         units.sort((ba, bb) => {
-            return distance(unit.position, ba.position) - distance(unit.position, bb.position);
+            return V.distance(unit.position, ba.position) - V.distance(unit.position, bb.position);
         });
         
         return units[0];
@@ -383,7 +369,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         if (!target)
             return;
 
-        if (distance(unit.position, target.position) > vision.range) {
+        if (V.distance(unit.position, target.position) > vision.range) {
             return;
         }
 
@@ -403,12 +389,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     const aggro = (ac: Attacker, target: Unit) => {
         // if out of range, just move to target
-        if (distance(unit.position, target.position) > ac.range) {
+        if (V.distance(unit.position, target.position) > ac.range) {
             // Right now the attack command is upheld even if the unit can't move
             // SC in that case just cancels the attack command - TODO decide
             moveTowards(target.position, ac.range);
         } else {
-            unit.direction = directionTo(unit.position, target.position);
+            unit.direction = V.angleFromTo(unit.position, target.position);
             attemptDamage(ac, target);
         }
     }
@@ -694,42 +680,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 }
 
-function distance(a: Position, b: Position) {
-    const x = a.x-b.x;
-    const y = a.y-b.y;
-    return Math.sqrt(x*x+y*y);
-}
 
-function magnitude(a: Position) {
-    return Math.sqrt(a.x*a.x+a.y*a.y);
-}
-
-function difference(a: Position, b: Position) {
-    return {x: a.x-b.x, y:a.y-b.y};
-}
-
-function clampVector(a: Position, max: number) {
-    const m = magnitude(a);
-    if (m <= max)
-        return { x: a.x, y: a.y };
-    else {
-        const f = max / m;
-        return { x: a.x * f, y: a.y * f };
-    }
-}
-
-function sum(a: Position, b: Position) {
-    return {x: a.x + b.x, y: a.y + b.y };
-}
-
-function angleFromTo(a: Position, b: Position) {
-    return (Math.atan2(a.y-b.y, b.x-a.x) + Math.PI * 2) % (Math.PI * 2);
-}
-
-function unitVector(a: Position, b: Position) {
-    const angle = angleFromTo(a, b);
-    return {x: Math.cos(angle), y: Math.sin(angle)};
-}
 
 function eliminated(g: Game): PlayerIndex[] {
     const isBuilding = (u: Unit) => !!u.components.find(c => c.type === 'Building');
@@ -740,196 +691,4 @@ function eliminated(g: Game): PlayerIndex[] {
 
     return buildingCounts.filter(([p,c]) => c === 0).map(([p,c]) => p);
 }
-
-
-function checkMovePossibility(unit: Unit, gm: GameMap, presence: PresenceMap): number {
-    const currentPos = unit.position;
-
-    const explode = (p: TilePos) => p.x+p.y*gm.w; 
-
-    // Disable collisions for harvesting units
-    if (unit.actionQueue.length > 0 &&
-        unit.actionQueue[0].typ === 'Harvest'
-    ) {
-        return unit.direction;
-    }
-
-    const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
-    const otherUnitsNearby =
-        allTilesInfluenced
-        .map(t => presence.get(explode(t)))
-        .map(ps => ps ?? [])
-        .flat(2)
-        .filter(u => u.id !== unit.id);
-
-    // first try to avoid the other units
-    // build the view horizon
-
-    const wrap360 = (x: number) => {
-        if (x < 0)
-            return x + Math.PI*2;
-        else if (x > Math.PI*2)
-            return x - Math.PI*2;
-        else
-            return x;
-    }
-
-    function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
-        const good = [];
-        const bad = [];
-        for (var i = 0; i < a.length; i++)
-            if (f(a[i]))
-                good.push(a[i]);
-            else
-                bad.push(a[i]);
-        return [good, bad]
-    }
-
-    // we start with an empty horizon
-    type Obstacle = [number, number];
-    let obstacles: Obstacle[] = [];
-
-    const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
-        return a <= d && b >= c;
-    }
-
-    function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
-        if (p[1] <= p[0]) {
-            throw "Only positive spans smaller than 180 accepted"
-        }
-
-        const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
-            if (os.length == 0){
-                return newO;
-            }
-            const min = Math.min(os[0][0], newO[0]);
-            const max = Math.max(os[os.length - 1][1], newO[1]);
-            return [min, max];
-        }
-
-        // find all obstacles that have at least partial overlap with the new one
-        const [overlapping, rest] = partition(obstacles, o => overlap(o, p));
-
-        // replace them all with one that covers that section
-        const merged = merge(overlapping, p);
-        rest.push(merged);
-
-        return rest;
-    }
-
-    for (const u of otherUnitsNearby) {
-        // todo establish real radius
-        const radius = 1;
-
-        const relativePos = difference(u.position, currentPos); //relative pos of enemy unit
-        const distance = magnitude(relativePos);
-
-        if (distance > 6)
-            continue;
-
-        const alpha = 
-            radius < distance
-            ? 2 * Math.asin(radius / distance)
-            : 2; // units squished together
-
-        const beta = Math.atan2(-relativePos.y, relativePos.x);
-
-        const a0 = wrap360(beta - alpha/2);
-        const a1 = wrap360(beta + alpha/2);
-
-        if (a0 < a1) {
-            obstacles = updateObstacles([a0, a1], obstacles);
-        }
-        else {
-            if (a1 !== 0)
-                obstacles = updateObstacles([0, a1], obstacles);
-            if (a0 != Math.PI * 2)
-                obstacles = updateObstacles([a0, Math.PI * 2], obstacles);
-        }
-    }
-    unit.debug = { obstacles };
-
-    const d = unit.direction;
-    const nearestGapAngle = (() => {
-        //obstacles.sort(([a,b], [c,d]) => a-c);
-
-        // see if current direction is blocked
-        const o = obstacles.find(o => overlap(o, [d, d]));
-        // if yes, aim for its edge (TODO)
-        if (o) {
-            return Math.abs(o[0] - d) < Math.abs(o[1] - d) ? o[0] : o[1];
-        } else {
-            return d;
-        }
-    })();
-
-    /*
-    let separation = {x:0, y:0};
-    for (const u of otherUnitsNearby) {
-        let localSeparation = difference(currentPos, u.position);
-
-        // the force gets stronger the closer it is
-        const distance = magnitude(localSeparation);
-        const distanceFactor = distance > 0.00001 ? 1 / distance : 10; // avoid zero distance issues
-        localSeparation.x *= distanceFactor;
-        localSeparation.y *= distanceFactor;
-
-        // clamp the local force to avoid very high impulses at close passes
-        const MAX_LOCAL_SEPARATION_FORCE = 2;
-        localSeparation = clampVector(localSeparation, MAX_LOCAL_SEPARATION_FORCE);
-
-        separation = sum(separation, localSeparation);
-
-        // push other unit apart (but only if it can move)
-        /*
-        if (u.components.find(c => c.type === 'Mover')) {
-            u.position.x -= localSeparation.x;
-            u.position.y -= localSeparation.y;
-        }*
-    }*/
-
-    /*
-    // limit maximum    
-    const MAX_SEPARATION_FORCE = 3;
-    separation = clampVector(separation, MAX_SEPARATION_FORCE);
-
-    // push off of terrain
-    //terrainAvoidance = 
-
-    const velocity = sum(desiredVelocity, separation);
-    */
-
-    // this should still acceleration not velocity directly...
-    return nearestGapAngle;
-}
-
-// TODO duplication with pathfinding
-function getSurroundingPos(p: TilePos): TilePos[] {
-    const SCAN_SIZE = 5;
-
-    const tiles = [];
-    for (let x = p.x - SCAN_SIZE; x < p.x + SCAN_SIZE; x ++) {
-        for (let y = p.y - SCAN_SIZE; y < p.y + SCAN_SIZE; y ++) {
-            // TODO map size
-            if (x < 0 || y < 0 || x > 99 || y > 99)
-                continue;
-
-            tiles.push({x,y});
-        }
-    }
-
-    return tiles;
-}
-
-function createTilesInfluenced(pos: Position, size: number) {
-    const result = [];
-    const tile = { x: Math.floor(pos.x), y: Math.floor(pos.y) };
-
-    // TODO - incorrect, should actually find all affected tiles
-    // depending on the size
-    const surrounding = getSurroundingPos(tile);
-    surrounding.push(tile);
-    return surrounding;
-}
-
 
