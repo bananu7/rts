@@ -30,61 +30,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
         .flat(2)
         .filter(u => u.id !== unit.id);
 
-    // first try to avoid the other units
     // build the view horizon
-
-    const wrap360 = (x: number) => {
-        if (x < 0)
-            return x + Math.PI*2;
-        else if (x > Math.PI*2)
-            return x - Math.PI*2;
-        else
-            return x;
-    }
-
-    function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
-        const good = [];
-        const bad = [];
-        for (var i = 0; i < a.length; i++)
-            if (f(a[i]))
-                good.push(a[i]);
-            else
-                bad.push(a[i]);
-        return [good, bad]
-    }
-
-    // we start with an empty horizon
-    type Obstacle = [number, number];
-    let obstacles: Obstacle[] = [];
-
-    const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
-        return a <= d && b >= c;
-    }
-
-    function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
-        if (p[1] <= p[0]) {
-            throw "Only positive spans smaller than 180 accepted"
-        }
-
-        const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
-            if (os.length == 0){
-                return newO;
-            }
-            const min = Math.min(os[0][0], newO[0]);
-            const max = Math.max(os[os.length - 1][1], newO[1]);
-            return [min, max];
-        }
-
-        // find all obstacles that have at least partial overlap with the new one
-        const [overlapping, rest] = partition(obstacles, o => overlap(o, p));
-
-        // replace them all with one that covers that section
-        const merged = merge(overlapping, p);
-        rest.push(merged);
-
-        return rest;
-    }
-
     for (const u of otherUnitsNearby) {
         // todo establish real radius
         const radius = 1;
@@ -117,6 +63,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     }
     unit.debug = { obstacles };
 
+    // propose steering basing on gaps in visible units
     const d = unit.direction;
     const nearestGapAngle = (() => {
         obstacles.sort(([a,b], [c,d]) => a-c);
@@ -191,6 +138,27 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     return velocity;
 }
 
+const wrap360 = (x: number) => {
+    if (x < 0)
+        return x + Math.PI*2;
+    else if (x > Math.PI*2)
+        return x - Math.PI*2;
+    else
+        return x;
+}
+
+function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
+    const good = [];
+    const bad = [];
+    for (var i = 0; i < a.length; i++)
+        if (f(a[i]))
+            good.push(a[i]);
+        else
+            bad.push(a[i]);
+    return [good, bad]
+}
+
+
 // TODO duplication with pathfinding
 function getSurroundingPos(p: TilePos): TilePos[] {
     const SCAN_SIZE = 5;
@@ -219,4 +187,36 @@ function createTilesInfluenced(pos: Position, size: number) {
     const surrounding = getSurroundingPos(tile);
     surrounding.push(tile);
     return surrounding;
+}
+
+// Obstacle avoidance/horizon stuff
+type Obstacle = [number, number];
+let obstacles: Obstacle[] = [];
+
+const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
+    return a <= d && b >= c;
+}
+
+function updateObstacles(p: Obstacle, obstacles: Obstacle[]) {
+    if (p[1] <= p[0]) {
+        throw "Only positive spans smaller than 180 accepted"
+    }
+
+    const merge = (os: Obstacle[], newO: Obstacle): Obstacle => {
+        if (os.length == 0){
+            return newO;
+        }
+        const min = Math.min(os[0][0], newO[0]);
+        const max = Math.max(os[os.length - 1][1], newO[1]);
+        return [min, max];
+    }
+
+    // find all obstacles that have at least partial overlap with the new one
+    const [overlapping, rest] = partition(obstacles, o => overlap(o, p));
+
+    // replace them all with one that covers that section
+    const merged = merge(overlapping, p);
+    rest.push(merged);
+
+    return rest;
 }
