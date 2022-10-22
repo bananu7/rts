@@ -158,7 +158,8 @@ export function Unit3D(props: Unit3DProps) {
     return (
         <group>
             {
-                props.selected && path && <Line3D points={path} />
+                props.selected && path &&
+                <Line3D points={[new THREE.Vector3(props.unit.position.x, 1, props.unit.position.y), ...path]} />
             }
             <group
                 ref={unitGroupRef}

@@ -249,46 +249,30 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             throw "This unit has a move command but no path computed";
         }
 
-        let nextPathStep = unit.pathToNext[0];
         let distanceLeft = distancePerTick;
 
         unit.debug ??= {};
         unit.debug.pathToNext = unit.pathToNext;
-        while (distanceLeft > 0) {
-            const dst = distance(unit.position, nextPathStep);
-            // can reach next path setp
-            if (dst < distanceLeft) {
-                // subtract from distance "budget"
-                distanceLeft -= dst;
-                // pop the current path step off
-                unit.pathToNext.shift();
 
-                // if there are no more path steps to do, we've reached the destination
-                if (unit.pathToNext.length === 0) {
-                    // TODO - that will cause stutter at shift-clicked moves
-                    stopMoving();
-                    return true;
-                } else {
-                    nextPathStep = unit.pathToNext[0];
-                    continue;
-                }
-            }
-            // spent all the distance budget
-            else {
-                const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
-                unit.direction = angleFromTo(unit.position, nextPathStep);
+        const target = unit.pathToNext[0];
+        const targetDist = V.distance(target, unit.position);
 
-                // TODO - slow starts and braking
-                const angle = checkMovePossibility(unit, g.board.map, presence);
+        const diff = targetDist < distancePerTick ? targetDist : distancePerTick;
+        unit.direction = V.angleFromTo(unit.position, target);
 
-                const velocity = {
-                    x: Math.cos(angle) * distancePerTick,
-                    y: -Math.sin(angle) * distancePerTick
-                };
+        // TODO - slow starts and braking
+        const velocity = checkMovePossibility(unit, g.board.map, presence);
 
-                vecSet(unit.velocity, velocity);
-                return false;
-            }
+        V.vecSet(unit.velocity, velocity);
+        
+        if (targetDist < distancePerTick)
+            unit.pathToNext.shift();
+
+        // if there are no more path steps to do, we've reached the destination
+        if (unit.pathToNext.length === 0) {
+            // TODO - that will cause stutter at shift-clicked moves
+            stopMoving();
+            return true;
         }
 
         return false;
