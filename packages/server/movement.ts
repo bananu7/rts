@@ -32,6 +32,8 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
         .flat(2)
         .filter(u => u.id !== unit.id);
 
+
+    let obstacles: Obstacle[] = [];
     // build the view horizon
     for (const u of otherUnitsNearby) {
         // todo establish real radius
@@ -210,7 +212,6 @@ function createTilesInfluenced(pos: Position, size: number) {
 
 // Obstacle avoidance/horizon stuff
 type Obstacle = [number, number];
-let obstacles: Obstacle[] = [];
 
 const overlap = ([a,b]: Obstacle, [c,d]: Obstacle) => {
     return a <= d && b >= c;
