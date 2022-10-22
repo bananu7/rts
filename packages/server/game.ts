@@ -202,6 +202,8 @@ function updateUnits(dt: Milliseconds, g: Game) {
     // move everything at once
     for (const unit of g.units) {
         V.vecAdd(unit.position, unit.velocity);
+        unit.velocity.x = 0;
+        unit.velocity.y = 0;
     }
 
     g.units = g.units.filter(u => {

@@ -154,7 +154,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     };
 
     V.vecAdd(velocity, separation);
-    //V.vecAdd(velocity, terrainAvoidance);
+    V.vecAdd(velocity, terrainAvoidance);
     
     return velocity;
 }
