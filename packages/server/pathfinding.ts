@@ -71,8 +71,14 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
             .filter(e => m.tiles[explode(e)] === 0);
 
         for (let next of options) {
+            // detect if moving diagonally
+            const stepCost =
+                (next.x === current.x || next.y === current.y)
+                ? 1
+                : 1.41421356237;
+
             // costSoFar will always contain this element here
-            const newCost = costSoFar.get(current)! + 1 // cost of moving one tile
+            const newCost = costSoFar.get(current)! + stepCost;
             const costOfNext = costSoFar.get(next);
 
             if (!costOfNext || newCost < costOfNext) {
@@ -114,7 +120,7 @@ export function pathFind(a: Position, b: Position, m: GameMap)  {
     if (!path) {
         return;
     }
-    
+
     // remove redundant nodes on straight lines
     const newPath = [];
     if (path.length > 0)
