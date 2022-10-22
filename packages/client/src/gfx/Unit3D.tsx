@@ -120,7 +120,7 @@ export function Unit3D(props: Unit3DProps) {
         if(!unitGroupRef.current)
             return;
 
-        unitGroupRef.current.rotation.y = -props.unit.direction;
+        unitGroupRef.current.rotation.y = props.unit.direction;
 
         // TODO - temporary fix to bring units where they're needed quickly
         if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
