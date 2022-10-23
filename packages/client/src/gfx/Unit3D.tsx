@@ -133,7 +133,7 @@ export function Unit3D(props: Unit3DProps) {
         unitGroupRef.current.position.z += smoothingVelocity.y * dt;
     });
 
-    const arrowHelper = (() => {
+    const debugArrowHelper = (() => {
         if (!props.unit.debug?.terrainAvoidance)
             return undefined;
 
@@ -144,22 +144,19 @@ export function Unit3D(props: Unit3DProps) {
             tavDir,
             new THREE.Vector3( 0, 0, 0 ),
             tavLen,
+            0xff0000,
         ]} />;
     })();
 
-    // TODO - debug path view
-    //const target = props.unit.actionQueue.map(a => {
-    //    return new THREE.Vector3(a.target.x, 1, a.target.y);
-    //})
-    const path = props.unit.debug?.pathToNext?.map((a: any) => {
+    const debugPath = props.unit.debug?.pathToNext?.map((a: any) => {
         return new THREE.Vector3(a.x, 1, a.y);
     });
 
     return (
         <group>
             {
-                props.selected && path &&
-                <Line3D points={[new THREE.Vector3(props.unit.position.x, 1, props.unit.position.y), ...path]} />
+                props.selected && debugPath &&
+                <Line3D points={[new THREE.Vector3(props.unit.position.x, 1, props.unit.position.y), ...debugPath]} />
             }
             <group
                 ref={unitGroupRef}
@@ -184,7 +181,7 @@ export function Unit3D(props: Unit3DProps) {
                         <Horizon obstacles={props.unit.debug.obstacles} />
                 */}
 
-                { props.selected && arrowHelper }
+                { props.selected && debugArrowHelper }
 
                 <mesh
                     castShadow

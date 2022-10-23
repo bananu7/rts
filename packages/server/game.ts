@@ -2,7 +2,7 @@ import {
     Milliseconds, Position,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
-    Action, ActionFollow, ActionAttack,
+    Action, ActionFollow, ActionAttack, ActionMove,
     PlayerState,
 } from './types';
 
@@ -32,6 +32,69 @@ export function startGame(g: Game) {
     g.state = {id: 'Precount', count: 0};
 }
 
+function commandOne(shift: boolean, action: Action, unit: Unit, playerIndex: number) {
+    if (unit.owner !== playerIndex) {
+        console.info(`[game] Player tried to control other player's unit`);
+        return;
+    }
+
+    // Don't even add/set actions that the unit won't accept
+    const accept = willAcceptAction(unit, action);
+    if (!accept) {
+        console.info(`[game] Rejecting action ${action.typ} for unit ${unit.id}`);
+        return;
+    }
+
+    console.log(`[game] Adding action ${action.typ} for unit ${unit.id}`);
+
+    if (shift)
+        unit.actionQueue.push(action);
+    else
+        unit.actionQueue = [action];
+}
+
+// This code generates an offset position for a given spiral index
+function spiral(p: Position, i: number, scale: number) {
+    const offsets = [
+        // target
+        [0,0],
+        // layer 1
+        [1,0],
+        [1,1],
+        [0,1],
+        [-1,1],
+        [-1,0],
+        [-1,-1],
+        [0, -1],
+        [1, -1],
+        // layer 2
+        [2,0],
+        [2,1],
+        [2,2],
+        [1,2],
+        [0,2],
+        [-1,2],
+        [-2,2],
+        [-2,1],
+        [-2,0],
+        [-2,-1],
+        [-2,-2],
+        [-1,-2],
+        [0,-2],
+        [1,-2],
+        [2,-2],
+        [2,-1],
+    ];
+
+    // if more units are trying to reach the same location, it's likely that the spiral
+    // would need to be adjusted anyway
+    if (i < offsets.length) {
+        return { x: offsets[i][0] * scale + p.x, y: offsets[i][1] * scale + p.y };
+    } else {
+        return { x: p.x, y: p.y };
+    }
+}
+
 export function command(c: CommandPacket, g: Game, playerIndex: number) {
     const us: Unit[] = c.unitIds
         .map(id => g.units.find(u => id === u.id))
@@ -44,26 +107,44 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
     if (g.state.id !== 'Play')
         return;
 
-    us.forEach(u => {
-        if (u.owner !== playerIndex) {
-            console.info(`[game] Player tried to control other player's unit`);
-            return;
-        }
+    // if multiple units get a move action, spread their targets out
+    if (c.action.typ === 'Move' || c.action.typ === 'AttackMove') {
+        const target = c.action.target;
+        
+        // find all units that will participate in spiral formation forming
+        const simps = us
+            .filter(u => willAcceptAction(u, c.action))
+            .map(u => ({ unit: u, position: u.position }))
+        ;
 
-        // Don't even add/set actions that the unit won't accept
-        const accept = willAcceptAction(u, c.action);
-        if (!accept) {
-            console.info(`[game] Rejecting action ${c.action.typ} for unit ${u.id}`);
-            return;
-        }
+        // TODO - rough ordering of them by distance. This could be done better,
+        // including their relative positions to the target, or even the time
+        // it will take them to reach the target
+        simps.sort((a,b) => 
+            V.distance(a.position, target) - V.distance(b.position, target)
+        )
 
-        console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`);
+        // assign a position on the spiral for each unit
+        const ssimps = simps.map((s, i) => ({
+            unit: s.unit,
+            position: spiral(target, i, 1.5),
+        }));
 
-        if (c.shift)
-            u.actionQueue.push(c.action);
-        else
-            u.actionQueue = [c.action];
-    });
+        // send the action to eah unit individually
+        ssimps.forEach(s => {
+            const action = {
+                typ: 'Move',
+                target: { x: s.position.x, y: s.position.y }
+            } as ActionMove;
+            commandOne(c.shift, action, s.unit, playerIndex);
+        });
+    }
+
+    else {
+        us.forEach(u => {
+            commandOne(c.shift, c.action, u, playerIndex);
+        });
+    }
 }
 
 function willAcceptAction(unit: Unit, action: Action) {
