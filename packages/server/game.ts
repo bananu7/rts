@@ -1,15 +1,16 @@
 import {
-    Milliseconds,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, Position, TilePos, UnitState,
+    Milliseconds, Position,
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
-    Action, ActionFollow, ActionAttack,
+    Action, ActionFollow, ActionAttack, ActionMove,
     PlayerState,
 } from './types';
 
+import * as V from './vector.js'
 import { pathFind } from './pathfinding.js'
+import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits } from './units.js'
-
-type PresenceMap = Map<number, Unit[]>;
+import { notEmpty } from './tsutil.js'
 
 export function newGame(map: GameMap): Game {
     const units = createStartingUnits();
@@ -31,10 +32,67 @@ export function startGame(g: Game) {
     g.state = {id: 'Precount', count: 0};
 }
 
-function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-    if (value === null || value === undefined) return false;
-    const testDummy: TValue = value;
-    return true;
+function commandOne(shift: boolean, action: Action, unit: Unit, playerIndex: number) {
+    if (unit.owner !== playerIndex) {
+        console.info(`[game] Player tried to control other player's unit`);
+        return;
+    }
+
+    // Don't even add/set actions that the unit won't accept
+    const accept = willAcceptAction(unit, action);
+    if (!accept) {
+        console.info(`[game] Rejecting action ${action.typ} for unit ${unit.id}`);
+        return;
+    }
+
+    console.log(`[game] Adding action ${action.typ} for unit ${unit.id}`);
+
+    if (shift)
+        unit.actionQueue.push(action);
+    else
+        unit.actionQueue = [action];
+}
+
+// This code generates an offset position for a given spiral index
+function spiral(p: Position, i: number, scale: number) {
+    const offsets = [
+        // target
+        [0,0],
+        // layer 1
+        [1,0],
+        [1,1],
+        [0,1],
+        [-1,1],
+        [-1,0],
+        [-1,-1],
+        [0, -1],
+        [1, -1],
+        // layer 2
+        [2,0],
+        [2,1],
+        [2,2],
+        [1,2],
+        [0,2],
+        [-1,2],
+        [-2,2],
+        [-2,1],
+        [-2,0],
+        [-2,-1],
+        [-2,-2],
+        [-1,-2],
+        [0,-2],
+        [1,-2],
+        [2,-2],
+        [2,-1],
+    ];
+
+    // if more units are trying to reach the same location, it's likely that the spiral
+    // would need to be adjusted anyway
+    if (i < offsets.length) {
+        return { x: offsets[i][0] * scale + p.x, y: offsets[i][1] * scale + p.y };
+    } else {
+        return { x: p.x, y: p.y };
+    }
 }
 
 export function command(c: CommandPacket, g: Game, playerIndex: number) {
@@ -49,26 +107,54 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
     if (g.state.id !== 'Play')
         return;
 
-    us.forEach(u => {
-        if (u.owner !== playerIndex) {
-            console.info(`[game] Player tried to control other player's unit`);
+    // if multiple units get a move action, spread their targets out
+    if (c.action.typ === 'Move' || c.action.typ === 'AttackMove') {
+        const target = c.action.target;
+        const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
+        const isAcceptable = (p: Position) => g.board.map.tiles[explode(p)] === 0; // TODO - out of bounds etc
+
+        // Don't even bother if the original target isn't passable
+        // TODO - flying units
+        if (!isAcceptable(target))
             return;
-        }
+        
+        // find all units that will participate in spiral formation forming
+        const simps = us
+            .filter(u => willAcceptAction(u, c.action))
+            .map(u => ({ unit: u, position: u.position }))
+        ;
 
-        // Don't even add/set actions that the unit won't accept
-        const accept = willAcceptAction(u, c.action);
-        if (!accept) {
-            console.info(`[game] Rejecting action ${c.action.typ} for unit ${u.id}`);
-            return;
-        }
+        // TODO - rough ordering of them by distance. This could be done better,
+        // including their relative positions to the target, or even the time
+        // it will take them to reach the target
+        simps.sort((a,b) => 
+            V.distance(a.position, target) - V.distance(b.position, target)
+        )
 
-        console.log(`[game] Adding action ${c.action.typ} for unit ${u.id}`);
+        // assign a position on the spiral for each unit
+        const ssimps = simps.map((s, i) => {
+            const potentialNewTarget = spiral(target, i, 1.5);
+            return {
+                unit: s.unit,
+                position: isAcceptable(potentialNewTarget) ? potentialNewTarget : target
+            }
+        });
 
-        if (c.shift)
-            u.actionQueue.push(c.action);
-        else
-            u.actionQueue = [c.action];
-    });
+        // send the action to eah unit individually
+        ssimps.forEach(s => {
+            const action = {
+                typ: 'Move',
+                target: { x: s.position.x, y: s.position.y }
+            } as ActionMove;
+            commandOne(c.shift, action, s.unit, playerIndex);
+        });
+    }
+
+    else {
+        us.forEach(u => {
+            commandOne(c.shift, c.action, u, playerIndex);
+        });
+    }
 }
 
 function willAcceptAction(unit: Unit, action: Action) {
@@ -147,6 +233,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
                 owner: u.owner,
                 kind: u.kind,
                 components: u.components,
+                debug: u.debug,
             }
         });
 
@@ -199,8 +286,15 @@ function updateUnits(dt: Milliseconds, g: Game) {
         presence.set(explodedIndex, us);
     }
 
+    // calculate updates and velocities
     for (const unit of g.units) {
         updateUnit(dt, g, unit, presence);
+    }
+    // move everything at once
+    for (const unit of g.units) {
+        V.vecAdd(unit.position, unit.velocity);
+        unit.velocity.x = 0;
+        unit.velocity.y = 0;
     }
 
     g.units = g.units.filter(u => {
@@ -212,22 +306,10 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
-function directionTo(a: Position, b: Position) {
-    return Math.atan2(b.y-a.y, b.x-a.x);
-}
-
-function vecSet(a: Position, b: Position) {
-    a.x = b.x;
-    a.y = b.y;
-}
-
-function vecAdd(a: Position, b: Position) {
-    a.x += b.x;
-    a.y += b.y;
-}
-
 function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
     const stopMoving = () => {
+        unit.velocity.x = 0;
+        unit.velocity.y = 0;
         unit.pathToNext = undefined;
     }
 
@@ -258,45 +340,30 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             throw "This unit has a move command but no path computed";
         }
 
-        let nextPathStep = unit.pathToNext[0];
         let distanceLeft = distancePerTick;
 
-        while (distanceLeft > 0) {
-            const dst = distance(unit.position, nextPathStep);
-            // can reach next path setp
-            if (dst < distanceLeft) {
-                // set the unit to the reached path step
-                vecSet(unit.position, nextPathStep);
-                // subtract from distance "budget"
-                distanceLeft -= dst;
-                // pop the current path step off
-                unit.pathToNext.shift();
+        unit.debug ??= {};
+        unit.debug.pathToNext = unit.pathToNext;
 
-                // if there are no more path steps to do, we've reached the destination
-                if (unit.pathToNext.length === 0) {
-                    // TODO - that will cause stutter at shift-clicked moves
-                    unit.velocity.x = 0;
-                    unit.velocity.y = 0;
-                    unit.pathToNext = undefined;
-                    return true;
-                } else {
-                    nextPathStep = unit.pathToNext[0];
-                    continue;
-                }
-            }
-            // spent all the distance budget
-            else {
-                const {x:dx, y:dy} = unitVector(unit.position, nextPathStep);
-                unit.direction = angleFromTo(unit.position, nextPathStep);
+        const target = unit.pathToNext[0];
+        const targetDist = V.distance(target, unit.position);
 
-                const desiredVelocity = {x: dx * distancePerTick, y: dy * distancePerTick };
+        const diff = targetDist < distancePerTick ? targetDist : distancePerTick;
+        unit.direction = V.angleFromTo(unit.position, target);
 
-                // TODO - slow starts and braking
-                vecSet(unit.velocity, checkMovePossibility(unit, unit.position, desiredVelocity, g.board.map, presence));
+        // TODO - slow starts and braking
+        const velocity = checkMovePossibility(unit, g.board.map, presence);
 
-                vecAdd(unit.position, unit.velocity);
-                return false;
-            }
+        V.vecSet(unit.velocity, velocity);
+        
+        if (targetDist < distancePerTick)
+            unit.pathToNext.shift();
+
+        // if there are no more path steps to do, we've reached the destination
+        if (unit.pathToNext.length === 0) {
+            // TODO - that will cause stutter at shift-clicked moves
+            stopMoving();
+            return true;
         }
 
         return false;
@@ -319,7 +386,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
 
     const moveTowards = (targetPos: Position, range: number): MoveResult => {
-        if (distance(targetPos, unit.position) < range) {
+        if (V.distance(targetPos, unit.position) < range) {
             return 'ReachedTarget'; // nothing to do
         }
 
@@ -334,7 +401,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
             const PATH_RECOMPUTE_DISTANCE_THRESHOLD = 3;
-            if (distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
+            if (V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
                 if (!computePathTo(targetPos))
                     return 'Unreachable';
             }
@@ -356,7 +423,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         units.sort((ba, bb) => {
-            return distance(unit.position, ba.position) - distance(unit.position, bb.position);
+            return V.distance(unit.position, ba.position) - V.distance(unit.position, bb.position);
         });
         
         return units[0];
@@ -376,7 +443,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         if (!target)
             return;
 
-        if (distance(unit.position, target.position) > vision.range) {
+        if (V.distance(unit.position, target.position) > vision.range) {
             return;
         }
 
@@ -396,12 +463,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     const aggro = (ac: Attacker, target: Unit) => {
         // if out of range, just move to target
-        if (distance(unit.position, target.position) > ac.range) {
+        if (V.distance(unit.position, target.position) > ac.range) {
             // Right now the attack command is upheld even if the unit can't move
             // SC in that case just cancels the attack command - TODO decide
             moveTowards(target.position, ac.range);
         } else {
-            unit.direction = directionTo(unit.position, target.position);
+            unit.direction = V.angleFromTo(unit.position, target.position);
             attemptDamage(ac, target);
         }
     }
@@ -687,42 +754,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 }
 
-function distance(a: Position, b: Position) {
-    const x = a.x-b.x;
-    const y = a.y-b.y;
-    return Math.sqrt(x*x+y*y);
-}
 
-function magnitude(a: Position) {
-    return Math.sqrt(a.x*a.x+a.y*a.y);
-}
-
-function difference(a: Position, b: Position) {
-    return {x: a.x-b.x, y:a.y-b.y};
-}
-
-function clampVector(a: Position, max: number) {
-    const m = magnitude(a);
-    if (m <= max)
-        return { x: a.x, y: a.y };
-    else {
-        const f = max / m;
-        return { x: a.x * f, y: a.y * f };
-    }
-}
-
-function sum(a: Position, b: Position) {
-    return {x: a.x + b.x, y: a.y + b.y };
-}
-
-function angleFromTo(a: Position, b: Position) {
-    return Math.atan2(b.y-a.y, b.x-a.x);
-}
-
-function unitVector(a: Position, b: Position) {
-    const angle = angleFromTo(a, b);
-    return {x: Math.cos(angle), y: Math.sin(angle)};
-}
 
 function eliminated(g: Game): PlayerIndex[] {
     const isBuilding = (u: Unit) => !!u.components.find(c => c.type === 'Building');
@@ -733,89 +765,4 @@ function eliminated(g: Game): PlayerIndex[] {
 
     return buildingCounts.filter(([p,c]) => c === 0).map(([p,c]) => p);
 }
-
-
-function checkMovePossibility(unit: Unit, currentPos: Position, desiredVelocity: Position, gm: GameMap, presence: PresenceMap) {
-    const explode = (p: TilePos) => p.x+p.y*gm.w; 
-
-    // Disable collisions for harvesting units
-    if (unit.actionQueue.length > 0 &&
-        unit.actionQueue[0].typ === 'Harvest'
-    ) {
-        return desiredVelocity;
-    }
-
-    const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
-    const otherUnitsNearby =
-        allTilesInfluenced
-        .map(t => presence.get(explode(t)))
-        .map(ps => ps ?? [])
-        .flat(2);
-
-    let separation = {x:0, y:0};
-    for (const u of otherUnitsNearby) {
-        if (u.id === unit.id)
-            continue;
-
-        let localSeparation = difference(currentPos, u.position);
-
-        // the force gets stronger the closer it is
-        const distance = magnitude(localSeparation);
-        const distanceFactor = distance > 0.00001 ? 1 / distance : 10; // avoid zero distance issues
-        localSeparation.x *= distanceFactor;
-        localSeparation.y *= distanceFactor;
-
-        // clamp the local force to avoid very high impulses at close passes
-        const MAX_LOCAL_SEPARATION_FORCE = 2;
-        localSeparation = clampVector(localSeparation, MAX_LOCAL_SEPARATION_FORCE);
-
-        separation = sum(separation, localSeparation);
-
-        // push other unit apart (but only if it can move)
-        if (u.components.find(c => c.type === 'Mover')) {
-            u.position.x -= localSeparation.x;
-            u.position.y -= localSeparation.y;
-        }
-    }
-
-    // limit maximum    
-    const MAX_SEPARATION_FORCE = 3;
-    separation = clampVector(separation, MAX_SEPARATION_FORCE);
-
-    // push off of terrain
-    //terrainAvoidance = 
-
-    const velocity = sum(desiredVelocity, separation);
-
-    // this should still acceleration not velocity directly...
-    return velocity;
-}
-
-// TODO duplication with pathfinding
-function getSurroundingPos(p: TilePos): TilePos[] {
-    return [
-        {x: p.x, y: p.y},
-
-        {x: p.x+1, y: p.y},
-        {x: p.x+1, y: p.y+1},
-        {x: p.x, y: p.y+1},
-        {x: p.x-1, y: p.y+1},
-        {x: p.x-1, y: p.y},
-        {x: p.x-1, y: p.y-1},
-        {x: p.x, y: p.y-1},
-        {x: p.x+1, y: p.y-1}
-    ]
-}
-
-function createTilesInfluenced(pos: Position, size: number) {
-    const result = [];
-    const tile = { x: Math.floor(pos.x), y: Math.floor(pos.y) };
-
-    // TODO - incorrect, should actually find all affected tiles
-    // depending on the size
-    const surrounding = getSurroundingPos(tile);
-    surrounding.push(tile);
-    return surrounding;
-}
-
 
