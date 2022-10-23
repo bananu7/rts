@@ -110,6 +110,13 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
     // if multiple units get a move action, spread their targets out
     if (c.action.typ === 'Move' || c.action.typ === 'AttackMove') {
         const target = c.action.target;
+        const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
+        const isAcceptable = (p: Position) => g.board.map.tiles[explode(p)] === 0; // TODO - out of bounds etc
+
+        // Don't even bother if the original target isn't passable
+        // TODO - flying units
+        if (!isAcceptable(target))
+            return;
         
         // find all units that will participate in spiral formation forming
         const simps = us
@@ -125,10 +132,13 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
         )
 
         // assign a position on the spiral for each unit
-        const ssimps = simps.map((s, i) => ({
-            unit: s.unit,
-            position: spiral(target, i, 1.5),
-        }));
+        const ssimps = simps.map((s, i) => {
+            const potentialNewTarget = spiral(target, i, 1.5);
+            return {
+                unit: s.unit,
+                position: isAcceptable(potentialNewTarget) ? potentialNewTarget : target
+            }
+        });
 
         // send the action to eah unit individually
         ssimps.forEach(s => {
