@@ -20,6 +20,14 @@ import { ThreeCache } from './ThreeCache'
 
 import { Horizon } from '../debug/Horizon'
 
+// TODO make this settable more easily
+const debugFlags = Object.freeze({
+  showPaths: false,
+  showHorizons: false,
+  showCones: false,
+  showTerrainArrows: true,
+});
+
 const cache = new ThreeCache();
 
 const invisibleMaterial = new THREE.MeshBasicMaterial({
@@ -154,7 +162,7 @@ export function Unit3D(props: Unit3DProps) {
 
     return (
         <group>
-            {
+            { debugFlags.showPaths && 
                 props.selected && debugPath &&
                 <Line3D points={[new THREE.Vector3(props.unit.position.x, 1, props.unit.position.y), ...debugPath]} />
             }
@@ -163,8 +171,6 @@ export function Unit3D(props: Unit3DProps) {
                 position={[0, 1, 0]}
                 name={`Unit_${props.unit.id}`}
             >
-                <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
-
                 { /* Click mesh */ }
                 <mesh
                     onContextMenu={ onClick }
@@ -176,12 +182,16 @@ export function Unit3D(props: Unit3DProps) {
                 { props.selected &&
                     <SelectionCircle size={selectorSize} enemy={props.enemy} />
                 }
-                {/*
-                    props.selected && props.unit.debug &&
-                        <Horizon obstacles={props.unit.debug.obstacles} />
-                */}
 
-                { props.selected && debugArrowHelper }
+                { debugFlags.showHorizons && props.selected && props.unit.debug &&
+                    <Horizon obstacles={props.unit.debug.obstacles} />
+                }
+                { debugFlags.showCones &&
+                    <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
+                }
+                { debugFlags.showTerrainArrows && 
+                    props.selected && debugArrowHelper
+                }
 
                 <mesh
                     castShadow
