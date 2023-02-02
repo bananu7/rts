@@ -18,8 +18,8 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
         unit.actionQueue[0].typ === 'Harvest'
     ) {
         let velocity = {
-            x: Math.cos(unit.direction) * 1,
-            y: -Math.sin(unit.direction) * 1
+            x: Math.cos(unit.direction),
+            y: -Math.sin(unit.direction)
         };
         return velocity;
     }
@@ -149,8 +149,8 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     unit.debug.terrainAvoidance = terrainAvoidance;
 
     let velocity = {
-        x: Math.cos(nearestGapAngle) * 1,
-        y: -Math.sin(nearestGapAngle) * 1
+        x: Math.cos(nearestGapAngle),
+        y: -Math.sin(nearestGapAngle)
     };
 
     V.vecAdd(velocity, separation);

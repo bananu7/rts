@@ -75,7 +75,7 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
             const stepCost =
                 (next.x === current.x || next.y === current.y)
                 ? 1
-                : 1.41421356237;
+                : Math.SQRT2;
 
             // costSoFar will always contain this element here
             const newCost = costSoFar.get(current)! + stepCost;
