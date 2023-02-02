@@ -160,12 +160,13 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
 }
 
 const wrap360 = (x: number) => {
-    if (x < 0)
-        return x + Math.PI*2;
-    else if (x > Math.PI*2)
-        return x - Math.PI*2;
-    else
-        return x;
+    while (x < 0) {
+        x += Math.PI*2;
+    }
+    while (x > Math.PI*2) {
+        x -= Math.PI*2;
+    }
+    return x;
 }
 
 function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
