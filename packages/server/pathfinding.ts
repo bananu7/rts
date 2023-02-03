@@ -71,8 +71,14 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
             .filter(e => m.tiles[explode(e)] === 0);
 
         for (let next of options) {
+            // detect if moving diagonally
+            const stepCost =
+                (next.x === current.x || next.y === current.y)
+                ? 1
+                : Math.SQRT2;
+
             // costSoFar will always contain this element here
-            const newCost = costSoFar.get(current)! + 1 // cost of moving one tile
+            const newCost = costSoFar.get(current)! + stepCost;
             const costOfNext = costSoFar.get(next);
 
             if (!costOfNext || newCost < costOfNext) {
@@ -111,10 +117,38 @@ export function pathFind(a: Position, b: Position, m: GameMap)  {
     const path = gridPathFind(unitTilePos, destTilePos, m);
 
     // improve the resulting path slightly, if found
-    if (path) {
-        path.pop(); // remove last grid tile to avoid backtracking
-        path.push(b); // add the precise destination as the last step
+    if (!path) {
+        return;
     }
 
-    return path;
+    // remove redundant nodes on straight lines
+    const newPath = [];
+    if (path.length > 0)
+        newPath.push(path[0]);
+    if (path.length > 1)
+        newPath.push(path[1]);
+
+    if (path.length >= 3) {
+        const diff = { x: path[1].x - path[0].x, y: path[1].y - path[0].y};
+
+        for (let i = 2; i < path.length; i++) {
+            let dx = path[i].x - path[i-1].x;
+            let dy = path[i].y - path[i-1].y;
+
+            // the -2, -1 and 0 points lie on a line?
+            if (diff.x === dx && diff.y === dy) {
+                // path[i-1] (middle) can be removed
+                newPath.pop();
+            }
+
+            diff.x = dx;
+            diff.y = dy;
+            newPath.push(path[i]);
+        }
+    }
+
+    newPath.pop(); // remove last grid tile to avoid backtracking
+    newPath.push(b); // add the precise destination as the last step
+
+    return newPath;
 };

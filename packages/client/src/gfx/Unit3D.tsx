@@ -18,6 +18,16 @@ import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 
+import { Horizon } from '../debug/Horizon'
+
+// TODO make this settable more easily
+const debugFlags = Object.freeze({
+  showPaths: false,
+  showHorizons: false,
+  showCones: false,
+  showTerrainArrows: true,
+});
+
 const cache = new ThreeCache();
 
 const invisibleMaterial = new THREE.MeshBasicMaterial({
@@ -86,11 +96,6 @@ export function Unit3D(props: Unit3DProps) {
     const unitSize = isBuilding ? 4 : 1;
     const selectorSize = isBuilding ? 3 : 1;
 
-    /* TODO - debug path view
-    const path = props.unit.actionQueue.map(a => {
-        return new THREE.Vector3(a.target.x, 1, a.target.y);
-    })*/
-
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
     const softSnapVelocity =
@@ -123,7 +128,7 @@ export function Unit3D(props: Unit3DProps) {
         if(!unitGroupRef.current)
             return;
 
-        unitGroupRef.current.rotation.y = -props.unit.direction;
+        unitGroupRef.current.rotation.y = props.unit.direction;
 
         // TODO - temporary fix to bring units where they're needed quickly
         if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
@@ -136,15 +141,36 @@ export function Unit3D(props: Unit3DProps) {
         unitGroupRef.current.position.z += smoothingVelocity.y * dt;
     });
 
+    const debugArrowHelper = (() => {
+        if (!props.unit.debug?.terrainAvoidance)
+            return undefined;
+
+        const tavDir = new THREE.Vector3(props.unit.debug.terrainAvoidance.x, 0, props.unit.debug.terrainAvoidance.y);
+        const tavLen = tavDir.length() * 3;
+        tavDir.normalize();
+        return <arrowHelper args={[
+            tavDir,
+            new THREE.Vector3( 0, 0, 0 ),
+            tavLen,
+            0xff0000,
+        ]} />;
+    })();
+
+    const debugPath = props.unit.debug?.pathToNext?.map((a: any) => {
+        return new THREE.Vector3(a.x, 1, a.y);
+    });
+
     return (
         <group>
+            { debugFlags.showPaths && 
+                props.selected && debugPath &&
+                <Line3D points={[new THREE.Vector3(props.unit.position.x, 1, props.unit.position.y), ...debugPath]} />
+            }
             <group
                 ref={unitGroupRef}
                 position={[0, 1, 0]}
                 name={`Unit_${props.unit.id}`}
             >
-                <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
-
                 { /* Click mesh */ }
                 <mesh
                     onContextMenu={ onClick }
@@ -155,6 +181,16 @@ export function Unit3D(props: Unit3DProps) {
 
                 { props.selected &&
                     <SelectionCircle size={selectorSize} enemy={props.enemy} />
+                }
+
+                { debugFlags.showHorizons && props.selected && props.unit.debug &&
+                    <Horizon obstacles={props.unit.debug.obstacles} />
+                }
+                { debugFlags.showCones &&
+                    <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
+                }
+                { debugFlags.showTerrainArrows && 
+                    props.selected && debugArrowHelper
                 }
 
                 <mesh
