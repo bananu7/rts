@@ -190,7 +190,7 @@ app.post('/leave', async (req, res) => {
 io.onConnection(channel => {
     // first figure out where to join it
     channel.onDisconnect(() => {
-        console.log(`${channel.id} got disconnected`)
+        console.log(`[index] ${channel.id} got disconnected`)
     })
 
     channel.on('spectate', (data: Data) => {
@@ -247,7 +247,7 @@ io.onConnection(channel => {
             matchId: packet.matchId
         };
 
-        console.log(`Channel of user ${packet.userId} connected to the match ${packet.matchId}`);
+        console.log(`[index] Channel of user ${packet.userId} connected to the match ${packet.matchId}`);
 
         channel.emit('connected', playerEntry.index, {reliable: true});
         channel.emit('chat message', `Successfully connected to the match ${packet.matchId}!`);
