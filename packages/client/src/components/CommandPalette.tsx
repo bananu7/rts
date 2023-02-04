@@ -9,7 +9,7 @@ import {
    Position,
    ProductionFacility,
    Builder,
-} from 'server/types'
+} from 'server/src/types'
 import { Multiplayer } from '../Multiplayer'
 
 export type SelectedAction = 

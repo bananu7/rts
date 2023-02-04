@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, CSSProperties } from 'react'
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/src/types'
 import { Multiplayer } from '../Multiplayer';
-import { Board, UnitState } from 'server/types'
+import { Board, UnitState } from 'server/src/types'
 import { MatchList } from '../components/MatchList';
 
 const multiplayer = new Multiplayer("debug_user");

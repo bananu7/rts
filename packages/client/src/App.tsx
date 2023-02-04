@@ -12,7 +12,7 @@ import { Chat } from './components/Chat';
 import { View3D } from './gfx/View3D';
 import { Board3D } from './gfx/Board3D';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/src/types'
 import { Multiplayer } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 

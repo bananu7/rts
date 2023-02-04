@@ -1,5 +1,5 @@
 import { useState, useEffect, CSSProperties } from 'react'
-import { Board, UnitState } from 'server/types'
+import { Board, UnitState } from 'server/src/types'
 
 type Props = {
     board: Board,

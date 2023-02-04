@@ -8,7 +8,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
 
 import { SelectionBox } from './SelectionBox'
 
@@ -108,6 +108,7 @@ export function Map3D(props: Map3DProps) {
             <SelectionBox start={drag} pointer={pointer} />
 
             <instancedMesh
+                name="Game map mesh"
                 ref={ref}
                 args={[undefined, undefined, w*h]}
                 receiveShadow

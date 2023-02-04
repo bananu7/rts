@@ -1,4 +1,4 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from 'server/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from 'server/src/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {

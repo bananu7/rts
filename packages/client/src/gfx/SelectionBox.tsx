@@ -6,7 +6,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Position } from 'server/types'
+import { Position } from 'server/src/types'
 
 type SelectionBoxProps = {
     start: RefObject<Position | undefined>,

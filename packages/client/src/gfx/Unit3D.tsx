@@ -12,7 +12,7 @@ import * as THREE from 'three';
 //import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 //import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MatchInfo } from 'server/types'
+import { MatchInfo } from 'server/src/types'
 import { HTTP_API_URL } from '../config'
 
 type Props = {
