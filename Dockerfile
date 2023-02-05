@@ -26,7 +26,9 @@ RUN yarn install
 WORKDIR /var/lib/app/packages/server
 
 COPY ./packages/server/tsconfig.json ./
-COPY ./packages/server/src/*.ts ./
+
+RUN mkdir -p ./src
+COPY ./packages/server/src/*.ts ./src/
 
 RUN yarn build
 

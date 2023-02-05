@@ -10,7 +10,10 @@ RUN yarn install
 
 # build
 COPY tsconfig.json ./
-COPY src/*.ts ./
+
+RUN mkdir -p ./src
+COPY src/*.ts ./src/
+
 RUN yarn build
 
 ################################
