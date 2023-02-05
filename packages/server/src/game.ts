@@ -1,5 +1,6 @@
 import {
     Milliseconds, Position,
+    Board,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Action, ActionFollow, ActionAttack, ActionMove,
@@ -276,15 +277,20 @@ const getVisionComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Vision') as Vision;
 }
 
-function updateUnits(dt: Milliseconds, g: Game) {
-    // Build a unit presence map
+function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
     const presence: PresenceMap = new Map();
-    for (const u of g.units) {
-        const explodedIndex = Math.floor(u.position.x) + Math.floor(u.position.y) * g.board.map.w;
+    for (const u of units) {
+        const explodedIndex = Math.floor(u.position.x) + Math.floor(u.position.y) * board.map.w;
         const us = presence.get(explodedIndex) ?? [] as Unit[];
         us.push(u);
         presence.set(explodedIndex, us);
     }
+    return presence;
+}
+
+function updateUnits(dt: Milliseconds, g: Game) {
+    // Build a unit presence map
+    const presence = buildPresenceMap(g.units, g.board);
 
     // calculate updates and velocities
     for (const unit of g.units) {
