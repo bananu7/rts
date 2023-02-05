@@ -10,5 +10,6 @@
     "strict": true,
 
     "skipLibCheck": true,
+    "rootDirs": ["src"]
   }
 }
