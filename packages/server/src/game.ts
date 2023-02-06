@@ -13,6 +13,14 @@ import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits } from './units.js'
 import { notEmpty } from './tsutil.js'
 
+
+// general accuracy when the unit assumes it has reached
+// its destination
+const MOVEMENT_EPSILON = 0.2;
+// how far the unit will run away from the idle position
+// to chase an enemy that it spotted.
+const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
+
 export function newGame(map: GameMap): Game {
     const units = createStartingUnits();
     return {
@@ -528,12 +536,19 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         const target = detectNearbyEnemy(); 
         if (!target) {
+            // try to return to the idle position;
+            // if it's close enough, it shouldn't start moving at all
+            moveTowards(unit.actionState.idlePosition, MOVEMENT_EPSILON);
             return;   
         }
 
-        // TODO - aggro state should depend on the initial aggro location
-        // stop location needs to be stored somewhere
-        aggro(ac, target);
+        // TODO: hysteresis
+        const distanceFromIdle = V.distance(unit.position, unit.actionState.idlePosition);
+        if (distanceFromIdle < MAXIMUM_IDLE_AGGRO_RANGE){
+            aggro(ac, target);
+        } else {
+            moveTowards(unit.actionState.idlePosition, MOVEMENT_EPSILON);
+        }
         
         return;
     }
@@ -543,7 +558,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     switch (cmd.typ) {
         case 'Move': {
-            if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+            if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
                 clearCurrentAction();
             }
             break;
@@ -566,7 +581,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     // lose aggro
                     // TODO: aggro hysteresis?
                     // just move
-                    if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                    if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
                         clearCurrentAction();
                     }
                 } else {
@@ -574,7 +589,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 }
             } else {
                 // just move
-                if (moveTowards(cmd.target, 0.2) !== 'Moving') {
+                if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
                     clearCurrentAction();
                 }
             }
