@@ -14,8 +14,8 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
     // Disable collisions for harvesting units
-    if (unit.actionQueue.length > 0 &&
-        unit.actionQueue[0].typ === 'Harvest'
+    if (unit.actionState.state === 'active' &&
+        unit.actionState.current.typ === 'Harvest'
     ) {
         let velocity = {
             x: Math.cos(unit.direction),

@@ -160,11 +160,25 @@ export type TilePos = { x: number, y: number }
 export type PlayerIndex = number
 export type UserId = string
 
+// represents a non-empty queue
+export type UnitActiveState = {
+    state: 'active',
+    current: Action,
+    rest: Action[],
+}
+
+export type UnitIdleState = {
+    state: 'idle',
+    idlePosition: Position,
+}
+
+export type ActionState = UnitIdleState | UnitActiveState;
+
 export type Unit = {
     debug?: any;
 
     readonly id: number,
-    actionQueue: Action[],
+    actionState: ActionState,
     readonly kind: string, // TODO should this be in a component
     readonly owner: PlayerIndex,
     readonly position: Position,

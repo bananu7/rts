@@ -48,10 +48,21 @@ function commandOne(shift: boolean, action: Action, unit: Unit, playerIndex: num
 
     console.log(`[game] Adding action ${action.typ} for unit ${unit.id}`);
 
-    if (shift)
-        unit.actionQueue.push(action);
-    else
-        unit.actionQueue = [action];
+    if (unit.actionState.state === 'idle') {
+        unit.actionState = {
+            state: 'active',
+            current: action,
+            rest: []
+        }
+    } else {
+        if (shift) {
+            unit.actionState.rest.push(action);
+        }
+        else {
+            unit.actionState.current = action;
+            unit.actionState.rest = [];
+        }
+    }
 }
 
 // This code generates an offset position for a given spiral index
@@ -223,7 +234,9 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
                 'Stop': 'Idle',
             }
             type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
-            const status: (US) = u.actionQueue.length > 0 ? (actionToStatus[u.actionQueue[0].typ] as US) : 'Idle';
+            const status: (US) = u.actionState.state === 'active' ?
+                (actionToStatus[u.actionState.current.typ] as US) :
+                'Idle';
 
             return {
                 id: u.id,
@@ -329,9 +342,24 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
     }
 
+    const becomeIdleAtCurrentPosition = () => {
+        unit.actionState = {
+            state: 'idle',
+            idlePosition: { x: unit.position.x, y: unit.position.y },
+        }
+    }
+
     const clearCurrentAction = () => {
         stopMoving();
-        unit.actionQueue.shift();
+        if (unit.actionState.state === 'active') {
+            const next = unit.actionState.rest.shift();
+            if (next) {
+                unit.actionState.current = next;
+            }
+            else {
+                becomeIdleAtCurrentPosition();
+            }
+        }
     }
 
     // TODO - handle more than one action per tick
@@ -490,7 +518,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     // Idle state
-    if (unit.actionQueue.length === 0) {
+    if (unit.actionState.state === 'idle') {
         const ac = getAttackerComponent(unit);
 
         // TODO run away when attacked
@@ -510,7 +538,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return;
     }
 
-    const cmd = unit.actionQueue[0];
+    const cmd = unit.actionState.current;
     const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
     switch (cmd.typ) {
@@ -558,8 +586,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             stopMoving();
             // TODO dedicated cancel action
             cancelProduction();
-
-            unit.actionQueue = [];
+            becomeIdleAtCurrentPosition();
             break;
         }
 
@@ -663,7 +690,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // in the component anyway?
             const p = getProducerComponent(unit);
             if (!p) {
-                unit.actionQueue.shift();
+                clearCurrentAction();
                 break;
             }
 

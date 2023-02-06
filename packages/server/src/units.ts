@@ -48,7 +48,7 @@ const UNIT_CATALOG : Catalog = {
 
 export const createUnit = (id: number, owner: number, kind: string, position: Position): Unit => {
     return {
-        actionQueue: [],
+        actionState: { state: 'idle', idlePosition: { x:position.x, y:position.y}},
         id,
         kind,
         owner,
