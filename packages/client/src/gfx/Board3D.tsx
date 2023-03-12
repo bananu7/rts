@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef, Suspense, useLayoutEffect, useMemo, memo, Ref } from 'react'
+import { useCallback, useEffect, useState, useRef, Suspense, useLayoutEffect, useMemo, memo, Ref, RefObject } from 'react'
 
 import {
     useLoader, Canvas, useFrame,
@@ -17,11 +17,27 @@ import { Unit3D } from './Unit3D'
 
 import { SelectedAction } from '../game/SelectedAction'
 
-function BuildPreview(props: {position: Position, building: string}) {
+function BuildPreview(props: {position: RefObject<Position>, building: string}) {
     const unitSize = 5;
 
+    if (!props.position.current) {
+        return <></>;
+    }
+
+    const ref = useRef<THREE.Group>(null);
+    useFrame(() => {
+        if(!ref.current)
+            return;
+
+        if (!props.position.current)
+            return;
+
+        ref.current.position.x = props.position.current.x;
+        ref.current.position.z = props.position.current.y;
+    })
+
     return (
-        <group position={[props.position.x, 2, props.position.y]}>
+        <group ref={ref} position={[-100, 2, -100]}>
             <mesh>
                 <boxGeometry args={[unitSize, 2, unitSize]} />
                 <meshBasicMaterial color={0x33cc33} transparent={true} opacity={0.5} />
@@ -97,7 +113,7 @@ export function Board3D(props: Props) {
             {
                 props.selectedAction &&
                 props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer.current}/>
+                <BuildPreview building={props.selectedAction.building} position={pointer}/>
             }
         </group>
     );
