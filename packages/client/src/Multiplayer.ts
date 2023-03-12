@@ -151,33 +151,20 @@ export class Multiplayer {
                 matchId = (data as {matchId: string}).matchId;
                 localStorage.setItem('matchId', matchId);
 
-                resolve(new SpectatorControl(matchId));
+                resolve(new SpectatorControl(matchId, this.channel));
             });
         });
     }
 }
 
 class AbstractControl {
+    protected matchId: string;
+    protected channel?: ClientChannel;
     protected leaveMatchHandler?: () => void;
 
-    setOnLeaveMatch(handler: () => void) {
-        this.leaveMatchHandler = handler;
-    }
-}
-
-export class MatchControl extends AbstractControl {
-    // this gets set to null if a leave connection is issued
-    userId: string;
-    channel?: ClientChannel;
-    matchId: string;
-    playerIndex: number;
-
-    constructor(userId: string, channel: ClientChannel, matchId: string, playerIndex: number) {
-        super();
-        this.userId = userId;
-        this.channel = channel;
-        this.matchId = matchId;
-        this.playerIndex = playerIndex;
+    async getMatchState() {
+        console.log("[multiplayer] Getting match state");
+        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
     }
 
     protected _getChannel(): ClientChannel {
@@ -186,16 +173,32 @@ export class MatchControl extends AbstractControl {
         return this.channel;
     }
 
+    protected constructor(channel: ClientChannel, matchId: string) {
+        this.channel = channel;
+        this.matchId = matchId;
+    }
+
+    setOnLeaveMatch(handler: () => void) {
+        this.leaveMatchHandler = handler;
+    }
+
     setOnUpdatePacket(handler: (p: UpdatePacket) => void) {
         this._getChannel().on('tick', (data: Data) => {
             const u = data as UpdatePacket;
             handler(u);
         })
-    }
+    } 
+}
 
-    async getMatchState() {
-        console.log("[multiplayer] Getting match state");
-        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+export class MatchControl extends AbstractControl {
+    // this gets set to null if a leave connection is issued
+    userId: string;
+    playerIndex: number;
+
+    constructor(userId: string, channel: ClientChannel, matchId: string, playerIndex: number) {
+        super(channel, matchId);
+        this.userId = userId;
+        this.playerIndex = playerIndex;
     }
 
     async leaveMatch() {
@@ -328,10 +331,8 @@ export class MatchControl extends AbstractControl {
 }
 
 export class SpectatorControl extends AbstractControl {
-    matchId: string;
-
-    constructor(matchId: string) {
-        super();
+    constructor(matchId: string, channel: ClientChannel) {
+        super(channel, matchId);
         this.matchId = matchId;
     }
 
@@ -340,6 +341,7 @@ export class SpectatorControl extends AbstractControl {
     }
 
     async stopSpectating() {
-
+        if (this.leaveMatchHandler)
+            this.leaveMatchHandler();
     }
 }

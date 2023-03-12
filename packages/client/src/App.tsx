@@ -4,6 +4,7 @@ import './App.css'
 import { MatchList } from './components/MatchList';
 
 import { MatchController } from './components/MatchController';
+import { SpectateController } from './components/SpectateController';
 import { Multiplayer, MatchControl, SpectatorControl } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 
@@ -88,7 +89,7 @@ function App() {
     if (controller instanceof MatchControl) {
       return <MatchController ctrl={controller} />
     } if (controller instanceof SpectatorControl) {
-      return <span>You'd be in spectator view right now</span>;
+      return <SpectateController ctrl={controller} />
     } else {
       return matchList;
     }
