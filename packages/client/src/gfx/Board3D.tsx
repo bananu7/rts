@@ -15,7 +15,7 @@ import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
 
-import { SelectedAction } from '../components/CommandPalette'
+import { SelectedAction } from '../game/SelectedAction'
 
 function BuildPreview(props: {position: Position, building: string}) {
     const unitSize = 5;
