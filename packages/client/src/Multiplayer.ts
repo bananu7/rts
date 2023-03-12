@@ -17,6 +17,9 @@ export class Multiplayer {
 
     onChatMessage?: OnChatMessage;
 
+    _onConnected?: (data: Data) => void;
+    _onSpectating?: (data: Data) => void;
+
     constructor(userId: string) {
         console.log("[Multiplayer] First-time init");
         console.log(`[Multiplayer] GECKOS_URL = ${GECKOS_URL}`);
@@ -60,6 +63,18 @@ export class Multiplayer {
                     localStorage.removeItem('matchId');
                 });
 
+                // TODO ? - Bind to events via proxy because geckos doesn't rebind
+                this.channel.on('spectating', (data: Data) => {
+                    if (this._onSpectating)
+                        this._onSpectating(data);
+                });
+
+                // TODO change strings to enums because i just made a typo here
+                this.channel.on('connected', (data: Data) => {
+                    if (this._onConnected)
+                        this._onConnected(data);
+                });
+
                 resolve(this.reconnect());
             });
         });
@@ -73,16 +88,16 @@ export class Multiplayer {
         }
 
         console.log(`[Multiplayer] Reconnecting to match ${matchId}`)
-        this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
-    
+
         return new Promise((resolve) => {
-            this.channel.on('connected', (data: Data) => {
+            this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
                 resolve(new MatchControl(this.userId, this.channel, matchId, playerIndex));
-            });
+            };
+            this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
         });
     }
 
@@ -123,16 +138,15 @@ export class Multiplayer {
             matchId
         };
 
-        this.channel.emit('connect', data);
-
         return new Promise((resolve) => {
-            this.channel.on('connected', (data: Data) => {
+            this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
                 resolve(new MatchControl(this.userId, this.channel, matchId, resj.playerIndex));
-            });
+            };
+            this.channel.emit('connect', data);
         });
     }
 
@@ -144,15 +158,16 @@ export class Multiplayer {
             matchId
         };
 
-        this.channel.emit('spectate', data);
-
         return new Promise ((resolve) => {
-            this.channel.on('spectating', (data: Data) => {
+            this._onSpectating = (data: Data) => {
+                console.log("[Multiplayer] Received spectate confirmation from server");
                 matchId = (data as {matchId: string}).matchId;
                 localStorage.setItem('matchId', matchId);
+                localStorage.setItem('spectate', 'true');
 
                 resolve(new SpectatorControl(matchId, this.channel));
-            });
+            };
+            this.channel.emit('spectate', data);
         });
     }
 }
