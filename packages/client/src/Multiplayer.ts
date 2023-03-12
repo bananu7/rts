@@ -31,32 +31,35 @@ export class Multiplayer {
         this.userId = userId;
     }
 
-    setup(config: MultiplayerConfig) {
+    // TODO: Spectator rejoin
+    async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
         if (this.geckosSetUp)
             return;
         this.geckosSetUp = true;
 
         this.onChatMessage = config.onChatMessage;
 
-        this.channel.onConnect((error: any) => {
-            if (error) {
-                console.error(error.message)
-                return
-            }
+        return new Promise(resolve => {
+            this.channel.onConnect((error: any) => {
+                if (error) {
+                    console.error(error.message)
+                    return
+                }
 
-            console.log('[Multiplayer] Channel set up correctly')
+                console.log('[Multiplayer] Channel set up correctly')
 
-            // set up handlers
-            this.channel.on('chat message', (data: Data) => {
-                this.onChatMessage && this.onChatMessage(data as string);
-            })
+                // set up handlers
+                this.channel.on('chat message', (data: Data) => {
+                    this.onChatMessage && this.onChatMessage(data as string);
+                })
 
-            this.channel.on('connection failure', (data: Data) => {
-                console.log("[Multiplayer] server refused join or rejoin, clearing match association");
-                localStorage.removeItem('matchId');
+                this.channel.on('connection failure', (data: Data) => {
+                    console.log("[Multiplayer] server refused join or rejoin, clearing match association");
+                    localStorage.removeItem('matchId');
+                });
+
+                resolve(this.reconnect());
             });
-
-            this.reconnect();
         });
     }
 

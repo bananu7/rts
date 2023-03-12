@@ -36,13 +36,13 @@ export function MatchController(props: MatchControllerProps) {
     .then(s => setServerState(s));
   }, []);
 
-  const leaveMatch = async () => {
+  const leaveMatch = useCallback(async () => {
     await props.ctrl.leaveMatch();
     setLastUpdatePacket(null);
     setServerState(null);
-  };
+  }, [props.ctrl, setLastUpdatePacket, setServerState]);
 
-  const onUpdatePacket = (p:UpdatePacket) => {
+  const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
 
     // Based on the current state of the game, some actions selected in the UI
@@ -86,13 +86,14 @@ export function MatchController(props: MatchControllerProps) {
 
       return newSelectedUnits;
     });
-  };
+  }, [setLastUpdatePacket, setSelectedUnits]);
 
   // previously onMatchConnected
   useEffect(() => {
+    console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
     updateMatchState();
-  });
+  }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 

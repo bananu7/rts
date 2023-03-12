@@ -23,7 +23,16 @@ function App() {
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
   useEffect(() => {
-    multiplayer.setup({});
+    const setupMultiplayer = async () => {
+      const rejoinedCtrl = await multiplayer.setup({});
+     
+      if (rejoinedCtrl) {
+        setController(rejoinedCtrl);
+      }
+    }
+
+    setupMultiplayer()
+    .catch(console.error);
 
     console.log("[App] Bartek RTS starting");
     console.log(`[App] HTTP_API_URL = ${HTTP_API_URL}`);
