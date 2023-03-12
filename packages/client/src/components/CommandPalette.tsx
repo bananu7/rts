@@ -11,12 +11,7 @@ import {
    Builder,
 } from 'server/src/types'
 import { Multiplayer } from '../Multiplayer'
-
-export type SelectedAction = 
-  { action: 'Move' }
-| { action: 'Attack' }
-| { action: 'Build', building: string }
-| { action: 'Harvest' };
+import { SelectedAction } from '../game/SelectedAction'
 
 type ButtonProps = {
     x?: number,

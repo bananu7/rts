@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
+import { SelectedAction } from './game/SelectedAction';
+import { canPerformSelectedAction } from './game/UnitQuery';
 import { MatchList } from './components/MatchList';
 import { Minimap } from './components/Minimap';
-import { CommandPalette, SelectedAction } from './components/CommandPalette';
+import { CommandPalette } from './components/CommandPalette';
 import { BottomUnitView } from './components/BottomUnitView';
 import { ResourceView } from './components/ResourceView';
 import { PrecountCounter } from './components/PrecountCounter'
@@ -41,6 +43,10 @@ function App() {
     .then(s => setServerState(s));
   }, []);
 
+    // TODO should this be part of ADT because undefined is annoying af
+  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
+  const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
+
   const leaveMatch = async () => {
     await multiplayer.leaveMatch();
     setLastUpdatePacket(null);
@@ -51,10 +57,48 @@ function App() {
     multiplayer.setup({
       onUpdatePacket: (p:UpdatePacket) => {
         setLastUpdatePacket(p);
-        setSelectedUnits(su => new Set(p.units.map(u => u.id).filter(id => su.has(id))));
 
-        // TODO verify if currently selected units can still perform the action
-        // such as building
+        // Based on the current state of the game, some actions selected in the UI
+        // might not be viable anymore.
+
+        // The selected unit set is pruned from the ones that aren't on the server
+        // (most likely were killed while being selected)
+
+        setSelectedUnits(su => {
+          const newSelectedUnits = new Set(
+            p.units
+            .map(u => u.id)
+            .filter(id => su.has(id))
+          );
+
+          // If after that the selected action can't be performed by the remaining units,
+          // clear it
+          setSelectedAction(sa => {
+            if (!sa) {
+              return undefined;
+            }
+
+            let canKeepAction = false;
+            // TODO maybe units should be indexed by id in the local state?
+            for (const u of p.units) {
+              if (!newSelectedUnits.has(u.id))
+                continue;
+
+              if (canPerformSelectedAction(u, sa)) {
+                canKeepAction = true;
+                break;
+              }
+            }
+
+            if (!canKeepAction) {
+              return undefined;
+            } else {
+              return sa;
+            }
+          });
+
+          return newSelectedUnits;
+        });
       },
       onMatchConnected: (matchId: string) => {
         console.log(`[App] Connected to a match ${matchId}`);
@@ -71,11 +115,6 @@ function App() {
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
-
-  // TODO should this be part of ADT because undefined is annoying af
-  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
-
-  const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
   const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
