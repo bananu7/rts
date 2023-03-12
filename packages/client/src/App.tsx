@@ -22,11 +22,16 @@ const multiplayer = new Multiplayer(userId);
 function App() {
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
+  const cleanupOnLeave = () => {
+    setController(null);
+  };
+
   useEffect(() => {
     const setupMultiplayer = async () => {
       const rejoinedCtrl = await multiplayer.setup({});
      
       if (rejoinedCtrl) {
+        rejoinedCtrl.setOnLeaveMatch(cleanupOnLeave);
         setController(rejoinedCtrl);
       }
     }
@@ -44,12 +49,14 @@ function App() {
   const joinMatch = async (matchId: string) => {
     const ctrl = await multiplayer.joinMatch(matchId);
     console.log(`[App] Connected to a match ${matchId}`);
+    ctrl.setOnLeaveMatch(cleanupOnLeave);
     setController(ctrl);
   };
 
   const spectateMatch = async (matchId: string) => {
     const ctrl = await multiplayer.spectateMatch(matchId);
     console.log(`[App] Spectating match ${matchId}`);
+    ctrl.setOnLeaveMatch(cleanupOnLeave);
     setController(ctrl);
   };
   

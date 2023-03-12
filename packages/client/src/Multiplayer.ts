@@ -35,6 +35,8 @@ export class Multiplayer {
     async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
         if (this.geckosSetUp)
             return;
+
+        console.log('[Multiplayer] Setting up for for the first time')
         this.geckosSetUp = true;
 
         this.onChatMessage = config.onChatMessage;
@@ -155,13 +157,23 @@ export class Multiplayer {
     }
 }
 
-export class MatchControl {
+class AbstractControl {
+    protected leaveMatchHandler?: () => void;
+
+    setOnLeaveMatch(handler: () => void) {
+        this.leaveMatchHandler = handler;
+    }
+}
+
+export class MatchControl extends AbstractControl {
     // this gets set to null if a leave connection is issued
     userId: string;
     channel?: ClientChannel;
     matchId: string;
     playerIndex: number;
+
     constructor(userId: string, channel: ClientChannel, matchId: string, playerIndex: number) {
+        super();
         this.userId = userId;
         this.channel = channel;
         this.matchId = matchId;
@@ -204,6 +216,8 @@ export class MatchControl {
         })
         .then(res => {
             this.channel = undefined;
+            if (this.leaveMatchHandler)
+                this.leaveMatchHandler();
             localStorage.removeItem('matchId');
         });
     }
@@ -313,10 +327,11 @@ export class MatchControl {
     }
 }
 
-export class SpectatorControl {
+export class SpectatorControl extends AbstractControl {
     matchId: string;
 
     constructor(matchId: string) {
+        super();
         this.matchId = matchId;
     }
 
