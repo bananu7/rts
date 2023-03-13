@@ -21,9 +21,10 @@ const MOVEMENT_EPSILON = 0.2;
 // to chase an enemy that it spotted.
 const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
 
-export function newGame(map: GameMap): Game {
+export function newGame(matchId: string, map: GameMap): Game {
     const units = createStartingUnits();
     return {
+        matchId,
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
@@ -37,7 +38,7 @@ export function newGame(map: GameMap): Game {
 }
 
 export function startGame(g: Game) {
-    console.log("[game] Game starting precount");
+    console.log(`[game] Game #${g.matchId} starting precount`);
     g.state = {id: 'Precount', count: 0};
 }
 

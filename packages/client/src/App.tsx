@@ -24,6 +24,7 @@ function App() {
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
   const cleanupOnLeave = () => {
+    console.log(`[App] Leaving match`);
     setController(null);
   };
 
