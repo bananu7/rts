@@ -38,6 +38,8 @@ export class OrbitControls {
     panSpeed: number;
     screenSpacePanning: boolean;
     keyPanSpeed: number;
+    minPan: Vector3;
+    maxPan: Vector3;
 
     autoRotate: boolean;
     autoRotateSpeed: number;

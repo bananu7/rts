@@ -74,6 +74,8 @@ class OrbitControls extends EventDispatcher {
 		this.panSpeed = 1.0;
 		this.screenSpacePanning = true; // if false, pan orthogonal to world-space direction camera.up
 		this.keyPanSpeed = 7.0;	// pixels moved per arrow key push
+		this.minPan = new Vector3(-100, -100, -100);
+		this.maxPan = new Vector3(100, 100, 100);
 
 		// Set to true to automatically rotate around the target
 		// If auto-rotate is enabled, you must call controls.update() in your animation loop
@@ -240,6 +242,7 @@ class OrbitControls extends EventDispatcher {
 					scope.target.add( panOffset );
 
 				}
+				scope.target.clamp(scope.minPan, scope.maxPan);
 
 				offset.setFromSpherical( spherical );
 

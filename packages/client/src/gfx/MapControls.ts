@@ -10,7 +10,9 @@ export class MapControls extends OrbitControls {
 
         this.touches.ONE = THREE.TOUCH.PAN;
         this.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
+
+        // TODO - real map size
+        this.minPan.set(15, 0, 15);
+        this.maxPan.set(85, 10, 85);
     }
-
-
 }
