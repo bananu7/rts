@@ -27,7 +27,7 @@ export function MatchList(props: Props) {
     }, []);
 
     const matchRows = matches.map(m => {
-        const joinable = m.status.id == "Lobby";
+        const joinable = m.status.id === "Lobby";
 
         return (<tr key={m.matchId}>
             <td>{m.matchId}</td>

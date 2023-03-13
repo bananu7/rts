@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, CSSProperties } from 'react'
 
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/src/types'
-import { Multiplayer } from '../Multiplayer';
+import { Multiplayer, MatchControl, SpectatorControl } from '../Multiplayer';
 import { Board, UnitState } from 'server/src/types'
 import { MatchList } from '../components/MatchList';
 
@@ -61,25 +61,38 @@ export function DebugMap(props: Props) {
 }
 
 export default function DebugApp() {
+    const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
+
     const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
 
     const [serverState, setServerState] = useState<Game | null>(null);
     const refresh = () => {
-        multiplayer.getMatchState()
-        .then(s => setServerState(s));
+        if (controller && controller instanceof MatchControl) {
+            controller.getMatchState()
+            .then(s => setServerState(s));
+        }
     };
 
     useEffect(() => {
-        multiplayer.setup({
-            onUpdatePacket: (p:UpdatePacket) => {
-                setLastUpdatePacket(p);
-            },
-            onMatchConnected: (matchId: string) => {
-                console.log(`[App] Connected to a match ${matchId}`);
-                refresh();
-            }
-        });
+        multiplayer.setup({});
     });
+
+    const onUpdatePacket = (p:UpdatePacket) => {
+        setLastUpdatePacket(p);
+    };
+
+    const joinMatch = async (matchId: string) => {
+        const ctrl = await multiplayer.joinMatch(matchId);
+        console.log(`[DebugApp] Connected to a match ${matchId}`);
+        ctrl.setOnUpdatePacket(onUpdatePacket);
+        setController(ctrl);
+    };
+
+    const spectateMatch = async (matchId: string) => {
+        const ctrl = await multiplayer.spectateMatch(matchId);
+        console.log(`[DebugApp] Spectating match ${matchId}`);
+        setController(ctrl);
+    };
 
     return (
         <div className="debug">

@@ -10,7 +10,7 @@ import {
    ProductionFacility,
    Builder,
 } from 'server/src/types'
-import { Multiplayer } from '../Multiplayer'
+import { MatchControl } from '../Multiplayer'
 import { SelectedAction } from '../game/SelectedAction'
 
 type ButtonProps = {
@@ -45,7 +45,7 @@ type Props = {
     selectedAction: SelectedAction | undefined,
     setSelectedAction: (a: SelectedAction | undefined) => void,
     units: UnitState[],
-    multiplayer: Multiplayer,
+    ctrl: MatchControl,
     notify: (text: string) => void,
 }
 export function CommandPalette(props: Props) {
@@ -70,7 +70,7 @@ export function CommandPalette(props: Props) {
     const canHarvest = Boolean(units[0].components.find(c => c.type === 'Harvester'));
 
     const stop = () => {
-        props.multiplayer.stopCommand(Array.from(props.selectedUnits));
+        props.ctrl.stopCommand(Array.from(props.selectedUnits));
         props.setSelectedAction(undefined);
     }
 
@@ -90,7 +90,7 @@ export function CommandPalette(props: Props) {
 
     // TODO: produce just one unit from the set like SC?
     const produce = (utype: string) => 
-        props.multiplayer.produceCommand(Array.from(props.selectedUnits), utype);
+        props.ctrl.produceCommand(Array.from(props.selectedUnits), utype);
 
 
     const productionButtons = productionUnits.map(up => {

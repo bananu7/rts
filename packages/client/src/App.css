@@ -44,6 +44,12 @@
   text-align: center;
 }
 
+.MatchTable button:disabled {
+  color: #777;
+  background-color: #333;
+  pointer-events: none;
+}
+
 .read-the-docs {
   color: #888;
 }

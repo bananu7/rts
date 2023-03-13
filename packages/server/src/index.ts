@@ -80,8 +80,8 @@ let lastMatchId = 0;
 app.post('/create', async (req, res) => {
     // TODO - load or w/e
     const map = await getMap('assets/map.png');
-    const game = newGame(map);
     const matchId = String(++lastMatchId); // TODO
+    const game = newGame(matchId, map);
     matches.push({ game, matchId, players: [], spectators: [] });
 
     const TICK_MS = 50;
@@ -90,7 +90,7 @@ app.post('/create', async (req, res) => {
         const match = matches.find(m => m.matchId === matchId);
 
         if (!match)
-            throw new Error("Match scheduled for update doesn't exist");
+            throw new Error("[index] Match scheduled for update doesn't exist");
 
         match.players.forEach((p, i) => {
             // TODO: handle players without channels better?
@@ -106,7 +106,7 @@ app.post('/create', async (req, res) => {
         // io.room(matchId).emit('tick', updatePackets[0]);
     }, TICK_MS);
 
-    console.log(`Match ${matchId} created`);
+    console.log(`[index] Match ${matchId} created`);
 })
 
 // register a particular user as a player in a match
@@ -119,7 +119,7 @@ app.post('/join', async (req, res) => {
         if (!match) {
             res.status(400);
             res.send("Match doesn't exist");
-            console.warn(`Join attempt to a match that doesn't exist (${matchId})`);
+            console.warn(`[index] Join attempt to a match that doesn't exist (${matchId})`);
             return;
         }
 
@@ -198,7 +198,7 @@ io.onConnection(channel => {
 
         const m = matches.find(m => m.matchId === packet.matchId);
         if (!m) {
-            console.warn("Received a spectate request to a match that doesn't exist");
+            console.warn("[index] Received a spectate request to a match that doesn't exist");
             channel.emit('spectate failure', packet.matchId, {reliable: true});
             return;
         }
@@ -286,7 +286,7 @@ io.onConnection(channel => {
     });
 
     channel.on('chat message', (data: Data) => {
-        console.log(`got ${data} from "chat message"`)
+        console.log(`[index] got ${data} from "chat message"`)
         // emit the "chat message" data to all channels in the same room
         io.room(channel.roomId).emit('chat message', data)
     })

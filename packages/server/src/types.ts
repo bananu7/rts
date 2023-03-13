@@ -195,7 +195,9 @@ export type PlayerState = {
 }
 
 export type Game = {
-    state: GameState
+    // uuid: UUID, TODO
+    matchId: string,
+    state: GameState,
     tickNumber: number,
     players: PlayerState[],
     board: Board,

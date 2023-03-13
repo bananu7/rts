@@ -8,8 +8,6 @@ export type OnMatchConnected = (matchId: string) => void;
 
 export type MultiplayerConfig = {
     onChatMessage?: OnChatMessage,
-    onUpdatePacket: OnUpdatePacket,
-    onMatchConnected: OnMatchConnected,
 }
 
 export class Multiplayer {
@@ -17,12 +15,10 @@ export class Multiplayer {
     geckosSetUp: boolean;
     userId: string;
 
-    matchId?: string;
-    playerIndex?: number;
-
     onChatMessage?: OnChatMessage;
-    onUpdatePacket?: OnUpdatePacket;
-    onMatchConnected?: OnMatchConnected;
+
+    _onConnected?: (data: Data) => void;
+    _onSpectating?: (data: Data) => void;
 
     constructor(userId: string) {
         console.log("[Multiplayer] First-time init");
@@ -38,66 +34,71 @@ export class Multiplayer {
         this.userId = userId;
     }
 
-    setup(config: MultiplayerConfig) {
+    // TODO: Spectator rejoin
+    async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
         if (this.geckosSetUp)
             return;
+
+        console.log('[Multiplayer] Setting up for for the first time')
         this.geckosSetUp = true;
 
         this.onChatMessage = config.onChatMessage;
-        this.onUpdatePacket = config.onUpdatePacket;
-        this.onMatchConnected = config.onMatchConnected;
 
-        this.matchId = localStorage.getItem('matchId') || undefined;
-
-        this.channel.onConnect((error: any) => {
-            if (error) {
-                console.error(error.message)
-                return
-            }
-
-            console.log('[Multiplayer] Channel set up correctly')
-
-            // set up handlers
-            this.channel.on('chat message', (data: Data) => {
-                this.onChatMessage && this.onChatMessage(data as string);
-            })
-
-            this.channel.on('tick', (data: Data) => {
-                const u = data as UpdatePacket;
-                // TODO - detect dying units for visualisation purposes
-                this.onUpdatePacket && this.onUpdatePacket(u);
-            })
-
-            this.channel.on('spectating', (data: Data) => {
-                this.matchId = (data as {matchId: string}).matchId;
-                localStorage.setItem('matchId', this.matchId);
-                this.onMatchConnected && this.onMatchConnected(this.matchId);
-            });
-
-            this.channel.on('connected', (data: Data) => {
-                if (!this.matchId) {
-                    throw "Server responded with connection but the multiplayer isn't initialized to a match";
+        return new Promise(resolve => {
+            this.channel.onConnect((error: any) => {
+                if (error) {
+                    console.error(error.message)
+                    return
                 }
-                console.log("[Multiplayer] RTC connected to match")
-                this.playerIndex = data as number;
-                console.log(`[Multiplayer] Client is player ${this.playerIndex}`)
-                this.onMatchConnected && this.onMatchConnected(this.matchId);
-            });
 
-            this.channel.on('connection failure', (data: Data) => {
-                console.log("[Multiplayer] server refused join or rejoin, clearing match association");
-                localStorage.removeItem('matchId');
-            });
+                console.log('[Multiplayer] Channel set up correctly')
 
-            this.reconnect();
+                // set up handlers
+                this.channel.on('chat message', (data: Data) => {
+                    this.onChatMessage && this.onChatMessage(data as string);
+                })
+
+                this.channel.on('connection failure', (data: Data) => {
+                    console.log("[Multiplayer] server refused join or rejoin, clearing match association");
+                    localStorage.removeItem('matchId');
+                });
+
+                // TODO ? - Bind to events via proxy because geckos doesn't rebind
+                this.channel.on('spectating', (data: Data) => {
+                    if (this._onSpectating)
+                        this._onSpectating(data);
+                });
+
+                // TODO change strings to enums because i just made a typo here
+                this.channel.on('connected', (data: Data) => {
+                    if (this._onConnected)
+                        this._onConnected(data);
+                });
+
+                resolve(this.reconnect());
+            });
         });
     }
 
-    protected reconnect() {
-        if (this.matchId) {
-            console.log(`[Multiplayer] Reconnecting to match ${this.matchId}`)
-            this.channel.emit('connect', { matchId: this.matchId, userId: this.userId }, { reliable: true });
+    protected async reconnect(): Promise<MatchControl | undefined> {
+        const matchId = localStorage.getItem('matchId') || undefined;
+        if (!matchId) {
+            console.log(`[Multiplayer] No stored matchId found for reconnect.`)
+            return undefined;
         }
+
+        console.log(`[Multiplayer] Reconnecting to match ${matchId}`)
+
+        return new Promise((resolve) => {
+            this._onConnected = (data: Data) => {
+                console.log("[Multiplayer] RTC connected to match")
+                const playerIndex = data as number;
+                console.log(`[Multiplayer] Client is player ${playerIndex}`)
+
+                resolve(new MatchControl(this.userId, this.channel, matchId, playerIndex));
+            };
+            this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
+        });
     }
 
     // TODO - make this async, make backend return id
@@ -107,57 +108,114 @@ export class Multiplayer {
         });
     }
 
-    async joinMatch(matchId: string) {
+    async joinMatch(matchId: string): Promise<MatchControl> {
         console.log(`[Multiplayer] joining match ${matchId}`)
         const joinData = {
             matchId,
             userId: this.userId
         };
 
-        return fetch(HTTP_API_URL+'/join', {
+        const res = await fetch(HTTP_API_URL+'/join', {
             method: 'POST',
             body: JSON.stringify(joinData),
             headers: {
                 'Content-Type': 'application/json'
             },
-        })
+        });
+
         // connect RTC automatically after joining
-        .then(res => {
-            if (res.status === 200) {
-                return res.json();
-            }
-            else {
-                throw new Error("Match join failed")
-            }
-        })
-        .then(res => {
-            this.playerIndex = res.playerIndex;
-            console.log(`[Multiplayer] server confirmed match join`);
+        if (res.status !== 200) {
+            throw new Error("Match join failed")
+        }
 
-            this.matchId = matchId;
-            localStorage.setItem('matchId', this.matchId);
+        const resj = await res.json();
+        console.log(`[Multiplayer] server confirmed match join`);
 
-            const data : IdentificationPacket = {
-                userId: this.userId,
-                matchId
+        localStorage.setItem('matchId', matchId);
+
+        const data : IdentificationPacket = {
+            userId: this.userId,
+            matchId
+        };
+
+        return new Promise((resolve) => {
+            this._onConnected = (data: Data) => {
+                console.log("[Multiplayer] RTC connected to match")
+                const playerIndex = data as number;
+                console.log(`[Multiplayer] Client is player ${playerIndex}`)
+
+                resolve(new MatchControl(this.userId, this.channel, matchId, resj.playerIndex));
             };
-
             this.channel.emit('connect', data);
         });
-    };
+    }
 
-    spectateMatch(matchId: string) {
+
+    spectateMatch(matchId: string): Promise<SpectatorControl> {
         console.log(`[Multiplayer] spectating match ${matchId}`)
         const data : IdentificationPacket = {
             userId: this.userId,
             matchId
         };
 
-        this.channel.emit('spectate', data);
+        return new Promise ((resolve) => {
+            this._onSpectating = (data: Data) => {
+                console.log("[Multiplayer] Received spectate confirmation from server");
+                matchId = (data as {matchId: string}).matchId;
+                localStorage.setItem('matchId', matchId);
+                localStorage.setItem('spectate', 'true');
+
+                resolve(new SpectatorControl(matchId, this.channel));
+            };
+            this.channel.emit('spectate', data);
+        });
+    }
+}
+
+class AbstractControl {
+    protected matchId: string;
+    protected channel?: ClientChannel;
+    protected leaveMatchHandler?: () => void;
+
+    async getMatchState() {
+        console.log("[multiplayer] Getting match state");
+        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
     }
 
-    // TODO - no way to stop spectating
-    
+    protected _getChannel(): ClientChannel {
+        if (!this.channel)
+            throw new Error("Trying to use a channel that's been closed");
+        return this.channel;
+    }
+
+    protected constructor(channel: ClientChannel, matchId: string) {
+        this.channel = channel;
+        this.matchId = matchId;
+    }
+
+    setOnLeaveMatch(handler: () => void) {
+        this.leaveMatchHandler = handler;
+    }
+
+    setOnUpdatePacket(handler: (p: UpdatePacket) => void) {
+        this._getChannel().on('tick', (data: Data) => {
+            const u = data as UpdatePacket;
+            handler(u);
+        })
+    } 
+}
+
+export class MatchControl extends AbstractControl {
+    // this gets set to null if a leave connection is issued
+    userId: string;
+    playerIndex: number;
+
+    constructor(userId: string, channel: ClientChannel, matchId: string, playerIndex: number) {
+        super(channel, matchId);
+        this.userId = userId;
+        this.playerIndex = playerIndex;
+    }
+
     async leaveMatch() {
         if (!this.matchId)
             return;
@@ -175,26 +233,19 @@ export class Multiplayer {
             },
         })
         .then(res => {
-            this.matchId = undefined;
+            this.channel = undefined;
+            if (this.leaveMatchHandler)
+                this.leaveMatchHandler();
             localStorage.removeItem('matchId');
         });
-    }
-
-    async getMatchState() {
-        if (!this.matchId)
-            throw new Error("Can't get match state because not it in a match");
-
-        console.log("[multiplayer] Getting match state");
-        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
     }
 
     getPlayerIndex() {
         return this.playerIndex;
     }
 
-    // TODO - pull those out to a separate MatchControl object
     sendChatMessage(msg: string) {
-        this.channel.emit('chat message', 'msg')
+        this._getChannel().emit('chat message', 'msg')
     }
 
     moveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
@@ -206,7 +257,7 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd)
+        this._getChannel().emit('command', cmd)
     }
 
     stopCommand(unitIds: UnitId[]) {
@@ -217,7 +268,7 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd)
+        this._getChannel().emit('command', cmd)
     }
 
     followCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
@@ -229,7 +280,7 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
     }
 
     attackCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
@@ -241,7 +292,7 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
     }
 
     attackMoveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
@@ -253,7 +304,7 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
     }
 
     produceCommand(unitIds: UnitId[], unitToProduce: string) {
@@ -265,7 +316,7 @@ export class Multiplayer {
             unitIds,
             shift: false,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
     }
 
     buildCommand(unitIds: UnitId[], building: string, position: Position, shift: boolean) {
@@ -278,7 +329,7 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
     }
 
     harvestCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
@@ -290,6 +341,22 @@ export class Multiplayer {
             unitIds,
             shift,
         };
-        this.channel.emit('command', cmd);
+        this._getChannel().emit('command', cmd);
+    }
+}
+
+export class SpectatorControl extends AbstractControl {
+    constructor(matchId: string, channel: ClientChannel) {
+        super(channel, matchId);
+        this.matchId = matchId;
+    }
+
+    getMatchId() {
+        return this.matchId;
+    }
+
+    async stopSpectating() {
+        if (this.leaveMatchHandler)
+            this.leaveMatchHandler();
     }
 }
