@@ -87,7 +87,7 @@ function MapSpotlight() {
                 angle={0.16}
                 distance={0}
                 decay={0}
-                intensity={6}
+                intensity={4}
                 color={0xffffff}
 
                 castShadow
@@ -136,7 +136,7 @@ export function View3D(props: Props) {
                 >
                     <color attach="background" args={[0x11aa11]} />
                     <CameraControls />
-                    <ambientLight />
+                    <ambientLight args={[0xffffff, 2]} />
                     <MapSpotlight />
                     {props.children}
                     <Stats />
