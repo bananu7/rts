@@ -9,14 +9,12 @@ import {
 
 import * as THREE from 'three';
 
-//import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-//import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
-
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
+import { FileModel } from './FileModel'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -93,7 +91,7 @@ export function Unit3D(props: Unit3DProps) {
     // TODO proper unit catalog
     const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
     const unitSize = isBuilding ? 4 : 1;
-    const selectorSize = isBuilding ? 3 : 1;
+    const selectorSize = isBuilding ? 5 : 1;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
@@ -198,12 +196,22 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <mesh
-                        castShadow
-                        receiveShadow
-                        geometry={cache.getBoxGeometry(unitSize)}
-                        material={cache.getStandardMaterial(color)}
-                    />
+                    {
+                        isBuilding ? 
+                        <FileModel
+                            path={'/public/castle_1.glb'}
+                            position={{x:0, y:0}}
+                            accentColor={color}
+                        />
+                        :
+                        <mesh
+                            castShadow
+                            receiveShadow
+                            geometry={cache.getBoxGeometry(unitSize)}
+                            material={cache.getStandardMaterial(color)}
+                        />
+                    }
+                    
                 </group>
             </group>
         </group>
