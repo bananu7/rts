@@ -54,7 +54,6 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
     return (
         <mesh
             position={[0, 5, 0]}
-             // TODO unit should rotate
             rotation={[0, 0, -1.57]}
             geometry={coneGeometry}
             material={cache.getBasicMaterial(indicatorColor)}
@@ -114,6 +113,9 @@ export function Unit3D(props: Unit3DProps) {
         y: props.unit.velocity.y + softSnapVelocity.y * SMOOTHING_SCALE
     }
 
+    // rotation
+    const unitRotationRef = useRef<THREE.Group>(null);
+
     // Bring the unit to the proper position before first paint
     useLayoutEffect(() => {
         if(!unitGroupRef.current)
@@ -125,10 +127,10 @@ export function Unit3D(props: Unit3DProps) {
 
     // Softly interpolate the unit position when it's moving.
     useFrame((s, dt) => {
-        if(!unitGroupRef.current)
+        if(!unitGroupRef.current || !unitRotationRef.current)
             return;
 
-        unitGroupRef.current.rotation.y = props.unit.direction;
+        unitRotationRef.current.rotation.y = props.unit.direction;
 
         // TODO - temporary fix to bring units where they're needed quickly
         if (softSnapVelocity.x > 5 || softSnapVelocity.y > 5) {
@@ -171,34 +173,38 @@ export function Unit3D(props: Unit3DProps) {
                 position={[0, 1, 0]}
                 name={`Unit_${props.unit.id}`}
             >
-                { /* Click mesh */ }
-                <mesh
-                    onContextMenu={ onClick }
-                    onClick={ onClick }
-                    geometry={cache.getCylinderGeometry(selectorSize)}
-                    material={invisibleMaterial}
-                />
-
-                { props.selected &&
-                    <SelectionCircle size={selectorSize} enemy={props.enemy} />
-                }
-
+                { /* those things are always world axis oriented */}
                 { debugFlags.showHorizons && props.selected && props.unit.debug &&
                     <Horizon obstacles={props.unit.debug.obstacles} />
                 }
-                { debugFlags.showCones &&
-                    <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
+                { props.selected &&
+                    <SelectionCircle size={selectorSize} enemy={props.enemy} />
                 }
                 { debugFlags.showTerrainArrows && 
-                    props.selected && debugArrowHelper
+                        props.selected && debugArrowHelper
                 }
 
-                <mesh
-                    castShadow
-                    receiveShadow
-                    geometry={cache.getBoxGeometry(unitSize)}
-                    material={cache.getStandardMaterial(color)}
-                />
+                { /* this group rotates with the unit*/ }
+                <group ref={unitRotationRef}>
+                    { /* Click mesh */ }
+                    <mesh
+                        onContextMenu={ onClick }
+                        onClick={ onClick }
+                        geometry={cache.getCylinderGeometry(selectorSize)}
+                        material={invisibleMaterial}
+                    />
+
+                    { debugFlags.showCones &&
+                        <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
+                    }
+
+                    <mesh
+                        castShadow
+                        receiveShadow
+                        geometry={cache.getBoxGeometry(unitSize)}
+                        material={cache.getStandardMaterial(color)}
+                    />
+                </group>
             </group>
         </group>
     );
