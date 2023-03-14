@@ -204,12 +204,17 @@ export function Unit3D(props: Unit3DProps) {
                             accentColor={color}
                         />
                         :
-                        <mesh
+                        <FileModel
+                            path={'/public/footman_1.glb'}
+                            position={{x:0, y:0}}
+                            accentColor={color}
+                        />
+                        /*<mesh
                             castShadow
                             receiveShadow
                             geometry={cache.getBoxGeometry(unitSize)}
                             material={cache.getStandardMaterial(color)}
-                        />
+                        />*/
                     }
                     
                 </group>

@@ -14,8 +14,6 @@ export function FileModel(props: FileModelProps) {
     const gltf = useLoader(GLTFLoader, props.path)
 
     useEffect(() => {
-        (gltf.materials['bricksDark(Clone)'] as THREE.MeshStandardMaterial).color.set("#bb3");
-        (gltf.materials['stone(Clone)'] as THREE.MeshStandardMaterial).color.set("#ddd");
         //console.log(gltf);
     }, []);
 
@@ -26,19 +24,29 @@ export function FileModel(props: FileModelProps) {
         setDialScene(dialScene);
     }
 
-    const accentMaterial = ((gltf.nodes.mesh_0_2 as THREE.Mesh).material as THREE.Material).clone();
-    (accentMaterial as THREE.MeshStandardMaterial).color.set(props.accentColor);
+    const origAccentMaterial = gltf.materials['accent'];
+    if (!origAccentMaterial || !(origAccentMaterial instanceof THREE.MeshStandardMaterial))
+        throw new Error ("No accent material in FileModel");
+    const accentMaterial = origAccentMaterial.clone();
+    accentMaterial.color.set(props.accentColor);
+
+    const meshes = [];
+    for (const n in gltf.nodes) {
+        const mesh = (gltf.nodes[n] as THREE.Mesh);
+        meshes.push(<mesh
+            castShadow
+            geometry={mesh.geometry}
+            material={mesh.material === origAccentMaterial ? accentMaterial : mesh.material}
+        />);
+    }
 
     return (
         <group
             position={[props.position.x, 0, props.position.y]}
             scale={[3, 3, 3]}
-            rotation={[0, Math.PI/2 - Math.PI/4, 0]}
+            rotation={[0, 0, 0]}
         >
-            {/*<primitive object={dialScene} />*/}
-            <mesh castShadow geometry={(gltf.nodes.mesh_0 as THREE.Mesh).geometry} material={(gltf.nodes.mesh_0 as THREE.Mesh).material} />
-            <mesh castShadow geometry={(gltf.nodes.mesh_0_1 as THREE.Mesh).geometry} material={(gltf.nodes.mesh_0_1 as THREE.Mesh).material} />
-            <mesh castShadow geometry={(gltf.nodes.mesh_0_2 as THREE.Mesh).geometry} material={accentMaterial} />
+            {meshes}
         </group>
     )
 }
