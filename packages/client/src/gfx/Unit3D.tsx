@@ -93,6 +93,14 @@ export function Unit3D(props: Unit3DProps) {
     const unitSize = isBuilding ? 4 : 1;
     const selectorSize = isBuilding ? 5 : 1;
 
+    const modelPath = 
+        isBuilding ? 
+            '/public/castle_1.glb'
+            : props.unit.owner !== 0 ?
+                '/public/peasant_1.glb'
+                : '/public/gold_node.glb'
+    ;
+
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
     const softSnapVelocity =
@@ -196,27 +204,11 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    {
-                        isBuilding ? 
-                        <FileModel
-                            path={'/public/castle_1.glb'}
-                            position={{x:0, y:0}}
-                            accentColor={color}
-                        />
-                        :
-                        <FileModel
-                            path={'/public/footman_1.glb'}
-                            position={{x:0, y:0}}
-                            accentColor={color}
-                        />
-                        /*<mesh
-                            castShadow
-                            receiveShadow
-                            geometry={cache.getBoxGeometry(unitSize)}
-                            material={cache.getStandardMaterial(color)}
-                        />*/
-                    }
-                    
+                    <FileModel
+                        path={modelPath}
+                        position={{x:0, y:0}}
+                        accentColor={color}
+                    />
                 </group>
             </group>
         </group>

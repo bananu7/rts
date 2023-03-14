@@ -25,25 +25,31 @@ export function FileModel(props: FileModelProps) {
     }
 
     const origAccentMaterial = gltf.materials['accent'];
-    if (!origAccentMaterial || !(origAccentMaterial instanceof THREE.MeshStandardMaterial))
-        throw new Error ("No accent material in FileModel");
-    const accentMaterial = origAccentMaterial.clone();
-    accentMaterial.color.set(props.accentColor);
+    const accentMaterial = (() => {
+        if (!origAccentMaterial || !(origAccentMaterial instanceof THREE.MeshStandardMaterial))
+            return undefined;
+        const accentMaterial = origAccentMaterial.clone();
+        accentMaterial.color.set(props.accentColor);
+        return accentMaterial;
+    })();
 
     const meshes = [];
     for (const n in gltf.nodes) {
         const mesh = (gltf.nodes[n] as THREE.Mesh);
+        const material = mesh.material === origAccentMaterial ? accentMaterial : mesh.material;
+
+        // TODO pull rotation and scaling info
         meshes.push(<mesh
             castShadow
+            key={n}
             geometry={mesh.geometry}
-            material={mesh.material === origAccentMaterial ? accentMaterial : mesh.material}
+            material={material}
         />);
     }
 
     return (
         <group
             position={[props.position.x, 0, props.position.y]}
-            scale={[3, 3, 3]}
             rotation={[0, 0, 0]}
         >
             {meshes}
