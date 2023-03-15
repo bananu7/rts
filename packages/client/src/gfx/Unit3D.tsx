@@ -14,7 +14,7 @@ import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
-import { FileModel } from './FileModel'
+import { FileModel, PeasantModel } from './FileModel'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -204,11 +204,11 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <FileModel
+                    <PeasantModel path={'/public/peasant_1.glb'} accentColor={color} />
+                    {/*<FileModel
                         path={modelPath}
-                        position={{x:0, y:0}}
-                        accentColor={color}
-                    />
+                        
+                    />*/}
                 </group>
             </group>
         </group>
