@@ -176,7 +176,8 @@ export function Unit3D(props: Unit3DProps) {
             }
             <group
                 ref={unitGroupRef}
-                position={[0, 1, 0]}
+                position={[0, 2, 0]}
+                scale={[5,5,5]}
                 name={`Unit_${props.unit.id}`}
             >
                 { /* those things are always world axis oriented */}

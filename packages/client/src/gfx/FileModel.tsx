@@ -32,10 +32,12 @@ function FileModel_(props: FileModelProps) {
         if (node instanceof THREE.SkinnedMesh) {
             const material = node.material === origAccentMaterial ? accentMaterial : node.material;
 
+            console.log(`adding skinned mesh ${n}`)
             // TODO pull rotation and scaling info
             nodes.push(<skinnedMesh
                 castShadow
                 key={n}
+                name={n}
                 geometry={node.geometry}
                 material={material}
                 skeleton={node.skeleton}
@@ -44,15 +46,30 @@ function FileModel_(props: FileModelProps) {
         else if (node instanceof THREE.Mesh) {
             const material = node.material === origAccentMaterial ? accentMaterial : node.material;
 
+            console.log(`adding mesh ${n}`)
             // TODO pull rotation and scaling info
             nodes.push(<mesh
                 castShadow
                 key={n}
+                name={n}
                 geometry={node.geometry}
                 material={material}
             />);
-        } else {
-            nodes.push(<primitive key={n} object={node} />);
+        } else if (node instanceof THREE.Bone) {
+            console.log(`adding primitive ${n}`)
+            const allowednames = [
+               "Spine",
+               "Left_Hip",
+               "Right_Hip",
+               "neutral_bone",
+               "neutral_bone_1",
+               "neutral_bone_2",
+               "neutral_bone_3",
+               "neutral_bone_4",
+               "neutral_bone_5"
+            ];
+            if (allowednames.indexOf(n) !== -1)
+                nodes.push(<primitive key={n} object={node} />);
         }
     }
 
@@ -69,13 +86,14 @@ function FileModel_(props: FileModelProps) {
 
         if (!mixer) {
             console.log("new mixer")
+            console.log(state);
             mixer = new THREE.AnimationMixer(ref.current);
             
-            //mixer.clipAction(gltf.animations[0]).play();
+            mixer.clipAction(gltf.animations[0]).play();
             //console.log("playing")
         }
 
-        //mixer.update(delta);
+        mixer.update(delta);
     });
 
     return (
@@ -84,6 +102,15 @@ function FileModel_(props: FileModelProps) {
             rotation={[0, 0, 0]}
         >
             {nodes}
+             {/*} <primitive object={gltf.nodes.Spine} />
+              <primitive object={gltf.nodes.Left_Hip} />
+              <primitive object={gltf.nodes.Right_Hip} />
+              <primitive object={gltf.nodes.neutral_bone} />
+              <primitive object={gltf.nodes.neutral_bone_1} />
+              <primitive object={gltf.nodes.neutral_bone_2} />
+              <primitive object={gltf.nodes.neutral_bone_3} />
+              <primitive object={gltf.nodes.neutral_bone_4} />
+              <primitive object={gltf.nodes.neutral_bone_5} />*/}
         </group>
     )
 }
@@ -95,7 +122,7 @@ function PeasantModel_(props: FileModelProps) {
     const gltf = useLoader(GLTFLoader, props.path)
 
     useEffect(() => {
-        console.log(gltf);
+        //console.log(gltf);
     }, []);
 
     const origAccentMaterial = gltf.materials['accent'];
@@ -122,6 +149,7 @@ function PeasantModel_(props: FileModelProps) {
 
         if (!mixer) {
             console.log("new mixer")
+            console.log(state);
             mixer = new THREE.AnimationMixer(ref.current);
             
             mixer.clipAction(gltf.animations[0]).play();
@@ -132,14 +160,11 @@ function PeasantModel_(props: FileModelProps) {
     });
 
     return (
-    <group ref={ref} {...props} dispose={null}>
-      <group name="Scene">
-        <group
-          name="Armature"
+    <group ref={ref} dispose={null}
           position={[0, 0.9, 0]}
           rotation={[0, -Math.PI / 2, 0]}
           scale={3}
-        >
+    >
           <primitive object={nodes.Spine} />
           <primitive object={nodes.Left_Hip} />
           <primitive object={nodes.Right_Hip} />
@@ -161,33 +186,30 @@ function PeasantModel_(props: FileModelProps) {
             material={nodes.arm_right.material}
             skeleton={nodes.arm_right.skeleton}
           />
-          <group name="head">
-            <skinnedMesh
-              name="Mesh_head_default_Instance"
-              geometry={nodes.Mesh_head_default_Instance.geometry}
-              material={nodes.Mesh_head_default_Instance.material}
-              skeleton={nodes.Mesh_head_default_Instance.skeleton}
-            />
-            <skinnedMesh
-              name="Mesh_head_default_Instance_1"
-              geometry={nodes.Mesh_head_default_Instance_1.geometry}
-              material={nodes.Mesh_head_default_Instance_1.material}
-              skeleton={nodes.Mesh_head_default_Instance_1.skeleton}
-            />
-            <skinnedMesh
-              name="Mesh_head_default_Instance_2"
-              geometry={nodes.Mesh_head_default_Instance_2.geometry}
-              material={nodes.Mesh_head_default_Instance_2.material}
-              skeleton={nodes.Mesh_head_default_Instance_2.skeleton}
-            />
-            <skinnedMesh
-              name="Mesh_head_default_Instance_3"
-              geometry={nodes.Mesh_head_default_Instance_3.geometry}
-              material={nodes.Mesh_head_default_Instance_3.material}
-              skeleton={nodes.Mesh_head_default_Instance_3.skeleton}
-            />
-          </group>
-          <group name="leg_left">
+        <skinnedMesh
+          name="Mesh_head_default_Instance"
+          geometry={nodes.Mesh_head_default_Instance.geometry}
+          material={nodes.Mesh_head_default_Instance.material}
+          skeleton={nodes.Mesh_head_default_Instance.skeleton}
+        />
+        <skinnedMesh
+          name="Mesh_head_default_Instance_1"
+          geometry={nodes.Mesh_head_default_Instance_1.geometry}
+          material={nodes.Mesh_head_default_Instance_1.material}
+          skeleton={nodes.Mesh_head_default_Instance_1.skeleton}
+        />
+        <skinnedMesh
+          name="Mesh_head_default_Instance_2"
+          geometry={nodes.Mesh_head_default_Instance_2.geometry}
+          material={nodes.Mesh_head_default_Instance_2.material}
+          skeleton={nodes.Mesh_head_default_Instance_2.skeleton}
+        />
+        <skinnedMesh
+          name="Mesh_head_default_Instance_3"
+          geometry={nodes.Mesh_head_default_Instance_3.geometry}
+          material={nodes.Mesh_head_default_Instance_3.material}
+          skeleton={nodes.Mesh_head_default_Instance_3.skeleton}
+        />
             <skinnedMesh
               name="Mesh_leg_boots_Instance"
               geometry={nodes.Mesh_leg_boots_Instance.geometry}
@@ -200,8 +222,6 @@ function PeasantModel_(props: FileModelProps) {
               material={nodes.Mesh_leg_boots_Instance_1.material}
               skeleton={nodes.Mesh_leg_boots_Instance_1.skeleton}
             />
-          </group>
-          <group name="leg_right">
             <skinnedMesh
               name="Mesh_leg_boots_Instance001"
               geometry={nodes.Mesh_leg_boots_Instance001.geometry}
@@ -214,8 +234,6 @@ function PeasantModel_(props: FileModelProps) {
               material={nodes.Mesh_leg_boots_Instance001_1.material}
               skeleton={nodes.Mesh_leg_boots_Instance001_1.skeleton}
             />
-          </group>
-          <group name="torso">
             <skinnedMesh
               name="Mesh_torso_default_Instance"
               geometry={nodes.Mesh_torso_default_Instance.geometry}
@@ -234,9 +252,6 @@ function PeasantModel_(props: FileModelProps) {
               material={nodes.Mesh_torso_default_Instance_2.material}
               skeleton={nodes.Mesh_torso_default_Instance_2.skeleton}
             />
-          </group>
-        </group>
-      </group>
     </group>
     )
 }
