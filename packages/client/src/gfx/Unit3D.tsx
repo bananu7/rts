@@ -168,6 +168,8 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.x, 1, a.y);
     });
 
+    const animate = props.unit.status === 'Moving';
+
     return (
         <group>
             { debugFlags.showPaths && 
@@ -204,7 +206,7 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <FileModel path={modelPath} accentColor={color} />
+                    <FileModel path={modelPath} accentColor={color} animate={animate}/>
                 </group>
             </group>
         </group>

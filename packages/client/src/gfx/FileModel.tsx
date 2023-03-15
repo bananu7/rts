@@ -8,6 +8,7 @@ import { useRef, useEffect, useState, useLayoutEffect, memo } from 'react'
 export type FileModelProps = {
     path: string,
     accentColor: THREE.ColorRepresentation,
+    animate: boolean, // TODO which anims how fast etc
 }
 
 function FileModel_(props: FileModelProps) {
@@ -39,7 +40,8 @@ function FileModel_(props: FileModelProps) {
             mixer.clipAction(gltf.animations[0]).play();
         }
 
-        mixer.update(delta);
+        if (props.animate)
+            mixer.update(delta*5);
     });
 
     const clonedObject = SkeletonUtils.clone(gltf.scene);
