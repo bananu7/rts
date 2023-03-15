@@ -95,6 +95,7 @@ function MapSpotlight() {
                 shadow-camera-far={500}
                 shadow-mapSize-height={1024}
                 shadow-mapSize-width={1024}
+                shadow-bias={-0.002}
             />
         </group>
      )   

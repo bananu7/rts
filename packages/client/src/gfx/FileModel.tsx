@@ -49,6 +49,8 @@ function FileModel_(props: FileModelProps) {
         if (o instanceof THREE.Mesh) {
             if (o.material.name === "accent")
                 o.material = accentMaterial;
+            o.castShadow = true;
+            o.receiveShadow = true;
         }
     });
 
