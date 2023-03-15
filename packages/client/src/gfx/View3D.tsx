@@ -124,7 +124,7 @@ export function View3D(props: Props) {
         <Suspense fallback={null}>
             <div style={style} >
                 <Canvas
-                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position: [50, 90, 90] }}
+                    camera={{ fov: 27.8, near: 10, far: 500, up:[0,1,0], position: [50, 60, 90] }}
                     gl={{
                         physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,
