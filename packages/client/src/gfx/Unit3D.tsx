@@ -177,7 +177,6 @@ export function Unit3D(props: Unit3DProps) {
             <group
                 ref={unitGroupRef}
                 position={[0, 2, 0]}
-                scale={[5,5,5]}
                 name={`Unit_${props.unit.id}`}
             >
                 { /* those things are always world axis oriented */}
@@ -205,11 +204,7 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <PeasantModel path={'/public/peasant_1.glb'} accentColor={color} />
-                    {/*<FileModel
-                        path={modelPath}
-                        
-                    />*/}
+                    <FileModel path={modelPath} accentColor={color} />
                 </group>
             </group>
         </group>
