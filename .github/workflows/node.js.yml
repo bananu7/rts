@@ -50,7 +50,6 @@ jobs:
 
   docker-server:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -76,5 +75,5 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./
-          push: true
+          push: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server, ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
