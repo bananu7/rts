@@ -75,10 +75,23 @@ export function Map3D(props: Map3DProps) {
                 const isPassable = props.map.tiles[ix] === 0;
 
                 const color = isPassable ? 0x11aa11 : 0x888888;
-                const height = isPassable ? 0 : 0.8;
+                const height = (isPassable ? 0 : 0.8 + Math.random() * 0.7) - 0.01; // TODO quick hack
                 
-                mat4Pos.makeTranslation(x * xSize, height, y * ySize);
+                mat4Pos.makeTranslation(x * xSize, height, y * ySize); // TODO -1 to move them down because of their height
                 vec3Color.set(color);
+
+                // TODO - this is just a quick and dirty solution
+                if (isPassable) {
+                    const f = 0.06;
+                    vec3Color.r += (Math.random() - 0.5) * f;
+                    vec3Color.g += (Math.random() - 0.5) * f;
+                    vec3Color.b += (Math.random() - 0.5) * f;
+                } else {
+                    const d = (Math.random() - 0.5) * 0.1;
+                    vec3Color.r += d;
+                    vec3Color.g += d;
+                    vec3Color.b += d;
+                }
 
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);
@@ -114,7 +127,7 @@ export function Map3D(props: Map3DProps) {
                 receiveShadow
             >
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
-                <boxGeometry args={[xSize, 1, ySize]} />
+                <boxGeometry args={[xSize, 2, ySize]} />
                 <meshStandardMaterial />
             </instancedMesh>
         </group>

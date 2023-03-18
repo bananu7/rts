@@ -9,8 +9,6 @@ const friendlyMaterial = new THREE.MeshBasicMaterial({
     color: 0x00ff00
 });
 
-const ringGeometry = new THREE.RingGeometry(1, 1.1, 32);
-
 export function SelectionCircle(props: { size: number, enemy?: boolean }) {
     const innerRadius = props.size;
     const outerRadius = props.size * 1.1;
@@ -30,8 +28,8 @@ export function SelectionCircle(props: { size: number, enemy?: boolean }) {
             name="SelectionRing"
             position={[0, 0, 0]}
             material={props.enemy ? enemyMaterial : friendlyMaterial}
-            geometry={ringGeometry}
         >
+            <ringBufferGeometry args={[innerRadius, outerRadius, segments]} />
         </mesh>
     );
 }

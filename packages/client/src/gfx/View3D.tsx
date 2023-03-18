@@ -87,7 +87,7 @@ function MapSpotlight() {
                 angle={0.16}
                 distance={0}
                 decay={0}
-                intensity={6}
+                intensity={4}
                 color={0xffffff}
 
                 castShadow
@@ -95,6 +95,7 @@ function MapSpotlight() {
                 shadow-camera-far={500}
                 shadow-mapSize-height={1024}
                 shadow-mapSize-width={1024}
+                shadow-bias={-0.002}
             />
         </group>
      )   
@@ -123,7 +124,7 @@ export function View3D(props: Props) {
         <Suspense fallback={null}>
             <div style={style} >
                 <Canvas
-                    camera={{ fov: 60, near: 0.1, far: 2000, up:[0,1,0], position: [50, 90, 90] }}
+                    camera={{ fov: 27.8, near: 10, far: 500, up:[0,1,0], position: [50, 60, 90] }}
                     gl={{
                         physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,
@@ -136,7 +137,7 @@ export function View3D(props: Props) {
                 >
                     <color attach="background" args={[0x11aa11]} />
                     <CameraControls />
-                    <ambientLight />
+                    <ambientLight args={[0xffffff, 2]} />
                     <MapSpotlight />
                     {props.children}
                     <Stats />

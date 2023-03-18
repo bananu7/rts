@@ -9,14 +9,13 @@ import {
 
 import * as THREE from 'three';
 
-//import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-//import { SkeletonUtils } from "three/examples/jsm/utils/SkeletonUtils"
-
 import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
+import { FileModel } from './FileModel'
+import { UNIT_DISPLAY_CATALOG } from './UnitDisplayCatalog'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -90,10 +89,13 @@ export function Unit3D(props: Unit3DProps) {
 
     const color = ownerToColor(props.unit.owner);
 
-    // TODO proper unit catalog
-    const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
-    const unitSize = isBuilding ? 4 : 1;
-    const selectorSize = isBuilding ? 3 : 1;
+    const unitCatalogEntry = UNIT_DISPLAY_CATALOG[props.unit.kind];
+    if (!unitCatalogEntry)
+        throw new Error("Unit doesn't exist in catalog");
+
+    const unitDetails = unitCatalogEntry();
+    const modelPath = unitDetails.modelPath;
+    const selectorSize = unitDetails.selectorSize;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
@@ -162,6 +164,8 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.x, 1, a.y);
     });
 
+    const animate = props.unit.status === 'Moving';
+
     return (
         <group>
             { debugFlags.showPaths && 
@@ -198,12 +202,7 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <mesh
-                        castShadow
-                        receiveShadow
-                        geometry={cache.getBoxGeometry(unitSize)}
-                        material={cache.getStandardMaterial(color)}
-                    />
+                    <FileModel path={modelPath} accentColor={color} animate={animate}/>
                 </group>
             </group>
         </group>

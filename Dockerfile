@@ -42,7 +42,12 @@ COPY ./packages/client/src ./src
 COPY ./packages/client/public ./public
 COPY ./packages/client/index.html ./
 
+# get assets
+RUN git clone https://github.com/bananu7/rts-assets.git --depth 1
+RUN cp ./rts-assets/models/**/*.glb ./public/
+
 RUN yarn build
+
 
 ################################
 # second stage - run
