@@ -36,7 +36,6 @@ function FileModel_(props: FileModelProps) {
 
         if (!mixer) {
             mixer = new THREE.AnimationMixer(ref.current);
-            
             mixer.clipAction(gltf.animations[0]).play();
         }
 
