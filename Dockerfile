@@ -44,6 +44,9 @@ COPY ./packages/client/index.html ./
 
 # get assets
 RUN git clone https://github.com/bananu7/rts-assets.git --depth 1
+RUN apt-get update
+RUN apt-get install -y git-lfs
+RUN git lfs install
 RUN cd rts-assets && git lfs pull
 RUN cp ./rts-assets/models/**/*.glb ./public/
 
