@@ -14,7 +14,8 @@ import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
-import { FileModel, PeasantModel } from './FileModel'
+import { FileModel } from './FileModel'
+import { UNIT_DISPLAY_CATALOG } from './UnitDisplayCatalog'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -93,13 +94,11 @@ export function Unit3D(props: Unit3DProps) {
     const unitSize = isBuilding ? 4 : 1;
     const selectorSize = isBuilding ? 5 : 1;
 
-    const modelPath = 
-        isBuilding ? 
-            '/public/castle_1.glb'
-            : props.unit.owner !== 0 ?
-                '/public/peasant_1.glb'
-                : '/public/gold_node.glb'
-    ;
+    const unitCatalogEntry = UNIT_DISPLAY_CATALOG[props.unit.kind];
+    if (!unitCatalogEntry)
+        throw new Error("Unit doesn't exist in catalog");
+
+    const modelPath = unitCatalogEntry().modelPath;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
