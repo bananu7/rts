@@ -11,10 +11,12 @@ export type FileModelProps = {
     animate: boolean, // TODO which anims how fast etc
 }
 
+const ACCENT_MATERIAL_NAME = 'Accent';
+
 function FileModel_(props: FileModelProps) {
     const gltf = useLoader(GLTFLoader, props.path)
 
-    const origAccentMaterial = gltf.materials['accent'];
+    const origAccentMaterial = gltf.materials[ACCENT_MATERIAL_NAME];
     const accentMaterial = (() => {
         if (!origAccentMaterial || !(origAccentMaterial instanceof THREE.MeshStandardMaterial))
             return undefined;
@@ -36,17 +38,20 @@ function FileModel_(props: FileModelProps) {
 
         if (!mixer) {
             mixer = new THREE.AnimationMixer(ref.current);
-            mixer.clipAction(gltf.animations[0]).play();
+            const moveAction = gltf.animations.find(a => a.name === "Move");
+            if (moveAction) {
+                mixer.clipAction(moveAction).play();
+            }
         }
 
         if (props.animate)
-            mixer.update(delta*5);
+            mixer.update(delta);
     });
 
     const clonedObject = SkeletonUtils.clone(gltf.scene);
     clonedObject.traverse(o => {
         if (o instanceof THREE.Mesh) {
-            if (o.material.name === "accent")
+            if (o.material.name === ACCENT_MATERIAL_NAME)
                 o.material = accentMaterial;
             o.castShadow = true;
             o.receiveShadow = true;
