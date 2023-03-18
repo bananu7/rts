@@ -89,16 +89,13 @@ export function Unit3D(props: Unit3DProps) {
 
     const color = ownerToColor(props.unit.owner);
 
-    // TODO proper unit catalog
-    const isBuilding = props.unit.kind === 'Base' || props.unit.kind === 'Barracks';
-    const unitSize = isBuilding ? 4 : 1;
-    const selectorSize = isBuilding ? 5 : 1;
-
     const unitCatalogEntry = UNIT_DISPLAY_CATALOG[props.unit.kind];
     if (!unitCatalogEntry)
         throw new Error("Unit doesn't exist in catalog");
 
-    const modelPath = unitCatalogEntry().modelPath;
+    const unitDetails = unitCatalogEntry();
+    const modelPath = unitDetails.modelPath;
+    const selectorSize = unitDetails.selectorSize;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
