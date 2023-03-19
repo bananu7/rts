@@ -5,6 +5,7 @@ type Props = {
     selectedUnits: Set<UnitId>,
     setSelectedUnits: (us: Set<UnitId>) => void,
     units: UnitState[],
+    ownerIndex: number,
 }
 
 export function BottomUnitView (props: Props) {
@@ -17,7 +18,8 @@ export function BottomUnitView (props: Props) {
             const u = props.units.find(u => u.id === uid);
             if (!u)
                 throw new Error("Selected unit id not in the unit set");
-            return (<SingleUnitView unit={u} />);
+            const owned = u.owner === props.ownerIndex;
+            return (<SingleUnitView unit={u} owned={owned}/>);
         } else {
             // TODO duplication with CommandPalette
             const units: UnitState[] = 
@@ -79,7 +81,7 @@ function ProductionProgressBar(props: {percent: number}) {
 }
 
 
-function SingleUnitView(props: {unit: UnitState}) {
+function SingleUnitView(props: {unit: UnitState, owned: boolean}) {
     const health = props.unit.components.find(c => c.type === "Hp") as Hp | undefined;
 
     const productionComponent = props.unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility;
@@ -100,8 +102,8 @@ function SingleUnitView(props: {unit: UnitState}) {
             <h2>{props.unit.kind}</h2>
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
             { health && <h3>{health.hp}/{health.maxHp}</h3> }
-            <span>{props.unit.status}</span>
-            { productionProgress && <ProductionProgressBar percent={productionProgress} /> }
+            { props.owned && <span>{props.unit.status}</span> }
+            { props.owned && productionProgress && <ProductionProgressBar percent={productionProgress} /> }
         </div>
     );
 }

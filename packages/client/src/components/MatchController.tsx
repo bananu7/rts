@@ -289,6 +289,7 @@ export function MatchController(props: MatchControllerProps) {
             selectedUnits={selectedUnits}
             setSelectedUnits={setSelectedUnits}
             units={lastUpdatePacket.units}
+            ownerIndex={props.ctrl.getPlayerIndex()}
           />
           <ResourceView
             resources={lastUpdatePacket.player.resources}
