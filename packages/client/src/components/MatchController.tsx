@@ -278,6 +278,7 @@ export function MatchController(props: MatchControllerProps) {
           <CommandPalette
             resources={lastUpdatePacket.player.resources}
             selectedUnits={selectedUnits}
+            ownerIndex={props.ctrl.getPlayerIndex()}
             units={lastUpdatePacket.units}
             ctrl={props.ctrl}
             selectedAction={selectedAction}
