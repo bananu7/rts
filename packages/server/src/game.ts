@@ -20,6 +20,8 @@ const MOVEMENT_EPSILON = 0.2;
 // how far the unit will run away from the idle position
 // to chase an enemy that it spotted.
 const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
+// maximum number of units per player
+const MAX_PLAYER_UNITS = 50;
 
 export function newGame(matchId: string, map: GameMap): Game {
     const units = createStartingUnits();
@@ -711,6 +713,13 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             }
 
             if (!p.productionState) {
+                const numberOfPlayerUnits = g.units.filter(u => u.owner === unit.owner).length;
+                if (numberOfPlayerUnits >= MAX_PLAYER_UNITS) {
+                    console.info("[game] Unit orderded to produce but maximum unit count reached");
+                    clearCurrentAction();
+                    break;
+                }
+
                 const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
                 if (!utp) {
                     console.info("[game] Unit orderded to produce but it can't produce this unit type");

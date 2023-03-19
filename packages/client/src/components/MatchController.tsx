@@ -289,7 +289,10 @@ export function MatchController(props: MatchControllerProps) {
             setSelectedUnits={setSelectedUnits}
             units={lastUpdatePacket.units}
           />
-          <ResourceView resources={lastUpdatePacket.player.resources} />
+          <ResourceView
+            resources={lastUpdatePacket.player.resources}
+            units={lastUpdatePacket.units.filter(u => u.owner === props.ctrl.getPlayerIndex()).length}
+          />
           <View3D>
             <Board3D
               board={serverState.board}

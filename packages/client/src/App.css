@@ -206,7 +206,7 @@
   z-index: 2;
   top: 0;
   right: 200px;
-  width: 150px;
+  width: 250px;
   height: 40px;
   padding: 10px;
 
@@ -214,6 +214,9 @@
   color: white;
 
   box-shadow: 0px 0px 37px 0px rgba(0,0,0,0.5);
+}
+.ResourceView span {
+  margin-right: 10px;
 }
 
 @media (prefers-color-scheme: light) {
