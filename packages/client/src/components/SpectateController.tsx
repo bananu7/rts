@@ -178,8 +178,12 @@ export function SpectateController(props: SpectateControllerProps) {
             selectedUnits={selectedUnits}
             setSelectedUnits={setSelectedUnits}
             units={lastUpdatePacket.units}
+            ownerIndex={0} // TODO - spectator has no player index
           />
-          <ResourceView resources={lastUpdatePacket.player.resources} />
+          <ResourceView
+            resources={lastUpdatePacket.player.resources}
+            units={0} // TODO -spectator doesn't receive data about both players
+          />
           <View3D>
             <Board3D
               board={serverState.board}
