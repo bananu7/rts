@@ -31,7 +31,15 @@ export function BottomUnitView (props: Props) {
                     return unit;
                 });
 
-            return (<MultiUnitView units={units} select={(id) => props.setSelectedUnits(new Set([id]))} />);
+            return (
+                <MultiUnitView
+                    units={units}
+                    select={id => props.setSelectedUnits(new Set([id]))}
+                    deselect={id => props.setSelectedUnits(
+                        new Set(Array.from(props.selectedUnits).filter(i => i !== id))
+                    )}
+                />
+            );
         }
     })();
 
@@ -109,7 +117,7 @@ function SingleUnitView(props: {unit: UnitState, owned: boolean}) {
 }
 
 // TODO select on click
-function UnitIcon(props: {unit: UnitState, onClick: () => void}) {
+function UnitIcon(props: {unit: UnitState, onClick: (e: React.MouseEvent<HTMLElement>) => void}) {
     const u = props.unit;
 
     // TODO component getters to shared code
@@ -126,14 +134,23 @@ function UnitIcon(props: {unit: UnitState, onClick: () => void}) {
     );
 }
 
-function MultiUnitView(props: {units: UnitState[], select: (id: UnitId) => void }) {
+type MultiUnitViewProps = {
+    units: UnitState[];
+    select: (id: UnitId) => void;
+    deselect: (id: UnitId) => void;
+}
+function MultiUnitView(props: MultiUnitViewProps) {
     return (
         <div className="MultiUnitView">
             { props.units.map(u => 
                 <UnitIcon
                     key={u.id}
                     unit={u}
-                    onClick={() => props.select(u.id)}
+                    onClick={e =>
+                        e.shiftKey
+                        ? props.deselect(u.id)
+                        : props.select(u.id)
+                    }
                 />)
             }
         </div>

@@ -175,6 +175,7 @@
 
   background-color: #555;
   color: white;
+  user-select: none;
   
   padding: 8px;
   overflow: hidden;
