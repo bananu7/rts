@@ -67,9 +67,6 @@ type Unit3DProps = {
     enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
-    //const [catalog] = useState(() => require('../../assets/catalog.json'));
-    //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
-
     const onClick = (e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
 

@@ -18,7 +18,7 @@ import { Unit3D } from './Unit3D'
 import { SelectedAction } from '../game/SelectedAction'
 
 function BuildPreview(props: {position: RefObject<Position>, building: string}) {
-    const unitSize = 5;
+    const unitSize = 6;
 
     if (!props.position.current) {
         return <></>;
@@ -32,8 +32,8 @@ function BuildPreview(props: {position: RefObject<Position>, building: string}) 
         if (!props.position.current)
             return;
 
-        ref.current.position.x = props.position.current.x;
-        ref.current.position.z = props.position.current.y;
+        ref.current.position.x = Math.floor(props.position.current.x/2)*2 + 0.5;
+        ref.current.position.z = Math.floor(props.position.current.y/2)*2 + 0.5;
     })
 
     return (
@@ -46,6 +46,9 @@ function BuildPreview(props: {position: RefObject<Position>, building: string}) 
                 <boxGeometry args={[unitSize, 2, unitSize]} />
                 <meshBasicMaterial color={0x00ff00} wireframe={true}/>
             </mesh>
+            <group position={[0, -1, 0]}>
+                <gridHelper args={[14, 7]} />
+            </group>
         </group>
     );
 }
