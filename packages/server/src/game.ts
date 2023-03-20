@@ -212,8 +212,10 @@ function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position: Positi
 
     // buildings can only be built on mod2 grid
     // TODO report this as an error condition?
-    if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2))
+    if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2)) {
+        console.info('[game] Desired building position not on mod2', position);
         return false;
+    }
 
     const tilesToCheck: TilePos[] = [];
     for (let x = position.x; x < position.x + buildingSize; x += 2) {
@@ -788,71 +790,61 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         case 'Build': {
-            const bc = getBuilderComponent(unit);
-            if (!bc) {
-                console.info("[game] Unit without a builder component ordered to build");
+            try {
+                const bc = getBuilderComponent(unit);
+                if (!bc)
+                    throw "[game] Unit without a builder component ordered to build";
+
+                const buildCapability = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
+                if (!buildCapability)
+                    throw "[game] Unit ordered to build something it can't";
+
+                if (buildCapability.buildCost > owner.resources)
+                    throw "[game] Unit ordered to build but player doesn't have enough resources";
+
+                const buildingData = getUnitDataByName(cmd.building);
+                if (!buildingData)
+                    throw "[game] Unit ordered to build unknown unit" +  cmd.building;
+
+                const getBuildingComponent = (ud: UnitData) => {
+                    return ud.find(c => c.type === 'Building') as Building;
+                };
+
+                const buildingComponent = getBuildingComponent(buildingData);
+                if (!buildingComponent)
+                    throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
+
+                if (!mapEmptyForBuilding(g.board.map, buildingComponent.size, cmd.position))
+                    throw "[game] Unit ordered to build but some tiles are obscured";
+
+                const BUILDING_DISTANCE = 2;
+                switch(moveTowards(cmd.position, BUILDING_DISTANCE)) {
+                case 'Unreachable':
+                    clearCurrentAction();
+                    break;
+                case 'ReachedTarget':
+                    owner.resources -= buildCapability.buildCost;
+                    // TODO - this should take time
+                    // already specified in bp.buildTime
+
+                    g.lastUnitId += 1;
+                    g.units.push(createUnit(
+                        g.lastUnitId,
+                        unit.owner,
+                        cmd.building,
+                        { x: cmd.position.x, y: cmd.position.y },
+                    ));
+                    clearCurrentAction();
+                    break;
+                }
+                break;
+            }
+            catch(e) {
+                console.info(e);
                 clearCurrentAction();
                 break;
             }
 
-            const buildCapability = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
-            if (!buildCapability) {
-                console.info("[game] Unit ordered to build something it can't");
-                clearCurrentAction();
-                break;
-            }
-
-            if (buildCapability.buildCost > owner.resources) {
-                console.info("[game] Unit ordered to build but player doesn't have enough resources");
-                clearCurrentAction();
-                break;
-            }
-
-            const buildingData = getUnitDataByName(cmd.building);
-            if (!buildingData) {
-                console.info("[game] Unit ordered to build unknown unit", cmd.building);
-                clearCurrentAction();
-                break;
-            }
-
-            const getBuildingComponent = (ud: UnitData) => {
-                return ud.find(c => c.type === 'Building') as Building;
-            };
-
-            const buildingComponent = getBuildingComponent(buildingData);
-            if (!buildingComponent) {
-                console.info("[game] Unit ordered to build something that's not a building: ", cmd.building);
-                clearCurrentAction();
-                break;
-            }
-
-            if (!mapEmptyForBuilding(g.board.map, buildingComponent.size, cmd.position)) {
-                console.info("[game] Unit ordered to build but some tiles are obscured");
-                clearCurrentAction();
-                break;
-            }
-
-            const BUILDING_DISTANCE = 2;
-            switch(moveTowards(cmd.position, BUILDING_DISTANCE)) {
-            case 'Unreachable':
-                clearCurrentAction();
-                break;
-            case 'ReachedTarget':
-                owner.resources -= buildCapability.buildCost;
-                // TODO - this should take time
-                // already specified in bp.buildTime
-
-                g.lastUnitId += 1;
-                g.units.push(createUnit(
-                    g.lastUnitId,
-                    unit.owner,
-                    cmd.building,
-                    { x: cmd.position.x, y: cmd.position.y },
-                ));
-                clearCurrentAction();
-                break;
-            }
-            break;
         }
     }
 }
