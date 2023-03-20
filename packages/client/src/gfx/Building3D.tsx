@@ -52,7 +52,7 @@ export function Building3D(props: Building3DProps) {
     const color = ownerToColor(props.unit.owner);
 
     const modelPath = props.displayEntry.modelPath;
-    const selectorSize = props.displayEntry.selectorSize;
+    const selectorSize = props.displayEntry.selectorSize / 2;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
@@ -77,20 +77,19 @@ export function Building3D(props: Building3DProps) {
                 position={[0, 1, 0]}
                 name={`BuildingUnit_${props.unit.id}`}
             >
-                { props.selected &&
-                    // TODO - move selector to building middle
-                    <group position={[selectorSize/2, 0, selectorSize/2]}>
+                <group position={[selectorSize, 0, selectorSize]}>
+                    { props.selected &&
                         <SelectionCircle size={selectorSize} enemy={props.enemy} />
-                    </group>
-                }
+                    }
 
-                { /* Click mesh */ }
-                <mesh
-                    onContextMenu={ onClick }
-                    onClick={ onClick }
-                    geometry={cache.getCylinderGeometry(selectorSize)}
-                    material={invisibleMaterial}
-                />
+                    { /* Click mesh */ }
+                    <mesh
+                        onContextMenu={ onClick }
+                        onClick={ onClick }
+                        geometry={cache.getCylinderGeometry(selectorSize)}
+                        material={invisibleMaterial}
+                    />
+                </group>
 
                 <FileModel path={modelPath} accentColor={color} animate={animate}/>
             </group>
