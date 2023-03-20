@@ -63,8 +63,8 @@ export interface Props {
     selectedAction: SelectedAction | undefined;
 
     select: (ids: Set<UnitId>, shift: boolean) => void;
-    mapClick: (p: Position, button: number, shift: boolean) => void;
-    unitClick: (u: UnitId, button: number, shift: boolean) => void;
+    mapClick: (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
+    unitClick: (originalEvent: ThreeEvent<MouseEvent>, u: UnitId, button: number, shift: boolean) => void;
 }
 
 export function Board3D(props: Props) {

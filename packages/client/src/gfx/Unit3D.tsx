@@ -64,15 +64,13 @@ type Unit3DProps = {
     unit: UnitState,
     displayEntry: UnitDisplayEntry,
     selected: boolean,
-    click?: (id: UnitId, button: number, shift: boolean) => void,
+    click?: (originalEvent: ThreeEvent<MouseEvent>, id: UnitId, button: number, shift: boolean) => void,
     enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
     const onClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
-
         if (props.click)
-            props.click(props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
+            props.click(e, props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
     }
 
     // TODO better color choices

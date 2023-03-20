@@ -30,15 +30,13 @@ type Building3DProps = {
     unit: UnitState,
     selected: boolean,
     displayEntry: BuildingDisplayEntry,
-    click?: (id: UnitId, button: number, shift: boolean) => void,
+    click?: (originalEvent: ThreeEvent<MouseEvent>, id: UnitId, button: number, shift: boolean) => void,
     enemy: boolean,
 }
 export function Building3D(props: Building3DProps) {
     const onClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
-
         if (props.click)
-            props.click(props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
+            props.click(e, props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
     }
 
     // TODO duplicate with Unit3D

@@ -12,7 +12,7 @@ import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/ty
 
 import { SelectionBox } from './SelectionBox'
 
-type Click = (p: Position, button: number, shift: boolean) => void;
+type Click = (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 export type Box = { x1: number, y1: number, x2: number, y2: number };
 
@@ -27,9 +27,9 @@ type Map3DProps = {
 export function Map3D(props: Map3DProps) {
     // movement
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
+        // TODO maybe just extract it above
+        props.click(e, {x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
     };
 
     // selection box

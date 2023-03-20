@@ -97,7 +97,8 @@ export function MatchController(props: MatchControllerProps) {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
-  const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
+  const mapClick = useCallback((originalEvent: Event, p: Position, button: number, shift: boolean) => {
+    console.log('mapclick');
     if (selectedUnits.size === 0)
       return;
 
@@ -127,13 +128,17 @@ export function MatchController(props: MatchControllerProps) {
 
   }, [selectedAction, selectedUnits]);
 
-  const unitClick = useCallback((targetId: UnitId, button: number, shift: boolean) => {
-    if (!lastUpdatePacket)
+  const unitClick = useCallback((originalEvent: Event, targetId: UnitId, button: number, shift: boolean) => {
+    console.log('unitclick');
+    if (!lastUpdatePacket) {
+      originalEvent.stopPropagation();
       return;
+    }
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
     if (!target) {
       console.warn("A right click generated on a unit that does not exist");
+      originalEvent.stopPropagation();
       return;
     }
 
@@ -166,7 +171,10 @@ export function MatchController(props: MatchControllerProps) {
         break;
       }
 
-      if (selectedAction.action === 'Move') {
+      if (selectedAction.action === 'Build') {
+        // propagate the event so that it hits the map instead
+        return;
+      } else if (selectedAction.action === 'Move') {
         props.ctrl.followCommand(Array.from(selectedUnits), targetId, shift);
       } else if (selectedAction.action === 'Attack') {
         props.ctrl.attackCommand(Array.from(selectedUnits), targetId, shift);
@@ -188,6 +196,9 @@ export function MatchController(props: MatchControllerProps) {
       }
       break;
     }
+
+    originalEvent.stopPropagation();
+
   }, [lastUpdatePacket, selectedAction, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
