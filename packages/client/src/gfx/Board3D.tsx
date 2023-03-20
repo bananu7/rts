@@ -14,6 +14,8 @@ import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
+import { Building3D } from './Building3D'
+import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedAction } from '../game/SelectedAction'
 
@@ -32,8 +34,8 @@ function BuildPreview(props: {position: RefObject<Position>, building: string}) 
         if (!props.position.current)
             return;
 
-        ref.current.position.x = Math.floor(props.position.current.x/2)*2 + 0.5;
-        ref.current.position.z = Math.floor(props.position.current.y/2)*2 + 0.5;
+        ref.current.position.x = Math.floor(props.position.current.x/2)*2 + 3;
+        ref.current.position.z = Math.floor(props.position.current.y/2)*2 + 3;
     })
 
     return (
@@ -72,14 +74,33 @@ export function Board3D(props: Props) {
         pointer.current.y = p.y;
     }, [pointer]);
 
-    const units = props.unitStates.map(u => 
-    (<Unit3D
-        key={u.id}
-        unit={u}
-        click={props.unitClick}
-        selected={props.selectedUnits.has(u.id)}
-        enemy={u.owner !== props.playerIndex}
-    />));
+    const units = props.unitStates.map(u => {
+        const catalogEntryFn = UNIT_DISPLAY_CATALOG[u.kind];
+        if (!catalogEntryFn)
+            throw new Error("No display catalog entry for unit" + u.kind);
+        const catalogEntry = catalogEntryFn();
+
+        if (catalogEntry.isBuilding) {
+            return (<Building3D
+                key={u.id}
+                unit={u}
+                click={props.unitClick}
+                selected={props.selectedUnits.has(u.id)}
+                displayEntry={catalogEntry}
+                enemy={u.owner !== props.playerIndex}
+            />);
+        } else {
+            return (<Unit3D
+                key={u.id}
+                unit={u}
+                click={props.unitClick}
+                selected={props.selectedUnits.has(u.id)}
+                displayEntry={catalogEntry}
+                enemy={u.owner !== props.playerIndex}
+            />);
+        }
+    });
+
 
     const groupRef = useRef<THREE.Group>(null);
 

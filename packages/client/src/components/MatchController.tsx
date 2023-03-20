@@ -113,8 +113,8 @@ export function MatchController(props: MatchControllerProps) {
       } else if (selectedAction.action === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
-        p.x = Math.floor(p.x/2)*2 + 0.5;
-        p.y = Math.floor(p.y/2)*2 + 0.5;
+        p.x = Math.floor(p.x/2)*2;
+        p.y = Math.floor(p.y/2)*2;
         props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p, shift);
       }
       break;

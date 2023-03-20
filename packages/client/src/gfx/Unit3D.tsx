@@ -15,7 +15,7 @@ import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
-import { UNIT_DISPLAY_CATALOG } from './UnitDisplayCatalog'
+import { UnitDisplayEntry } from './UnitDisplayCatalog'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -62,6 +62,7 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
 
 type Unit3DProps = {
     unit: UnitState,
+    displayEntry: UnitDisplayEntry,
     selected: boolean,
     click?: (id: UnitId, button: number, shift: boolean) => void,
     enemy: boolean,
@@ -86,13 +87,8 @@ export function Unit3D(props: Unit3DProps) {
 
     const color = ownerToColor(props.unit.owner);
 
-    const unitCatalogEntry = UNIT_DISPLAY_CATALOG[props.unit.kind];
-    if (!unitCatalogEntry)
-        throw new Error("Unit doesn't exist in catalog");
-
-    const unitDetails = unitCatalogEntry();
-    const modelPath = unitDetails.modelPath;
-    const selectorSize = unitDetails.selectorSize;
+    const modelPath = props.displayEntry.modelPath;
+    const selectorSize = props.displayEntry.selectorSize;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);
