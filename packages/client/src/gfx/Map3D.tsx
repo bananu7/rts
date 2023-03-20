@@ -78,7 +78,7 @@ export function Map3D(props: Map3DProps) {
                 const height = (isPassable ? 0 : 0.8 + Math.random() * 0.7) - 0.01; // TODO quick hack
                 
                 // TODO - make sure that everything matches with that corrective offset
-                mat4Pos.makeTranslation(x * xSize - 0.5, height, y * ySize - 0.5); // TODO -1 to move them down because of their height
+                mat4Pos.makeTranslation(x * xSize + 0.5, height, y * ySize + 0.5); // TODO -1 to move them down because of their height
                 vec3Color.set(color);
 
                 // TODO - this is just a quick and dirty solution
