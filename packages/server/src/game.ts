@@ -2,7 +2,7 @@ import {
     Milliseconds, Position,
     Board,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Action, ActionFollow, ActionAttack, ActionMove,
     PlayerState,
 } from './types';
@@ -10,9 +10,8 @@ import {
 import * as V from './vector.js'
 import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
-import { createUnit, createStartingUnits } from './units.js'
+import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
-
 
 // general accuracy when the unit assumes it has reached
 // its destination
@@ -206,6 +205,28 @@ function willAcceptAction(unit: Unit, action: Action) {
         break;
     }
     return true;
+}
+
+function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position: Position): boolean {
+    const isOnModN = (x: number, n: number) => x/n - Math.floor(x/n) === 0;
+
+    // buildings can only be built on mod2 grid
+    // TODO report this as an error condition?
+    if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2))
+        return false;
+
+    const tilesToCheck: TilePos[] = [];
+    for (let x = position.x; x < position.x + buildingSize; x += 2) {
+        for (let y = position.y; y < position.y + buildingSize; y += 2) {
+            tilesToCheck.push({ x: position.x, y: position.y});
+        }
+    }
+
+    // TODO this is getting duplicated, maybe GameMap needs better utility functions
+    const explode = (p: TilePos) => p.x+p.y*gm.w;
+
+    const empty = ! tilesToCheck.some(t => gm.tiles[explode(t)] !== 0);
+    return empty;
 }
 
 // Returns a list of update packets, one for each player
@@ -774,15 +795,39 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 break;
             }
 
-            const bp = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
-            if (!bp) {
+            const buildCapability = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
+            if (!buildCapability) {
                 console.info("[game] Unit ordered to build something it can't");
                 clearCurrentAction();
                 break;
             }
 
-            if (bp.buildCost > owner.resources) {
+            if (buildCapability.buildCost > owner.resources) {
                 console.info("[game] Unit ordered to build but player doesn't have enough resources");
+                clearCurrentAction();
+                break;
+            }
+
+            const buildingData = getUnitDataByName(cmd.building);
+            if (!buildingData) {
+                console.info("[game] Unit ordered to build unknown unit", cmd.building);
+                clearCurrentAction();
+                break;
+            }
+
+            const getBuildingComponent = (ud: UnitData) => {
+                return ud.find(c => c.type === 'Building') as Building;
+            };
+
+            const buildingComponent = getBuildingComponent(buildingData);
+            if (!buildingComponent) {
+                console.info("[game] Unit ordered to build something that's not a building: ", cmd.building);
+                clearCurrentAction();
+                break;
+            }
+
+            if (!mapEmptyForBuilding(g.board.map, buildingComponent.size, cmd.position)) {
+                console.info("[game] Unit ordered to build but some tiles are obscured");
                 clearCurrentAction();
                 break;
             }
@@ -793,7 +838,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 clearCurrentAction();
                 break;
             case 'ReachedTarget':
-                owner.resources -= bp.buildCost;
+                owner.resources -= buildCapability.buildCost;
                 // TODO - this should take time
                 // already specified in bp.buildTime
 
