@@ -218,9 +218,9 @@ function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position: Positi
     }
 
     const tilesToCheck: TilePos[] = [];
-    for (let x = position.x; x < position.x + buildingSize; x += 2) {
-        for (let y = position.y; y < position.y + buildingSize; y += 2) {
-            tilesToCheck.push({ x: position.x, y: position.y});
+    for (let x = position.x; x < position.x + buildingSize; x += 1) {
+        for (let y = position.y; y < position.y + buildingSize; y += 1) {
+            tilesToCheck.push({ x, y });
         }
     }
 
