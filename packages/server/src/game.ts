@@ -12,7 +12,7 @@ import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
-import { mapEmptyForBuilding } from './map.js'
+import { mapEmptyForBuilding } from './shared.js'
 
 // general accuracy when the unit assumes it has reached
 // its destination
