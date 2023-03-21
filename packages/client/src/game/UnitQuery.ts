@@ -4,7 +4,7 @@ import {
    UnitState,
    ProductionFacility,
    Builder,
-} from 'rts-server/src/types'
+} from '@bananu7-rts/server/src/types'
 
 import { SelectedAction } from './SelectedAction'
 

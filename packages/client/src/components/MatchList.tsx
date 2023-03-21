@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MatchInfo } from 'rts-server/src/types'
+import { MatchInfo } from '@bananu7-rts/server/src/types'
 import { HTTP_API_URL } from '../config'
 
 type Props = {

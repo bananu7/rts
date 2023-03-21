@@ -9,8 +9,8 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from 'rts-server/src/types'
-import { mapEmptyForBuilding } from 'rts-server/src/shared'
+import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
+import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'

@@ -1,5 +1,5 @@
 import { useState, useEffect, CSSProperties } from 'react'
-import { Board, UnitState } from 'rts-server/src/types'
+import { Board, UnitState } from '@bananu7-rts/server/src/types'
 
 type Props = {
     board: Board,

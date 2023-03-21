@@ -1,5 +1,5 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'rts-server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
 
 export type OnChatMessage = (msg: string) => void;

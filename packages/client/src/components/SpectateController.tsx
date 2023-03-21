@@ -16,7 +16,7 @@ import { Board3D } from '../gfx/Board3D';
 
 import { SpectatorControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'rts-server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 
 type SpectateControllerProps = {
   ctrl: SpectatorControl

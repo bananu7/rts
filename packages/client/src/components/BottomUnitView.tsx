@@ -1,4 +1,4 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from 'rts-server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from '@bananu7-rts/server/src/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {

@@ -1,5 +1,5 @@
 {
-  "name": "rts-client",
+  "name": "@bananu7-rts/client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,7 +15,7 @@
     "@types/three": "^0.144.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rts-server": "*",
+    "@bananu7-rts/server": "*",
     "three": "^0.144.0"
   },
   "devDependencies": {

@@ -9,7 +9,7 @@ import {
    Position,
    ProductionFacility,
    Builder,
-} from 'rts-server/src/types'
+} from '@bananu7-rts/server/src/types'
 import { MatchControl } from '../Multiplayer'
 import { SelectedAction } from '../game/SelectedAction'
 
