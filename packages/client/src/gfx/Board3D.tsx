@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from 'server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -19,7 +19,38 @@ import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog
 
 import { SelectedAction } from '../game/SelectedAction'
 
-function BuildPreview(props: {position: RefObject<Position>, building: string}) {
+// TODO import from server
+export function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position: Position): boolean {
+    const isOnModN = (x: number, n: number) => x/n - Math.floor(x/n) === 0;
+
+    // buildings can only be built on mod2 grid
+    // TODO report this as an error condition?
+    if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2)) {
+        console.info('[game] Desired building position not on mod2', position);
+        return false;
+    }
+
+    const tilesToCheck: TilePos[] = [];
+    for (let x = position.x; x < position.x + buildingSize; x += 1) {
+        for (let y = position.y; y < position.y + buildingSize; y += 1) {
+            tilesToCheck.push({ x, y });
+        }
+    }
+
+    // TODO this is getting duplicated, maybe GameMap needs better utility functions
+    const explode = (p: TilePos) => p.x+p.y*gm.w;
+
+    const empty = ! tilesToCheck.some(t => gm.tiles[explode(t)] !== 0);
+    return empty;
+}
+
+
+type BuildPreviewProps = {
+    position: RefObject<Position>;
+    building: string;
+    map: GameMap;
+}
+function BuildPreview(props: BuildPreviewProps) {
     const unitSize = 6;
 
     if (!props.position.current) {
@@ -27,6 +58,9 @@ function BuildPreview(props: {position: RefObject<Position>, building: string}) 
     }
 
     const ref = useRef<THREE.Group>(null);
+    const blobMatRef = useRef<THREE.MeshBasicMaterial>(null);
+    const wireMatRef = useRef<THREE.MeshBasicMaterial>(null);
+
     useFrame(() => {
         if(!ref.current)
             return;
@@ -34,19 +68,35 @@ function BuildPreview(props: {position: RefObject<Position>, building: string}) 
         if (!props.position.current)
             return;
 
-        ref.current.position.x = Math.floor(props.position.current.x/2)*2 + 3;
-        ref.current.position.z = Math.floor(props.position.current.y/2)*2 + 3;
+        const onGridX = Math.floor(props.position.current.x/2)*2
+        const onGridY = Math.floor(props.position.current.y/2)*2;
+
+        // TODO likely needs +3 because ref point for boxgeom is in the middle, make it respect real building size
+        ref.current.position.x = onGridX + 3;
+        ref.current.position.z = onGridY + 3;
+
+        // this needs to be recomputed dynamically
+        const emptyForBuilding = mapEmptyForBuilding(props.map, 6, {x:onGridX, y:onGridY});
+        if (!emptyForBuilding)
+            console.log("!");
+
+        const blobColor = emptyForBuilding ? 0x33cc33 : 0xcc3333;
+        const wireColor = emptyForBuilding ? 0x00ff00 : 0xff0000;
+
+        // TODO wtf
+        blobMatRef.current.color.setHex(blobColor);
+        wireMatRef.current.color.setHex(wireColor);
     })
 
     return (
         <group ref={ref} position={[-100, 2, -100]}>
             <mesh>
                 <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial color={0x33cc33} transparent={true} opacity={0.5} />
+                <meshBasicMaterial ref={blobMatRef} color={0x33cc33} transparent={true} opacity={0.5} />
             </mesh>
             <mesh>
                 <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial color={0x00ff00} wireframe={true}/>
+                <meshBasicMaterial ref={wireMatRef} color={0x00ff00} wireframe={true}/>
             </mesh>
             <group position={[0, -1, 0]}>
                 <gridHelper args={[14, 7]} />
@@ -137,7 +187,7 @@ export function Board3D(props: Props) {
             {
                 props.selectedAction &&
                 props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer}/>
+                <BuildPreview building={props.selectedAction.building} position={pointer} map={props.board.map}/>
             }
         </group>
     );
