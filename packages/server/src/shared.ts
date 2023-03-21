@@ -6,7 +6,6 @@ export function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position:
     // buildings can only be built on mod2 grid
     // TODO report this as an error condition?
     if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2)) {
-        console.info('[game] Desired building position not on mod2', position);
         return false;
     }
 
