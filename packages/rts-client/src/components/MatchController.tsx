@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedAction } from '../game/SelectedAction';
 import { canPerformSelectedAction } from '../game/UnitQuery';
@@ -97,7 +98,7 @@ export function MatchController(props: MatchControllerProps) {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
-  const mapClick = useCallback((originalEvent: Event, p: Position, button: number, shift: boolean) => {
+  const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
     console.log('mapclick');
     if (selectedUnits.size === 0)
       return;
@@ -128,7 +129,7 @@ export function MatchController(props: MatchControllerProps) {
 
   }, [selectedAction, selectedUnits]);
 
-  const unitClick = useCallback((originalEvent: Event, targetId: UnitId, button: number, shift: boolean) => {
+  const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     console.log('unitclick');
     if (!lastUpdatePacket) {
       originalEvent.stopPropagation();

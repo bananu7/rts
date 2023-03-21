@@ -50,7 +50,9 @@ function BuildPreview(props: BuildPreviewProps) {
         ref.current.position.x = onGridX + 3;
         ref.current.position.z = onGridY + 3;
 
-        // this needs to be recomputed dynamically
+        if (!blobMatRef.current || !wireMatRef.current)
+            return;
+
         const emptyForBuilding = mapEmptyForBuilding(props.map, 6, {x:onGridX, y:onGridY});
         if (!emptyForBuilding)
             console.log("!");
@@ -58,7 +60,6 @@ function BuildPreview(props: BuildPreviewProps) {
         const blobColor = emptyForBuilding ? 0x33cc33 : 0xcc3333;
         const wireColor = emptyForBuilding ? 0x00ff00 : 0xff0000;
 
-        // TODO wtf
         blobMatRef.current.color.setHex(blobColor);
         wireMatRef.current.color.setHex(wireColor);
     })
