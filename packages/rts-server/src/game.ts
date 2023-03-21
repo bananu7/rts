@@ -12,6 +12,7 @@ import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
+import { mapEmptyForBuilding } from './map.js'
 
 // general accuracy when the unit assumes it has reached
 // its destination
@@ -205,30 +206,6 @@ function willAcceptAction(unit: Unit, action: Action) {
         break;
     }
     return true;
-}
-
-function mapEmptyForBuilding(gm: GameMap, buildingSize: number, position: Position): boolean {
-    const isOnModN = (x: number, n: number) => x/n - Math.floor(x/n) === 0;
-
-    // buildings can only be built on mod2 grid
-    // TODO report this as an error condition?
-    if (!isOnModN(position.x, 2) || !isOnModN(position.y, 2)) {
-        console.info('[game] Desired building position not on mod2', position);
-        return false;
-    }
-
-    const tilesToCheck: TilePos[] = [];
-    for (let x = position.x; x < position.x + buildingSize; x += 1) {
-        for (let y = position.y; y < position.y + buildingSize; y += 1) {
-            tilesToCheck.push({ x, y });
-        }
-    }
-
-    // TODO this is getting duplicated, maybe GameMap needs better utility functions
-    const explode = (p: TilePos) => p.x+p.y*gm.w;
-
-    const empty = ! tilesToCheck.some(t => gm.tiles[explode(t)] !== 0);
-    return empty;
 }
 
 // Returns a list of update packets, one for each player

@@ -8,7 +8,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'rts-server/src/types'
 
 import { SelectionBox } from './SelectionBox'
 

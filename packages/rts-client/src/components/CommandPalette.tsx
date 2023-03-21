@@ -9,7 +9,7 @@ import {
    Position,
    ProductionFacility,
    Builder,
-} from 'server/src/types'
+} from 'rts-server/src/types'
 import { MatchControl } from '../Multiplayer'
 import { SelectedAction } from '../game/SelectedAction'
 

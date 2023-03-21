@@ -4,7 +4,7 @@ import {
    UnitState,
    ProductionFacility,
    Builder,
-} from 'server/src/types'
+} from 'rts-server/src/types'
 
 import { SelectedAction } from './SelectedAction'
 
