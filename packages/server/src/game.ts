@@ -12,7 +12,7 @@ import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
-import { mapEmptyForBuilding } from './shared.js'
+import { mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
 
 // general accuracy when the unit assumes it has reached
 // its destination
@@ -301,14 +301,30 @@ const getVisionComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Vision') as Vision;
 }
 
+const getBuildingComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Building') as Building;
+};
+
 function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
     const presence: PresenceMap = new Map();
-    for (const u of units) {
-        const explodedIndex = Math.floor(u.position.x) + Math.floor(u.position.y) * board.map.w;
+    const explode = (p: Position | TilePos) => Math.floor(p.x) + Math.floor(p.y) * board.map.w;
+    const mark = (u: Unit, p: Position | TilePos) => {
+        const explodedIndex = explode(p);
         const us = presence.get(explodedIndex) ?? [] as Unit[];
         us.push(u);
         presence.set(explodedIndex, us);
+    };
+
+    for (const u of units) {
+        const bc = getBuildingComponent(u);
+        if (bc) {
+            const tilesToMark = tilesTakenByBuilding(bc.size, u.position);
+            tilesToMark.forEach(t => mark(u, t));
+        } else {
+            mark(u, u.position);
+        }
     }
+
     return presence;
 }
 
@@ -783,11 +799,11 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!buildingData)
                     throw "[game] Unit ordered to build unknown unit" +  cmd.building;
 
-                const getBuildingComponent = (ud: UnitData) => {
+                const getBuildingComponentFromUnitData = (ud: UnitData) => {
                     return ud.find(c => c.type === 'Building') as Building;
                 };
 
-                const buildingComponent = getBuildingComponent(buildingData);
+                const buildingComponent = getBuildingComponentFromUnitData(buildingData);
                 if (!buildingComponent)
                     throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
 
