@@ -3,6 +3,7 @@ import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedAction } from '../game/SelectedAction';
 import { canPerformSelectedAction } from '../game/UnitQuery';
+import { clampToGrid } from '../game/Grid';
 
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
@@ -17,6 +18,7 @@ import { Board3D } from '../gfx/Board3D';
 import { MatchControl } from '../Multiplayer';
 
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 
 type MatchControllerProps = {
   ctrl: MatchControl
@@ -103,6 +105,10 @@ export function MatchController(props: MatchControllerProps) {
     if (selectedUnits.size === 0)
       return;
 
+    // TODO that's kinda annoying that server state is nullable here
+    if (!serverState)
+      return;
+
     // TODO key being pressed and then RMB is attack move
     switch (button) {
     case 0:
@@ -115,9 +121,14 @@ export function MatchController(props: MatchControllerProps) {
       } else if (selectedAction.action === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
-        p.x = Math.floor(p.x/2)*2;
-        p.y = Math.floor(p.y/2)*2;
-        props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p, shift);
+        const gridPos = clampToGrid(p);
+        // TODO building size
+        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, 6, gridPos);
+        if (emptyForBuilding) {
+          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
+        } else {
+          console.log("[MatchController] trying to build in an invalid location")
+        }
       }
       break;
     case 2:
@@ -127,7 +138,7 @@ export function MatchController(props: MatchControllerProps) {
 
     setSelectedAction(undefined);
 
-  }, [selectedAction, selectedUnits]);
+  }, [serverState, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
   const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     console.log('unitclick');
