@@ -106,24 +106,19 @@ export function Board3D(props: Props) {
             throw new Error("No display catalog entry for unit" + u.kind);
         const catalogEntry = catalogEntryFn();
 
+        const unitProps = {
+            key: u.id,
+            unit: u,
+            click: props.unitClick,
+            selected: props.selectedUnits.has(u.id),
+            displayEntry: catalogEntry,
+            enemy: u.owner !== props.playerIndex
+        };
+
         if (catalogEntry.isBuilding) {
-            return (<Building3D
-                key={u.id}
-                unit={u}
-                click={props.unitClick}
-                selected={props.selectedUnits.has(u.id)}
-                displayEntry={catalogEntry}
-                enemy={u.owner !== props.playerIndex}
-            />);
+            return (<Building3D {...unitProps}/>);
         } else {
-            return (<Unit3D
-                key={u.id}
-                unit={u}
-                click={props.unitClick}
-                selected={props.selectedUnits.has(u.id)}
-                displayEntry={catalogEntry}
-                enemy={u.owner !== props.playerIndex}
-            />);
+            return (<Unit3D {...unitProps}/>);
         }
     });
 
