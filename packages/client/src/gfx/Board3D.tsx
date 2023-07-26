@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -23,7 +23,7 @@ import { SelectedAction } from '../game/SelectedAction'
 export interface Props {
     board: Board;
     playerIndex: number;
-    unitStates: UnitState[];
+    units: Unit[];
     selectedUnits: Set<UnitId>;
     selectedAction: SelectedAction | undefined;
 
@@ -39,7 +39,7 @@ export function Board3D(props: Props) {
         pointer.current.y = p.y;
     }, [pointer]);
 
-    const units = props.unitStates.map(u => {
+    const units = props.units.map(u => {
         const catalogEntryFn = UNIT_DISPLAY_CATALOG[u.kind];
         if (!catalogEntryFn)
             throw new Error("No display catalog entry for unit" + u.kind);
@@ -78,7 +78,7 @@ export function Board3D(props: Props) {
             return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
         }
 
-        const selection = props.unitStates
+        const selection = props.units
             .filter(u => isInBox(u.position, box))
             .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);

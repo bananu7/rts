@@ -9,14 +9,14 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
 import { UnitDisplayEntry } from './UnitDisplayCatalog'
-
+import { getStatus, UnitStatus } from '../game/UnitQuery'
 import { Horizon } from '../debug/Horizon'
 
 // TODO make this settable more easily
@@ -37,14 +37,14 @@ const invisibleMaterial = new THREE.MeshBasicMaterial({
 });
 
 const coneGeometry = new THREE.ConeGeometry(0.5, 2, 8);
-function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
+function ConeIndicator(props: {status: UnitStatus, smoothing: boolean}) {
     // TODO - this will be replaced with animations etc
     let indicatorColor = 0xeeeeee;
-    if (props.unit.status === 'Moving')
+    if (status === 'Moving')
         indicatorColor = 0x55ff55;
-    else if (props.unit.status === 'Attacking')
+    else if (status === 'Attacking')
         indicatorColor = 0xff5555;
-    else if (props.unit.status === 'Harvesting')
+    else if (status === 'Harvesting')
         indicatorColor = 0x5555ff;
     // indicate discrepancy between server and us
     else if (props.smoothing)
@@ -61,7 +61,7 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
 }
 
 type Unit3DProps = {
-    unit: UnitState,
+    unit: Unit,
     displayEntry: UnitDisplayEntry,
     selected: boolean,
     click?: (originalEvent: ThreeEvent<MouseEvent>, id: UnitId, button: number, shift: boolean) => void,
@@ -155,7 +155,8 @@ export function Unit3D(props: Unit3DProps) {
         return new THREE.Vector3(a.x, 1, a.y);
     });
 
-    const animate = props.unit.status === 'Moving';
+    const status = getStatus(props.unit);
+    const animate = status === 'Moving';
 
     return (
         <group>
@@ -190,7 +191,7 @@ export function Unit3D(props: Unit3DProps) {
                     />
 
                     { debugFlags.showCones &&
-                        <ConeIndicator unit={props.unit} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
+                        <ConeIndicator status={status} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
                     <FileModel path={modelPath} accentColor={color} animate={animate}/>

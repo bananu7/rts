@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedAction } from '../game/SelectedAction';
@@ -17,33 +17,28 @@ import { Board3D } from '../gfx/Board3D';
 
 import { MatchControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 
 type MatchControllerProps = {
-  ctrl: MatchControl
+  ctrl: MatchControl,
 }
 export function MatchController(props: MatchControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
-  const [serverState, setServerState] = useState<Game | null>(null);
-
+ 
+  const [matchMetadata, setMatchMetadata] = useState<MatchMetadata | null>(null);
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
+
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
   const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
- 
-  const updateMatchState = useCallback(() => {
-    props.ctrl.getMatchState()
-    .then(s => setServerState(s));
-  }, []);
 
   const leaveMatch = useCallback(async () => {
     await props.ctrl.leaveMatch();
     setLastUpdatePacket(null);
-    setServerState(null);
-  }, [props.ctrl, setLastUpdatePacket, setServerState]);
+  }, [props.ctrl, setLastUpdatePacket, setLastUpdatePacket]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
@@ -91,21 +86,27 @@ export function MatchController(props: MatchControllerProps) {
     });
   }, [setLastUpdatePacket, setSelectedUnits]);
 
+  const downloadMatchMetadata = useCallback(() => {
+    props.ctrl.getMatchMetadata().then(s => setMatchMetadata(s));
+  }, []);
+
   // previously onMatchConnected
   useEffect(() => {
     console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
-    updateMatchState();
+    downloadMatchMetadata();
   }, []);
 
-  const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
+  const lines = useMemo(() =>
+    msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>)
+  , [msgs]);
 
   const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
       return;
 
     // TODO that's kinda annoying that server state is nullable here
-    if (!serverState)
+    if (!matchMetadata)
       return;
 
     // TODO key being pressed and then RMB is attack move
@@ -122,7 +123,7 @@ export function MatchController(props: MatchControllerProps) {
         // TODO send the closest one
         const gridPos = clampToGrid(p);
         // TODO building size
-        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, {size: 6, type: 'Building'}, gridPos);
+        const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: 6, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
           props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
         } else {
@@ -137,7 +138,7 @@ export function MatchController(props: MatchControllerProps) {
 
     setSelectedAction(undefined);
 
-  }, [serverState, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
+  }, [matchMetadata, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
   const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket) {
@@ -240,7 +241,7 @@ export function MatchController(props: MatchControllerProps) {
   const gameDivStyle = selectedAction ? { cursor: "pointer"} : { };
 
   const showGame =
-    serverState &&
+    matchMetadata &&
     lastUpdatePacket &&
     ( lastUpdatePacket.state.id === 'Precount'||
       lastUpdatePacket.state.id === 'Play' ||
@@ -276,21 +277,20 @@ export function MatchController(props: MatchControllerProps) {
       }
 
       {
-        serverState &&
+        matchMetadata &&
         <>
          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           { showMainMenu &&
             <div className="MainMenu">
               <h3>Main menu</h3>
               <h4>You are player #{props.ctrl.getPlayerIndex()}</h4>
-              { !serverState && <button>Play</button> }
-              { serverState && <button onClick={async () => {
+              { !matchMetadata && <button>Play</button> }
+              { matchMetadata && <button onClick={async () => {
                 await leaveMatch();
                 setShowMainMenu(false);
               }}>Leave game</button> }
-              { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+              { matchMetadata && <button onClick={() => { console.log(matchMetadata) }}>Dump match metadata</button> }
               { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
-              { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
             </div>
           }
         </>
@@ -320,9 +320,9 @@ export function MatchController(props: MatchControllerProps) {
           />
           <View3D>
             <Board3D
-              board={serverState.board}
+              board={matchMetadata.board}
               playerIndex={props.ctrl.getPlayerIndex()}
-              unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
+              units={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
               selectedAction={selectedAction}
               select={boardSelectUnits}
@@ -330,7 +330,7 @@ export function MatchController(props: MatchControllerProps) {
               unitClick={unitClick}
             />
           </View3D>
-          <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
+          <Minimap board={matchMetadata.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
         </>
       }
 

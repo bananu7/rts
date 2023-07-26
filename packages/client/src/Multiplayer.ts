@@ -1,5 +1,5 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { Game, MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
 
 export type OnChatMessage = (msg: string) => void;
@@ -177,9 +177,15 @@ class AbstractControl {
     protected channel?: ClientChannel;
     protected leaveMatchHandler?: () => void;
 
-    async getMatchState() {
-        console.log("[multiplayer] Getting match state");
-        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    async debugGetMatchState() {
+        console.log("[multiplayer] Getting debug match state");
+        return fetch(`${HTTP_API_URL}/debugGetMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    }
+
+    async getMatchMetadata(): Promise<MatchMetadata> {
+        console.log("[multiplayer] Getting match metadata");
+        // TODO - API urls should be in shared constants
+        return fetch(`${HTTP_API_URL}/getMatchMetadata?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
     }
 
     protected _getChannel(): ClientChannel {

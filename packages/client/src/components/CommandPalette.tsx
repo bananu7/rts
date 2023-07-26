@@ -5,7 +5,6 @@ import {
    UpdatePacket,
    UnitId,
    Unit,
-   UnitState,
    Position,
    ProductionFacility,
    Builder,
@@ -44,7 +43,7 @@ type Props = {
     selectedUnits: Set<UnitId>,
     selectedAction: SelectedAction | undefined,
     setSelectedAction: (a: SelectedAction | undefined) => void,
-    units: UnitState[],
+    units: Unit[],
     ctrl: MatchControl,
     ownerIndex: number,
     notify: (text: string) => void,
@@ -54,7 +53,7 @@ export function CommandPalette(props: Props) {
         return <div></div>;
     }
 
-    const units: UnitState[] = 
+    const units: Unit[] = 
         Array.from(props.selectedUnits)
         .map(id => {
             const unit = props.units.find(u => u.id === id);

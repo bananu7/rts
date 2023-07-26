@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback, CSSProperties } from 'react'
 
 import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { Multiplayer, MatchControl, SpectatorControl } from '../Multiplayer';
-import { Board, UnitState } from '@bananu7-rts/server/src/types'
+import { Board, Unit } from '@bananu7-rts/server/src/types'
 import { MatchList } from '../components/MatchList';
 
 const multiplayer = new Multiplayer("debug_user");
 
 type Props = {
     board: Board,
-    units: UnitState[],
+    units: Unit[],
 }
 export function DebugMap(props: Props) {
     const style : CSSProperties = {
@@ -68,7 +68,7 @@ export default function DebugApp() {
     const [serverState, setServerState] = useState<Game | null>(null);
     const refresh = () => {
         if (controller && controller instanceof MatchControl) {
-            controller.getMatchState()
+            controller.debugGetMatchState()
             .then(s => setServerState(s));
         }
     };

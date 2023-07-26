@@ -1,28 +1,27 @@
 import {
    UnitId,
    Unit,
-   UnitState,
    ProductionFacility,
    Builder,
 } from '@bananu7-rts/server/src/types'
 
 import { SelectedAction } from './SelectedAction'
 
-export function canMove(unit: UnitState | Unit): Boolean {
+export function canMove(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Mover'));
 }
 
 // TODO: perhaps not all units can attack other units, so 
 // this might need target parameter later
-export function canAttack(unit: UnitState | Unit): Boolean {
+export function canAttack(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Attacker'));
 }
 
-export function canHarvest(unit: UnitState | Unit): Boolean {
+export function canHarvest(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Harvester'));
 }
 
-export function canBuild(unit: UnitState | Unit, building: string): Boolean {
+export function canBuild(unit: Unit, building: string): Boolean {
     const builderComponent = unit.components.find(c => c.type === 'Builder') as Builder;
     if (!builderComponent)
         return false;
@@ -30,7 +29,7 @@ export function canBuild(unit: UnitState | Unit, building: string): Boolean {
     return Boolean(builderComponent.buildingsProduced.find(bp => bp.buildingType === building));
 }
 
-export function canPerformSelectedAction(unit: UnitState | Unit, action: SelectedAction): Boolean {
+export function canPerformSelectedAction(unit: Unit, action: SelectedAction): Boolean {
     switch (action.action) {
     case 'Move':
         return canMove(unit);
@@ -41,4 +40,23 @@ export function canPerformSelectedAction(unit: UnitState | Unit, action: Selecte
     case 'Build':
         return canBuild(unit, action.building);
     }
+}
+
+export type UnitStatus = 'Moving'|'Attacking'|'Harvesting'|'Idle';
+
+export function getStatus(unit: Unit): UnitStatus {
+    const actionToStatus = {
+        'Attack': 'Attacking',
+        'AttackMove': 'Attacking',
+        'Follow': 'Moving',
+        'Move': 'Moving',
+        'Harvest': 'Harvesting',
+        'Produce': 'Producing',
+        'Build': 'Idle',
+        'Stop': 'Idle',
+    };
+
+    return unit.actionState.state === 'active' ?
+        (actionToStatus[unit.actionState.current.typ] as UnitStatus) :
+        'Idle';
 }

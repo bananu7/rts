@@ -1,10 +1,10 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from '@bananu7-rts/server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, Position, ProductionFacility, Hp, Builder } from '@bananu7-rts/server/src/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {
     selectedUnits: Set<UnitId>,
     setSelectedUnits: (us: Set<UnitId>) => void,
-    units: UnitState[],
+    units: Unit[],
     ownerIndex: number,
 }
 
@@ -22,7 +22,7 @@ export function BottomUnitView (props: Props) {
             return (<SingleUnitView unit={u} owned={owned}/>);
         } else {
             // TODO duplication with CommandPalette
-            const units: UnitState[] = 
+            const units: Unit[] = 
                 Array.from(props.selectedUnits)
                 .map(id => {
                     const unit = props.units.find(u => u.id === id);
@@ -89,7 +89,7 @@ function ProductionProgressBar(props: {percent: number}) {
 }
 
 
-function SingleUnitView(props: {unit: UnitState, owned: boolean}) {
+function SingleUnitView(props: {unit: Unit, owned: boolean}) {
     const health = props.unit.components.find(c => c.type === "Hp") as Hp | undefined;
 
     const productionComponent = props.unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility;
@@ -110,17 +110,13 @@ function SingleUnitView(props: {unit: UnitState, owned: boolean}) {
             <h2>{props.unit.kind}</h2>
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
             { health && <h3>{health.hp}/{health.maxHp}</h3> }
-            {/*<span>{props.unit.id}</span><br/>
-            <span>{props.unit.position.x}</span><br/>
-            <span>{props.unit.position.y}</span>*/}
-            { props.owned && <span>{props.unit.status}</span> }
             { props.owned && productionProgress && <ProductionProgressBar percent={productionProgress} /> }
         </div>
     );
 }
 
 // TODO select on click
-function UnitIcon(props: {unit: UnitState, onClick: (e: React.MouseEvent<HTMLElement>) => void}) {
+function UnitIcon(props: {unit: Unit, onClick: (e: React.MouseEvent<HTMLElement>) => void}) {
     const u = props.unit;
 
     // TODO component getters to shared code
@@ -138,7 +134,7 @@ function UnitIcon(props: {unit: UnitState, onClick: (e: React.MouseEvent<HTMLEle
 }
 
 type MultiUnitViewProps = {
-    units: UnitState[];
+    units: Unit[];
     select: (id: UnitId) => void;
     deselect: (id: UnitId) => void;
 }

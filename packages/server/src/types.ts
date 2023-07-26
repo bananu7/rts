@@ -9,16 +9,31 @@ export type Milliseconds = number;
 
 export type UnitId = number;
 
-// Network connectivity
+// used for MatchList
+export type MatchId = string;
+
 export type MatchInfo = {
-    matchId: string,
+    matchId: MatchId,
     playerCount: number,
     status: GameState, 
 }
 
+// constant for the entire match, used by the match controller
+export type PlayerMetadata = {
+    readonly index: PlayerIndex,
+    readonly userId: UserId,
+    readonly color: number,
+}
+
+export type MatchMetadata = {
+    readonly matchId: MatchId;
+    readonly players: PlayerMetadata[],
+    readonly board: Board,
+}
+
 export type IdentificationPacket = {
     userId: UserId,
-    matchId: string, 
+    matchId: MatchId, 
 }
 
 export type Action = ActionMove | ActionStop | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
@@ -184,7 +199,7 @@ export type PlayerState = {
 
 export type Game = {
     // uuid: UUID, TODO
-    matchId: string,
+    matchId: MatchId,
     state: GameState,
     tickNumber: number,
     players: PlayerState[],

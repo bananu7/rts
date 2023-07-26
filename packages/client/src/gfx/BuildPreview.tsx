@@ -1,6 +1,6 @@
 import { useRef, RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos } from '@bananu7-rts/server/src/types'
 import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 import { clampToGrid } from '../game/Grid'
 
