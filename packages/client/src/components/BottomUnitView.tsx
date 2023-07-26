@@ -1,4 +1,4 @@
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from 'server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Unit, UnitState, Position, ProductionFacility, Hp, Builder } from '@bananu7-rts/server/src/types'
 import { Multiplayer } from '../Multiplayer'
 
 type Props = {
@@ -110,6 +110,9 @@ function SingleUnitView(props: {unit: UnitState, owned: boolean}) {
             <h2>{props.unit.kind}</h2>
             { health && <HealthBar hp={health.hp} maxHp={health.maxHp} /> }
             { health && <h3>{health.hp}/{health.maxHp}</h3> }
+            <span>{props.unit.id}</span><br/>
+            <span>{props.unit.position.x}</span><br/>
+            <span>{props.unit.position.y}</span>
             { props.owned && <span>{props.unit.status}</span> }
             { props.owned && productionProgress && <ProductionProgressBar percent={productionProgress} /> }
         </div>

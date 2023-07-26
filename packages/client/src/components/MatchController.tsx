@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedAction } from '../game/SelectedAction';
 import { canPerformSelectedAction } from '../game/UnitQuery';
+import { clampToGrid } from '../game/Grid';
 
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
@@ -15,7 +17,8 @@ import { Board3D } from '../gfx/Board3D';
 
 import { MatchControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 
 type MatchControllerProps = {
   ctrl: MatchControl
@@ -97,8 +100,12 @@ export function MatchController(props: MatchControllerProps) {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
-  const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
+  const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
+      return;
+
+    // TODO that's kinda annoying that server state is nullable here
+    if (!serverState)
       return;
 
     // TODO key being pressed and then RMB is attack move
@@ -113,7 +120,14 @@ export function MatchController(props: MatchControllerProps) {
       } else if (selectedAction.action === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
-        props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, p, shift);
+        const gridPos = clampToGrid(p);
+        // TODO building size
+        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, 6, gridPos);
+        if (emptyForBuilding) {
+          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
+        } else {
+          console.log("[MatchController] trying to build in an invalid location")
+        }
       }
       break;
     case 2:
@@ -123,15 +137,18 @@ export function MatchController(props: MatchControllerProps) {
 
     setSelectedAction(undefined);
 
-  }, [selectedAction, selectedUnits]);
+  }, [serverState, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
-  const unitClick = useCallback((targetId: UnitId, button: number, shift: boolean) => {
-    if (!lastUpdatePacket)
+  const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
+    if (!lastUpdatePacket) {
+      originalEvent.stopPropagation();
       return;
+    }
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
     if (!target) {
-      console.warn("A right click generated on a unit that does not exist");
+      console.warn("[MatchController] A right click generated on a unit that does not exist");
+      originalEvent.stopPropagation();
       return;
     }
 
@@ -164,7 +181,10 @@ export function MatchController(props: MatchControllerProps) {
         break;
       }
 
-      if (selectedAction.action === 'Move') {
+      if (selectedAction.action === 'Build') {
+        // propagate the event so that it hits the map instead
+        return;
+      } else if (selectedAction.action === 'Move') {
         props.ctrl.followCommand(Array.from(selectedUnits), targetId, shift);
       } else if (selectedAction.action === 'Attack') {
         props.ctrl.attackCommand(Array.from(selectedUnits), targetId, shift);
@@ -186,6 +206,9 @@ export function MatchController(props: MatchControllerProps) {
       }
       break;
     }
+
+    originalEvent.stopPropagation();
+
   }, [lastUpdatePacket, selectedAction, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {

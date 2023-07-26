@@ -9,46 +9,16 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
+import { Building3D } from './Building3D'
+import { BuildPreview } from './BuildPreview'
+import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedAction } from '../game/SelectedAction'
-
-function BuildPreview(props: {position: RefObject<Position>, building: string}) {
-    const unitSize = 5;
-
-    if (!props.position.current) {
-        return <></>;
-    }
-
-    const ref = useRef<THREE.Group>(null);
-    useFrame(() => {
-        if(!ref.current)
-            return;
-
-        if (!props.position.current)
-            return;
-
-        ref.current.position.x = props.position.current.x;
-        ref.current.position.z = props.position.current.y;
-    })
-
-    return (
-        <group ref={ref} position={[-100, 2, -100]}>
-            <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial color={0x33cc33} transparent={true} opacity={0.5} />
-            </mesh>
-            <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial color={0x00ff00} wireframe={true}/>
-            </mesh>
-        </group>
-    );
-}
 
 export interface Props {
     board: Board;
@@ -58,8 +28,8 @@ export interface Props {
     selectedAction: SelectedAction | undefined;
 
     select: (ids: Set<UnitId>, shift: boolean) => void;
-    mapClick: (p: Position, button: number, shift: boolean) => void;
-    unitClick: (u: UnitId, button: number, shift: boolean) => void;
+    mapClick: (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
+    unitClick: (originalEvent: ThreeEvent<MouseEvent>, u: UnitId, button: number, shift: boolean) => void;
 }
 
 export function Board3D(props: Props) {
@@ -69,14 +39,29 @@ export function Board3D(props: Props) {
         pointer.current.y = p.y;
     }, [pointer]);
 
-    const units = props.unitStates.map(u => 
-    (<Unit3D
-        key={u.id}
-        unit={u}
-        click={props.unitClick}
-        selected={props.selectedUnits.has(u.id)}
-        enemy={u.owner !== props.playerIndex}
-    />));
+    const units = props.unitStates.map(u => {
+        const catalogEntryFn = UNIT_DISPLAY_CATALOG[u.kind];
+        if (!catalogEntryFn)
+            throw new Error("No display catalog entry for unit" + u.kind);
+        const catalogEntry = catalogEntryFn();
+
+        const unitProps = {
+            key: u.id,
+            unit: u,
+            click: props.unitClick,
+            selected: props.selectedUnits.has(u.id),
+            enemy: u.owner !== props.playerIndex
+        };
+
+        // this needs to be done separately because the if disambiguates the type
+        // of the retrieved catalogEntry
+        if (catalogEntry.isBuilding) {
+            return (<Building3D {...unitProps} displayEntry={catalogEntry} />);
+        } else {
+            return (<Unit3D {...unitProps} displayEntry={catalogEntry} />);
+        }
+    });
+
 
     const groupRef = useRef<THREE.Group>(null);
 
@@ -113,7 +98,7 @@ export function Board3D(props: Props) {
             {
                 props.selectedAction &&
                 props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer}/>
+                <BuildPreview building={props.selectedAction.building} position={pointer} map={props.board.map}/>
             }
         </group>
     );

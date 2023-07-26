@@ -8,11 +8,11 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from '@bananu7-rts/server/src/types'
 
 import { SelectionBox } from './SelectionBox'
 
-type Click = (p: Position, button: number, shift: boolean) => void;
+type Click = (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
 export type Box = { x1: number, y1: number, x2: number, y2: number };
 
@@ -27,9 +27,9 @@ type Map3DProps = {
 export function Map3D(props: Map3DProps) {
     // movement
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
         // turn the 3D position into the 2D map position
-        props.click({x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
+        // TODO maybe just extract it above
+        props.click(e, {x: e.point.x, y: e.point.z}, e.nativeEvent.button, e.nativeEvent.shiftKey);
     };
 
     // selection box
@@ -77,7 +77,8 @@ export function Map3D(props: Map3DProps) {
                 const color = isPassable ? 0x11aa11 : 0x888888;
                 const height = (isPassable ? 0 : 0.8 + Math.random() * 0.7) - 0.01; // TODO quick hack
                 
-                mat4Pos.makeTranslation(x * xSize, height, y * ySize); // TODO -1 to move them down because of their height
+                // TODO - make sure that everything matches with that corrective offset
+                mat4Pos.makeTranslation(x * xSize + 0.5, height, y * ySize + 0.5); // TODO -1 to move them down because of their height
                 vec3Color.set(color);
 
                 // TODO - this is just a quick and dirty solution

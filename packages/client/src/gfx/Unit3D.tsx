@@ -9,13 +9,13 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from 'server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, UnitState } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
-import { UNIT_DISPLAY_CATALOG } from './UnitDisplayCatalog'
+import { UnitDisplayEntry } from './UnitDisplayCatalog'
 
 import { Horizon } from '../debug/Horizon'
 
@@ -62,19 +62,15 @@ function ConeIndicator(props: {unit: UnitState, smoothing: boolean}) {
 
 type Unit3DProps = {
     unit: UnitState,
+    displayEntry: UnitDisplayEntry,
     selected: boolean,
-    click?: (id: UnitId, button: number, shift: boolean) => void,
+    click?: (originalEvent: ThreeEvent<MouseEvent>, id: UnitId, button: number, shift: boolean) => void,
     enemy: boolean,
 }
 export function Unit3D(props: Unit3DProps) {
-    //const [catalog] = useState(() => require('../../assets/catalog.json'));
-    //const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf]);
-
     const onClick = (e: ThreeEvent<MouseEvent>) => {
-        e.stopPropagation();
-
         if (props.click)
-            props.click(props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
+            props.click(e, props.unit.id, e.nativeEvent.button, e.nativeEvent.shiftKey);
     }
 
     // TODO better color choices
@@ -89,13 +85,8 @@ export function Unit3D(props: Unit3DProps) {
 
     const color = ownerToColor(props.unit.owner);
 
-    const unitCatalogEntry = UNIT_DISPLAY_CATALOG[props.unit.kind];
-    if (!unitCatalogEntry)
-        throw new Error("Unit doesn't exist in catalog");
-
-    const unitDetails = unitCatalogEntry();
-    const modelPath = unitDetails.modelPath;
-    const selectorSize = unitDetails.selectorSize;
+    const modelPath = props.displayEntry.modelPath;
+    const selectorSize = props.displayEntry.selectorSize;
 
     // smoothing
     const unitGroupRef = useRef<THREE.Group>(null);

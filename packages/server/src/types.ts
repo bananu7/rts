@@ -114,6 +114,7 @@ export type Resource = {
 }
 export type Building = {
     type: 'Building',
+    size: number,
     constructionTimeLeft?: number,
 }
 

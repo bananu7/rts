@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedAction } from '../game/SelectedAction';
 import { canPerformSelectedAction } from '../game/UnitQuery';
@@ -15,7 +16,7 @@ import { Board3D } from '../gfx/Board3D';
 
 import { SpectatorControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from 'server/src/types'
+import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 
 type SpectateControllerProps = {
   ctrl: SpectatorControl
@@ -61,13 +62,13 @@ export function SpectateController(props: SpectateControllerProps) {
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
-  const mapClick = useCallback((p: Position, button: number, shift: boolean) => {
+  const mapClick = useCallback(() => {
     if (selectedUnits.size === 0)
       return;
-
+    setSelectedUnits(new Set());
   }, [selectedUnits]);
 
-  const unitClick = useCallback((targetId: UnitId, button: number, shift: boolean) => {
+  const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket)
       return;
 
@@ -105,6 +106,9 @@ export function SpectateController(props: SpectateControllerProps) {
       }
       break;
     }
+
+    originalEvent.stopPropagation();
+
   }, [lastUpdatePacket, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {

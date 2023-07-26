@@ -2,9 +2,11 @@ import {
     Unit, UnitId, Component, Position, UnitState,
 } from './types';
 
+export type UnitData = Component[];
+
 // those are functions to clone the objects easily
 interface Catalog {
-    [kind: string]: () => Component[];
+    [kind: string]: () => UnitData;
 }
 
 const UNIT_CATALOG : Catalog = {
@@ -21,7 +23,7 @@ const UNIT_CATALOG : Catalog = {
     ],
     'Base': () => [
         { type: 'Hp', maxHp: 1000, hp: 1000 },
-        { type: 'Building' },
+        { type: 'Building', size: 6 },
         { type: 'ProductionFacility', unitsProduced: [
             { unitType: 'Harvester', productionTime: 5000, productionCost: 50 }
         ]},
@@ -32,7 +34,7 @@ const UNIT_CATALOG : Catalog = {
     ],
     'Barracks': () => [
         { type: 'Hp', maxHp: 600, hp: 600 },
-        { type: 'Building' },
+        { type: 'Building', size: 6 },
         { type: 'ProductionFacility', unitsProduced: [
             {unitType: 'Trooper', productionTime: 5000, productionCost: 50}
         ]},
@@ -45,6 +47,11 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Vision', range: 10 },
     ]
 };
+
+export function getUnitDataByName(name: string): UnitData | undefined {
+    const ud = UNIT_CATALOG[name]
+    return ud ? ud() : undefined;
+}
 
 export const createUnit = (id: number, owner: number, kind: string, position: Position): Unit => {
     return {
