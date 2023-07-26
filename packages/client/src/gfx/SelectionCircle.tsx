@@ -29,7 +29,7 @@ export function SelectionCircle(props: { size: number, enemy?: boolean }) {
             position={[0, 0, 0]}
             material={props.enemy ? enemyMaterial : friendlyMaterial}
         >
-            <ringBufferGeometry args={[innerRadius, outerRadius, segments]} />
+            <ringGeometry args={[innerRadius, outerRadius, segments]} />
         </mesh>
     );
 }

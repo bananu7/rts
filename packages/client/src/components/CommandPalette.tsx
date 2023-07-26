@@ -46,6 +46,7 @@ type Props = {
     setSelectedAction: (a: SelectedAction | undefined) => void,
     units: UnitState[],
     ctrl: MatchControl,
+    ownerIndex: number,
     notify: (text: string) => void,
 }
 export function CommandPalette(props: Props) {
@@ -63,6 +64,11 @@ export function CommandPalette(props: Props) {
         });
 
     const allSameType = units.every(u => u.kind === units[0].kind);
+
+    const allOwned = units.every(u => u.owner === props.ownerIndex);
+    if (!allOwned) {
+        return <div></div>;
+    }
 
     // TODO browse all units?
     const canMove = Boolean(units[0].components.find(c => c.type === 'Mover'));
