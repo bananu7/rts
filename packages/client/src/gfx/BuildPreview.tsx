@@ -11,16 +11,17 @@ const DIM_RED = 0xcc3333;
 
 type BuildPreviewProps = {
     position: RefObject<Position>;
-    building: string;
+    // buildingDisplayEntry: BuildingDisplayEntry; // TODO visual preview
+    buildingSize: number; // gameplay value for checks
     map: GameMap;
     units: Unit[];
 }
 export function BuildPreview(props: BuildPreviewProps) {
-    const unitSize = 6;
-
     if (!props.position.current) {
         return <></>;
     }
+
+    const buildingSize = props.buildingSize;
 
     const ref = useRef<THREE.Group>(null);
     const blobMatRef = useRef<THREE.MeshBasicMaterial>(null);
@@ -36,14 +37,14 @@ export function BuildPreview(props: BuildPreviewProps) {
         const gridPos = clampToGrid(props.position.current);
 
         // TODO likely needs +3 because ref point for boxgeom is in the middle, make it respect real building size
-        ref.current.position.x = gridPos.x + 3;
-        ref.current.position.z = gridPos.y + 3;
+        ref.current.position.x = gridPos.x + buildingSize/2;
+        ref.current.position.z = gridPos.y + buildingSize/2;
 
         if (!blobMatRef.current || !wireMatRef.current)
             return;
 
         // TODO: building size
-        const emptyForBuilding = isBuildPlacementOk(props.map, props.units, {size: 6, type: 'Building'}, gridPos);
+        const emptyForBuilding = isBuildPlacementOk(props.map, props.units, {size: buildingSize, type: 'Building'}, gridPos);
 
         const blobColor = emptyForBuilding ? DIM_GREEN : DIM_RED;
         const wireColor = emptyForBuilding ? BRIGHT_GREEN : BRIGHT_RED;
@@ -55,15 +56,15 @@ export function BuildPreview(props: BuildPreviewProps) {
     return (
         <group ref={ref} position={[-100, 2, -100]}>
             <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <boxGeometry args={[buildingSize, 2, buildingSize]} />
                 <meshBasicMaterial ref={blobMatRef} transparent={true} opacity={0.5} />
             </mesh>
             <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
+                <boxGeometry args={[buildingSize, 2, buildingSize]} />
                 <meshBasicMaterial ref={wireMatRef} wireframe={true}/>
             </mesh>
             <group position={[0, -1, 0]}>
-                <gridHelper args={[14, 7]} />
+                <gridHelper args={[buildingSize + 8, (buildingSize + 8)/2]} />
             </group>
         </group>
     );

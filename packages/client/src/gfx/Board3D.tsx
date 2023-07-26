@@ -9,7 +9,8 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, TilePos } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos, Building } from '@bananu7-rts/server/src/types'
+import { getUnitDataByName } from '@bananu7-rts/server/src/units'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -86,6 +87,34 @@ export function Board3D(props: Props) {
         props.select(new Set(selection), shift);
     };
 
+    const createBuildPreview = useCallback(() => {
+        if (!props.selectedAction)
+            return;
+        if (props.selectedAction.action !== 'Build')
+            return;
+
+        const unitData = getUnitDataByName(props.selectedAction.building);
+
+        if (!unitData)
+            throw new Error("No unit data for the build action building");
+
+        // TODO component finding doesn't work on UnitData :(
+        const buildingComponent = unitData.find(c => c.type === 'Building') as Building;
+        if (!buildingComponent)
+            throw new Error("Build action target unit data doesn't have a Building component");
+
+        const buildingSize = buildingComponent.size;
+
+        return (<BuildPreview
+            buildingSize={buildingSize}
+            position={pointer}
+            map={props.board.map}
+            units={props.units} // to check viability
+        />);
+    }, [props.selectedAction]);
+
+    const buildPreview = useMemo(() => createBuildPreview(), [props.selectedAction]);
+
     return (
         <group name="board">
             <Map3D
@@ -95,16 +124,7 @@ export function Board3D(props: Props) {
                 pointerMove={setPointer}
             />
             { units }
-            {
-                props.selectedAction &&
-                props.selectedAction.action === 'Build' &&
-                <BuildPreview
-                    building={props.selectedAction.building}
-                    position={pointer}
-                    map={props.board.map}
-                    units={props.units} // to check viability
-                />
-            }
+            { buildPreview }
         </group>
     );
 }

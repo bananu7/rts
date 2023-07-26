@@ -18,6 +18,7 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Builder', buildingsProduced: [
             { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
             { buildingType: 'Barracks', buildTime: 5000, buildCost: 150},
+            { buildingType: 'Tower', buildTime: 5000, buildCost: 50},
         ]},
         { type: 'Vision', range: 10 },
     ],
@@ -39,6 +40,11 @@ const UNIT_CATALOG : Catalog = {
             {unitType: 'Trooper', productionTime: 5000, productionCost: 50}
         ]},
         { type: 'Vision', range: 5 },
+    ],
+    'Tower': () => [
+        { type: 'Hp', maxHp: 300, hp: 300 },
+        { type: 'Building', size: 4 },
+        { type: 'Vision', range: 12 },
     ],
     'Trooper': () => [
         { type: 'Hp', maxHp: 50, hp: 50 },

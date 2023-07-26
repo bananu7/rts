@@ -39,5 +39,10 @@ export const UNIT_DISPLAY_CATALOG : UnitDisplayCatalog = {
         isBuilding: false,
         modelPath: 'catapult.glb',
         selectorSize: 2.5,
-    })
+    }),
+    'Tower': () => ({
+        isBuilding: true,
+        modelPath: 'tower.glb',
+        selectorSize: 4,
+    }),
 };
