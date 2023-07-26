@@ -12,7 +12,7 @@ import { pathFind } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
-import { mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
+import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 
 // general accuracy when the unit assumes it has reached
@@ -761,7 +761,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!buildingComponent)
                     throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
 
-                if (!mapEmptyForBuilding(g.board.map, buildingComponent, cmd.position))
+                if (!isBuildPlacementOk(g.board.map, g.units, buildingComponent, cmd.position))
                     throw "[game] Unit ordered to build but some tiles are obscured";
 
                 const BUILDING_DISTANCE = 2;

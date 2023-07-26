@@ -98,7 +98,12 @@ export function Board3D(props: Props) {
             {
                 props.selectedAction &&
                 props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer} map={props.board.map}/>
+                <BuildPreview
+                    building={props.selectedAction.building}
+                    position={pointer}
+                    map={props.board.map}
+                    units={props.units} // to check viability
+                />
             }
         </group>
     );

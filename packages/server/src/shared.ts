@@ -1,4 +1,4 @@
-import { Game, GameMap, TilePos, Position, Building } from './types'
+import { Game, GameMap, TilePos, Position, Building, Unit } from './types'
 import { getBuildingComponent } from './components.js'
 import { notEmpty } from './tsutil.js'
 
@@ -32,17 +32,16 @@ export function mapEmptyForBuilding(gm: GameMap, building: Building, position: P
     return empty;
 }
 
-export function isBuildPlacementOk(game: Game, building: Building, position: Position): boolean {
-    const mapEmpty = mapEmptyForBuilding(game.board.map, building, position);
+export function isBuildPlacementOk(gm: GameMap, units: Unit[], building: Building, position: Position): boolean {
+    const mapEmpty = mapEmptyForBuilding(gm, building, position);
     if (!mapEmpty)
         return false;
 
     // TODO this should perhaps be cached?
-    const buildings = game.units.map(u => ({ pos: u.position, bc: getBuildingComponent(u)})).filter(({pos, bc}) => bc);
+    const buildings = units.map(u => ({ pos: u.position, bc: getBuildingComponent(u)})).filter(({pos, bc}) => bc);
     const tiles = buildings.map(({pos, bc}) => tilesTakenByBuilding(bc, pos));
 
     // TODO this is getting duplicated, maybe GameMap needs better utility functions
-    const gm = game.board.map;
     const explode = (p: TilePos) => p.x+p.y*gm.w;
     const obscuredTiles = new Set();
     tiles

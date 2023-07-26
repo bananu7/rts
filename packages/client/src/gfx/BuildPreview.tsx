@@ -1,7 +1,7 @@
 import { useRef, RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Board, Unit, GameMap, UnitId, Position, TilePos } from '@bananu7-rts/server/src/types'
-import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
+import { isBuildPlacementOk } from '@bananu7-rts/server/src/shared'
 import { clampToGrid } from '../game/Grid'
 
 const BRIGHT_GREEN = 0x00ff00;
@@ -13,6 +13,7 @@ type BuildPreviewProps = {
     position: RefObject<Position>;
     building: string;
     map: GameMap;
+    units: Unit[];
 }
 export function BuildPreview(props: BuildPreviewProps) {
     const unitSize = 6;
@@ -42,7 +43,7 @@ export function BuildPreview(props: BuildPreviewProps) {
             return;
 
         // TODO: building size
-        const emptyForBuilding = mapEmptyForBuilding(props.map, {size: 6, type: 'Building'}, gridPos);
+        const emptyForBuilding = isBuildPlacementOk(props.map, props.units, {size: 6, type: 'Building'}, gridPos);
 
         const blobColor = emptyForBuilding ? DIM_GREEN : DIM_RED;
         const wireColor = emptyForBuilding ? BRIGHT_GREEN : BRIGHT_RED;
