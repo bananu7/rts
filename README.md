@@ -2,13 +2,8 @@
 
 An OpenSource RTS game.
 
-## Windows MSYS2 workaround for node-datachannel native dependency
-For inexplicable reasons this fails. To fix, get OpenSSL 3.0.5 and before doing `lerna bootstrap`, do (e.g.):
+## Important information about building on Windows
 
-```
-set OPENSSL_ROOT_DIR=C:\DEV\openssl-3.0.5\openssl-3\x64
-```
+Unfortunately, the project doesn't build on Windows straight off NPM. Because of the native `node-datachannel` dependency, it requires CMake and OpenSSL to be manually installed and present.
 
-The root dir is the one which has include/bin/lib directly inside.
-
-Also make sure `cmake` is in PATH, `cmake-js` doesn't work.
+I personally opt to add CMake to `PATH` (both for CMD and MSYS2 shells), and to enable CMake to find OpenSSL, the easiest way is to set `OPENSSL_ROOT_DIR` before running `npm install`. The "root" directory is the one containing the `bin` folder.
