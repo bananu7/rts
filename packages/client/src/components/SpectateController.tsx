@@ -36,7 +36,7 @@ export function SpectateController(props: SpectateControllerProps) {
     await props.ctrl.stopSpectating();
     setLastUpdatePacket(null);
     setMatchMetadata(null);
-  }, [props.ctrl, setLastUpdatePacket, setMatchMetadata]);
+  }, [props.ctrl]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
@@ -48,7 +48,7 @@ export function SpectateController(props: SpectateControllerProps) {
       );
       return newSelectedUnits;
     });
-  }, [setLastUpdatePacket, setSelectedUnits]);
+  }, []);
 
   const downloadMatchMetadata = useCallback(() => {
     props.ctrl.getMatchMetadata()

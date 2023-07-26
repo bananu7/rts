@@ -38,7 +38,7 @@ export function MatchController(props: MatchControllerProps) {
   const leaveMatch = useCallback(async () => {
     await props.ctrl.leaveMatch();
     setLastUpdatePacket(null);
-  }, [props.ctrl, setLastUpdatePacket, setLastUpdatePacket]);
+  }, [props.ctrl]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
@@ -84,7 +84,7 @@ export function MatchController(props: MatchControllerProps) {
 
       return newSelectedUnits;
     });
-  }, [setLastUpdatePacket, setSelectedUnits]);
+  }, []);
 
   const downloadMatchMetadata = useCallback(() => {
     props.ctrl.getMatchMetadata().then(s => setMatchMetadata(s));
