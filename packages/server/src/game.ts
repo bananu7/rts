@@ -837,7 +837,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 clearCurrentAction();
                 break;
             }
-
+            break;
         }
     }
 }
