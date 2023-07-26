@@ -101,7 +101,6 @@ export function MatchController(props: MatchControllerProps) {
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
 
   const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
-    console.log('mapclick');
     if (selectedUnits.size === 0)
       return;
 
@@ -141,7 +140,6 @@ export function MatchController(props: MatchControllerProps) {
   }, [serverState, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
   const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
-    console.log('unitclick');
     if (!lastUpdatePacket) {
       originalEvent.stopPropagation();
       return;
@@ -149,7 +147,7 @@ export function MatchController(props: MatchControllerProps) {
 
     const target = lastUpdatePacket.units.find(u => u.id === targetId);
     if (!target) {
-      console.warn("A right click generated on a unit that does not exist");
+      console.warn("[MatchController] A right click generated on a unit that does not exist");
       originalEvent.stopPropagation();
       return;
     }
