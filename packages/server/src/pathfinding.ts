@@ -59,6 +59,18 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
     const explodedB = explode(b);
 
+    const isTileWithinBounds = (t: TilePos) => t.x > 0 && t.y > 0 && t.x < m.w && t.y < m.h;
+
+    // this is necessary because path lies on edges of tiles, not through the middle
+    // this check verifies the "width" of the path to be 2
+    // TODO different sizes for different units?
+    const isClearAroundTile = (t: TilePos) => (
+        m.tiles[explode(t)] === 0 &&
+        m.tiles[explode({x: t.x,   y: t.y-1})] === 0 &&
+        m.tiles[explode({x: t.x-1, y: t.y})] === 0 &&
+        m.tiles[explode({x: t.x-1, y: t.y-1})] === 0
+    );
+
     while (!q.isEmpty()) {
         const [current, v] = q.poll() as [TilePos, number]; // TODO this `as` looks like a bug in pqueue typing
 
@@ -67,8 +79,8 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
         const options = 
             getSurroundingPos(current)
-            .filter(e => e.x > 0 && e.y > 0 && e.x < m.w && e.y < m.h)
-            .filter(e => m.tiles[explode(e)] === 0);
+            .filter(t => isTileWithinBounds(t))
+            .filter(t => isClearAroundTile(t));
 
         for (let next of options) {
             // detect if moving diagonally
