@@ -122,7 +122,7 @@ export function MatchController(props: MatchControllerProps) {
         // TODO send the closest one
         const gridPos = clampToGrid(p);
         // TODO building size
-        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, 6, gridPos);
+        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, {size: 6, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
           props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
         } else {

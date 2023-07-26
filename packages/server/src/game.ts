@@ -13,6 +13,7 @@ import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
 import { mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 
 // general accuracy when the unit assumes it has reached
 // its destination
@@ -273,38 +274,6 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     });
 }
 
-const getHpComponent = (unit: Unit): Hp => {
-    return unit.components.find(c => c.type === 'Hp') as Hp;
-}
-
-const getMoveComponent = (unit: Unit): Mover => {
-    return unit.components.find(c => c.type === 'Mover') as Mover;
-}
-
-const getAttackerComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Attacker') as Attacker;
-}
-
-const getHarvesterComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Harvester') as Harvester;
-}
-
-const getProducerComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'ProductionFacility') as ProductionFacility;
-}
-
-const getBuilderComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Builder') as Builder;
-}
-
-const getVisionComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Vision') as Vision;
-}
-
-const getBuildingComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Building') as Building;
-};
-
 function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
     const presence: PresenceMap = new Map();
     const explode = (p: Position | TilePos) => Math.floor(p.x) + Math.floor(p.y) * board.map.w;
@@ -318,7 +287,7 @@ function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
     for (const u of units) {
         const bc = getBuildingComponent(u);
         if (bc) {
-            const tilesToMark = tilesTakenByBuilding(bc.size, u.position);
+            const tilesToMark = tilesTakenByBuilding(bc, u.position);
             tilesToMark.forEach(t => mark(u, t));
         } else {
             mark(u, u.position);
@@ -807,7 +776,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!buildingComponent)
                     throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
 
-                if (!mapEmptyForBuilding(g.board.map, buildingComponent.size, cmd.position))
+                if (!mapEmptyForBuilding(g.board.map, buildingComponent, cmd.position))
                     throw "[game] Unit ordered to build but some tiles are obscured";
 
                 const BUILDING_DISTANCE = 2;

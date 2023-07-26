@@ -42,7 +42,7 @@ export function BuildPreview(props: BuildPreviewProps) {
             return;
 
         // TODO: building size
-        const emptyForBuilding = mapEmptyForBuilding(props.map, 6, gridPos);
+        const emptyForBuilding = mapEmptyForBuilding(props.map, {size: 6, type: 'Building'}, gridPos);
 
         const blobColor = emptyForBuilding ? DIM_GREEN : DIM_RED;
         const wireColor = emptyForBuilding ? BRIGHT_GREEN : BRIGHT_RED;
