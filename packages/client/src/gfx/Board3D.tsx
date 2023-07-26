@@ -10,76 +10,15 @@ import {
 import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
-import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
 import { Building3D } from './Building3D'
+import { BuildPreview } from './BuildPreview'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedAction } from '../game/SelectedAction'
-
-type BuildPreviewProps = {
-    position: RefObject<Position>;
-    building: string;
-    map: GameMap;
-}
-function BuildPreview(props: BuildPreviewProps) {
-    const unitSize = 6;
-
-    if (!props.position.current) {
-        return <></>;
-    }
-
-    const ref = useRef<THREE.Group>(null);
-    const blobMatRef = useRef<THREE.MeshBasicMaterial>(null);
-    const wireMatRef = useRef<THREE.MeshBasicMaterial>(null);
-
-    useFrame(() => {
-        if(!ref.current)
-            return;
-
-        if (!props.position.current)
-            return;
-
-        const onGridX = Math.floor(props.position.current.x/2)*2
-        const onGridY = Math.floor(props.position.current.y/2)*2;
-
-        // TODO likely needs +3 because ref point for boxgeom is in the middle, make it respect real building size
-        ref.current.position.x = onGridX + 3;
-        ref.current.position.z = onGridY + 3;
-
-        if (!blobMatRef.current || !wireMatRef.current)
-            return;
-
-        const emptyForBuilding = mapEmptyForBuilding(props.map, 6, {x:onGridX, y:onGridY});
-        if (!emptyForBuilding)
-            console.log("!");
-
-        const blobColor = emptyForBuilding ? 0x33cc33 : 0xcc3333;
-        const wireColor = emptyForBuilding ? 0x00ff00 : 0xff0000;
-
-        blobMatRef.current.color.setHex(blobColor);
-        wireMatRef.current.color.setHex(wireColor);
-    })
-
-    return (
-        <group ref={ref} position={[-100, 2, -100]}>
-            <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial ref={blobMatRef} color={0x33cc33} transparent={true} opacity={0.5} />
-            </mesh>
-            <mesh>
-                <boxGeometry args={[unitSize, 2, unitSize]} />
-                <meshBasicMaterial ref={wireMatRef} color={0x00ff00} wireframe={true}/>
-            </mesh>
-            <group position={[0, -1, 0]}>
-                <gridHelper args={[14, 7]} />
-            </group>
-        </group>
-    );
-}
 
 export interface Props {
     board: Board;
@@ -111,14 +50,15 @@ export function Board3D(props: Props) {
             unit: u,
             click: props.unitClick,
             selected: props.selectedUnits.has(u.id),
-            displayEntry: catalogEntry,
             enemy: u.owner !== props.playerIndex
         };
 
+        // this needs to be done separately because the if disambiguates the type
+        // of the retrieved catalogEntry
         if (catalogEntry.isBuilding) {
-            return (<Building3D {...unitProps}/>);
+            return (<Building3D {...unitProps} displayEntry={catalogEntry} />);
         } else {
-            return (<Unit3D {...unitProps}/>);
+            return (<Unit3D {...unitProps} displayEntry={catalogEntry} />);
         }
     });
 
