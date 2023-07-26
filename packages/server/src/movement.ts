@@ -1,5 +1,5 @@
 import {
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, Position, TilePos, UnitState, PresenceMap,
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, Position, TilePos, PresenceMap,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Action, ActionFollow, ActionAttack,
 } from './types';

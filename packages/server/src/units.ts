@@ -1,5 +1,5 @@
 import {
-    Unit, UnitId, Component, Position, UnitState,
+    Unit, UnitId, Component, Position,
 } from './types';
 
 export type UnitData = Component[];

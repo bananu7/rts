@@ -64,22 +64,8 @@ export type CommandPacket = {
 export type UpdatePacket = {
     state: GameState,
     tickNumber: number,
-    units: UnitState[],
+    units: Unit[],
     player: PlayerState,
-}
-
-export type UnitState = {
-    debug?: any;
-
-    id: number,
-    kind: string,
-    status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
-    readonly position: Position,
-    velocity: Position, // TODO - Position to Vec2
-    direction: number,
-    owner: number,
-
-    components: Component[],
 }
 
 // Components
@@ -188,6 +174,7 @@ export type Unit = {
 
     readonly components: Component[],
 
+    // Only used on the server
     pathToNext?: TilePos[],
 }
 

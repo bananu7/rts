@@ -1,7 +1,7 @@
 import {
     Milliseconds, Position,
     Board,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Action, ActionFollow, ActionAttack, ActionMove,
     PlayerState,
@@ -230,29 +230,14 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
         updateUnits(dt, g);
     }
 
-    const unitUpdates: UnitState[] = g.units
+    const unitUpdates: Unit[] = g.units
         .map(u => {
             // TODO pull actual action that's done right at the moment
             // (including cooldowns etc)
             // maybe this should happen client-side actually?
-            const actionToStatus = {
-                'Attack': 'Attacking',
-                'AttackMove': 'Attacking',
-                'Follow': 'Moving',
-                'Move': 'Moving',
-                'Harvest': 'Harvesting',
-                'Produce': 'Producing',
-                'Build': 'Idle',
-                'Stop': 'Idle',
-            }
-            type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
-            const status: (US) = u.actionState.state === 'active' ?
-                (actionToStatus[u.actionState.current.typ] as US) :
-                'Idle';
-
             return {
                 id: u.id,
-                status,
+                actionState: u.actionState,
                 position: u.position,
                 direction: u.direction,
                 velocity: u.velocity,
