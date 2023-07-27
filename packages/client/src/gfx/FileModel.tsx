@@ -8,7 +8,7 @@ import { useRef, useEffect, useState, useLayoutEffect, memo } from 'react'
 export type FileModelProps = {
     path: string,
     accentColor: THREE.ColorRepresentation,
-    animate: boolean, // TODO which anims how fast etc
+    animate?: string, // TODO which anims how fast etc
 }
 
 const ACCENT_MATERIAL_NAME = 'Accent';
@@ -28,6 +28,12 @@ function FileModel_(props: FileModelProps) {
     const ref = useRef<THREE.Group>(null);
 
     let mixer: THREE.AnimationMixer | null = null;
+
+    interface Animations {
+        [key: string]: THREE.AnimationClip;
+    }
+    const animations: Animations = {};
+
     useFrame((state, delta) => {
         if(!ref.current)
             return;
@@ -38,14 +44,28 @@ function FileModel_(props: FileModelProps) {
 
         if (!mixer) {
             mixer = new THREE.AnimationMixer(ref.current);
-            const moveAction = gltf.animations.find(a => a.name === "Move");
-            if (moveAction) {
-                mixer.clipAction(moveAction).play();
-            }
+
+            // TODO streamline
+            const idleAnimation = gltf.animations.find(a => a.name === "Idle");
+            if (idleAnimation)
+                animations['Idle'] = idleAnimation;
+
+            const moveAnimation = gltf.animations.find(a => a.name === "Move");
+            if (moveAnimation)
+                animations['Moving'] = moveAnimation;
+
+            const harvestAnimation = gltf.animations.find(a => a.name === "Harvest");
+            if (harvestAnimation)
+                animations['Harvesting'] = harvestAnimation;
         }
 
-        if (props.animate)
-            mixer.update(delta);
+        if (props.animate) {
+            const action = animations[props.animate];
+            if (action) {
+                mixer.clipAction(action).play();
+                mixer.update(delta);
+            }
+        }
     });
 
     const clonedObject = SkeletonUtils.clone(gltf.scene);

@@ -69,7 +69,6 @@ export function Building3D(props: Building3DProps) {
 
     // TODO animate buildings when they're producing
     const action = props.unit.state.action;
-    const animate = action === 'Producing';
 
     return (
         <group>
@@ -92,7 +91,7 @@ export function Building3D(props: Building3DProps) {
                     />
                 </group>
 
-                <FileModel path={modelPath} accentColor={color} animate={animate}/>
+                <FileModel path={modelPath} accentColor={color} animate={action}/>
             </group>
         </group>
     );

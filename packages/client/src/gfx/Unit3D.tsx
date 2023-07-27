@@ -155,7 +155,6 @@ export function Unit3D(props: Unit3DProps) {
     });
 
     const action = props.unit.state.action;
-    const animate = action === 'Moving';
 
     return (
         <group>
@@ -193,7 +192,7 @@ export function Unit3D(props: Unit3DProps) {
                         <ConeIndicator action={action} smoothing={smoothingVelocity.x > 0.01 || smoothingVelocity.y > 0.01} />
                     }
 
-                    <FileModel path={modelPath} accentColor={color} animate={animate}/>
+                    <FileModel path={modelPath} accentColor={color} animate={action}/>
                 </group>
             </group>
         </group>
