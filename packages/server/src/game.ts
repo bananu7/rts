@@ -496,6 +496,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // SC in that case just cancels the attack command - TODO decide
             moveTowards(target.position, ac.range);
         } else {
+            unit.state.action = 'Attacking';
             unit.direction = V.angleFromTo(unit.position, target.position);
             attemptDamage(ac, target);
         }

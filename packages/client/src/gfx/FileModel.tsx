@@ -57,6 +57,10 @@ function FileModel_(props: FileModelProps) {
             const harvestAnimation = gltf.animations.find(a => a.name === "Harvest");
             if (harvestAnimation)
                 animations['Harvesting'] = harvestAnimation;
+
+            const attackAnimation = gltf.animations.find(a => a.name === "Attack");
+            if (attackAnimation)
+                animations['Attacking'] = attackAnimation;
         }
 
         if (props.animate) {
