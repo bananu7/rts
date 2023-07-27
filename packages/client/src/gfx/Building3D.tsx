@@ -16,7 +16,6 @@ import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
 import { BuildingDisplayEntry } from './UnitDisplayCatalog'
-import { getStatus } from '../game/UnitQuery'
 
 const cache = new ThreeCache();
 
@@ -69,8 +68,8 @@ export function Building3D(props: Building3DProps) {
     }, []);
 
     // TODO animate buildings when they're producing
-    const status = getStatus(props.unit);
-    const animate = status === 'Moving';
+    const action = props.unit.state.action;
+    const animate = action === 'Producing';
 
     return (
         <group>

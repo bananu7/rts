@@ -36,42 +36,42 @@ export type IdentificationPacket = {
     matchId: MatchId, 
 }
 
-export type Action = ActionMove | ActionStop | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
-export type ActionMove = {
+export type Command = CommandMove | CommandStop | CommandFollow | CommandAttackMove | CommandAttack | CommandHarvest | CommandProduce | CommandBuild;
+export type CommandMove = {
     typ: 'Move',
     target: Position,
 }
-export type ActionStop = {
+export type CommandStop = {
     typ: 'Stop'
 }
-export type ActionFollow = {
+export type CommandFollow = {
     typ: 'Follow',
     target: UnitId,
 }
-export type ActionAttackMove = {
+export type CommandAttackMove = {
     typ: 'AttackMove',
     target: Position,
 }
-export type ActionAttack = {
+export type CommandAttack = {
     typ: 'Attack',
     target: UnitId,
 }
-export type ActionHarvest = {
+export type CommandHarvest = {
     typ: 'Harvest',
     target: UnitId,
 }
-export type ActionProduce = {
+export type CommandProduce = {
     typ: 'Produce',
     unitToProduce: string,
 }
-export type ActionBuild = {
+export type CommandBuild = {
     typ: 'Build',
     building: string,
     position: Position,
 }
 
 export type CommandPacket = {
-    action: Action,
+    command: Command,
     unitIds: UnitId[],
     shift: boolean,
 }
@@ -162,25 +162,35 @@ export type TilePos = { x: number, y: number }
 export type PlayerIndex = number
 export type UserId = string
 
+
+export type UnitAction = 'Moving'|'Attacking'|'Harvesting'|'Idle'|'Producing'|'Building';
+
+// TODO this should probably be a separate variable instead
+type UnitActionState = {
+    action: UnitAction,
+    actionTime: number, // how long has the unit been performing the current action?
+}
+
 // represents a non-empty queue
 export type UnitActiveState = {
     state: 'active',
-    current: Action,
-    rest: Action[],
-}
+    current: Command,
+    rest: Command[],    
+} & UnitActionState
 
 export type UnitIdleState = {
     state: 'idle',
     idlePosition: Position,
-}
+} & UnitActionState
 
-export type ActionState = UnitIdleState | UnitActiveState;
+export type UnitState = UnitIdleState | UnitActiveState;
 
 export type Unit = {
     debug?: any;
 
     readonly id: number,
-    actionState: ActionState,
+    state: UnitState,
+
     readonly kind: string, // TODO should this be in a component
     readonly owner: PlayerIndex,
     readonly position: Position,

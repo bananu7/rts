@@ -256,7 +256,7 @@ export class MatchControl extends AbstractControl {
 
     moveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Move',
                 target
             },
@@ -268,7 +268,7 @@ export class MatchControl extends AbstractControl {
 
     stopCommand(unitIds: UnitId[]) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Stop',
             },
             unitIds,
@@ -279,7 +279,7 @@ export class MatchControl extends AbstractControl {
 
     followCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Follow',
                 target
             },
@@ -291,10 +291,10 @@ export class MatchControl extends AbstractControl {
 
     attackCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Attack',
-            target
-        },
+            command: {
+                typ: 'Attack',
+                target
+            },
             unitIds,
             shift,
         };
@@ -303,10 +303,10 @@ export class MatchControl extends AbstractControl {
 
     attackMoveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'AttackMove',
-            target
-        },
+            command: {
+                typ: 'AttackMove',
+                target
+            },
             unitIds,
             shift,
         };
@@ -315,10 +315,10 @@ export class MatchControl extends AbstractControl {
 
     produceCommand(unitIds: UnitId[], unitToProduce: string) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Produce',
-            unitToProduce
-        },
+            command: {
+                typ: 'Produce',
+                unitToProduce
+            },
             unitIds,
             shift: false,
         };
@@ -327,11 +327,11 @@ export class MatchControl extends AbstractControl {
 
     buildCommand(unitIds: UnitId[], building: string, position: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Build',
-            building,
-            position
-        },
+            command: {
+                typ: 'Build',
+                building,
+                position
+            },
             unitIds,
             shift,
         };
@@ -340,10 +340,10 @@ export class MatchControl extends AbstractControl {
 
     harvestCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Harvest',
-            target,
-        },
+            command: {
+                typ: 'Harvest',
+                target,
+            },
             unitIds,
             shift,
         };

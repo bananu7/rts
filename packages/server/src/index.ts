@@ -125,6 +125,7 @@ app.post('/create', async (req, res) => {
         });
 
         match.spectators.forEach((s, i) => 
+            // TODO spectators should get a separate packet
             s.channel.emit('tick', updatePackets[0])
         );
         // io.room(matchId).emit('tick', updatePackets[0]);

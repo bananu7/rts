@@ -19,14 +19,14 @@ import { Building3D } from './Building3D'
 import { BuildPreview } from './BuildPreview'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
-import { SelectedAction } from '../game/SelectedAction'
+import { SelectedCommand } from '../game/SelectedCommand'
 
 export interface Props {
     board: Board;
     playerIndex: number;
     units: Unit[];
     selectedUnits: Set<UnitId>;
-    selectedAction: SelectedAction | undefined;
+    selectedCommand: SelectedCommand | undefined;
 
     select: (ids: Set<UnitId>, shift: boolean) => void;
     mapClick: (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
@@ -68,7 +68,7 @@ export function Board3D(props: Props) {
 
     const selectInBox = (box: Box, shift: boolean) => {
         // TODO - this is a hotfix; Board shouldn't make those decisions...
-        if (props.selectedAction)
+        if (props.selectedCommand)
             return;
 
         function isInBox(p: Position, b: Box) {
@@ -88,20 +88,20 @@ export function Board3D(props: Props) {
     };
 
     const createBuildPreview = useCallback(() => {
-        if (!props.selectedAction)
+        if (!props.selectedCommand)
             return;
-        if (props.selectedAction.action !== 'Build')
+        if (props.selectedCommand.command !== 'Build')
             return;
 
-        const unitData = getUnitDataByName(props.selectedAction.building);
+        const unitData = getUnitDataByName(props.selectedCommand.building);
 
         if (!unitData)
-            throw new Error("No unit data for the build action building");
+            throw new Error("No unit data for the build command building");
 
         // TODO component finding doesn't work on UnitData :(
         const buildingComponent = unitData.find(c => c.type === 'Building') as Building;
         if (!buildingComponent)
-            throw new Error("Build action target unit data doesn't have a Building component");
+            throw new Error("Build command target unit data doesn't have a Building component");
 
         const buildingSize = buildingComponent.size;
 
@@ -111,9 +111,9 @@ export function Board3D(props: Props) {
             map={props.board.map}
             units={props.units} // to check viability
         />);
-    }, [props.selectedAction]);
+    }, [props.selectedCommand]);
 
-    const buildPreview = useMemo(() => createBuildPreview(), [props.selectedAction]);
+    const buildPreview = useMemo(() => createBuildPreview(), [props.selectedCommand]);
 
     return (
         <group name="board">

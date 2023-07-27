@@ -1,7 +1,7 @@
 import {
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, Position, TilePos, PresenceMap,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
-    Action, ActionFollow, ActionAttack,
+    Command, CommandFollow, CommandAttack,
 } from './types';
 
 import * as V from './vector.js'
@@ -14,8 +14,8 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     const explode = (p: TilePos) => p.x+p.y*gm.w; 
 
     // Disable collisions for harvesting units
-    if (unit.actionState.state === 'active' &&
-        unit.actionState.current.typ === 'Harvest'
+    if (unit.state.state === 'active' &&
+        unit.state.current.typ === 'Harvest'
     ) {
         let velocity = {
             x: Math.cos(unit.direction),

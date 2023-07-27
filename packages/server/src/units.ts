@@ -61,7 +61,7 @@ export function getUnitDataByName(name: string): UnitData | undefined {
 
 export const createUnit = (id: number, owner: number, kind: string, position: Position): Unit => {
     return {
-        actionState: { state: 'idle', idlePosition: { x:position.x, y:position.y}},
+        state: { state: 'idle', action: 'Idle', actionTime: 0, idlePosition: { x:position.x, y:position.y}},
         id,
         kind,
         owner,

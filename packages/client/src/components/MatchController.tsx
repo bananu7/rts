@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
-import { SelectedAction } from '../game/SelectedAction';
-import { canPerformSelectedAction } from '../game/UnitQuery';
+import { SelectedCommand } from '../game/SelectedCommand';
+import { canPerformSelectedCommand } from '../game/UnitQuery';
 import { clampToGrid } from '../game/Grid';
 
 import { Minimap } from './Minimap';
@@ -32,7 +32,7 @@ export function MatchController(props: MatchControllerProps) {
 
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
-  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
+  const [selectedCommand, setSelectedCommand] = useState<SelectedCommand | undefined>(undefined);
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
   const leaveMatch = useCallback(async () => {
@@ -56,29 +56,29 @@ export function MatchController(props: MatchControllerProps) {
         .filter(id => su.has(id))
       );
 
-      // If after that the selected action can't be performed by the remaining units,
+      // If after that the selected command can't be performed by the remaining units,
       // clear it
-      setSelectedAction(sa => {
-        if (!sa) {
+      setSelectedCommand(sc => {
+        if (!sc) {
           return undefined;
         }
 
-        let canKeepAction = false;
+        let canKeepCommand = false;
         // TODO maybe units should be indexed by id in the local state?
         for (const u of p.units) {
           if (!newSelectedUnits.has(u.id))
             continue;
 
-          if (canPerformSelectedAction(u, sa)) {
-            canKeepAction = true;
+          if (canPerformSelectedCommand(u, sc)) {
+            canKeepCommand = true;
             break;
           }
         }
 
-        if (!canKeepAction) {
+        if (!canKeepCommand) {
           return undefined;
         } else {
-          return sa;
+          return sc;
         }
       });
 
@@ -112,20 +112,20 @@ export function MatchController(props: MatchControllerProps) {
     // TODO key being pressed and then RMB is attack move
     switch (button) {
     case 0:
-      if (!selectedAction) {
+      if (!selectedCommand) {
         break;
-      } else if (selectedAction.action === 'Move') {
+      } else if (selectedCommand.command === 'Move') {
         props.ctrl.moveCommand(Array.from(selectedUnits), p, shift);
-      } else if (selectedAction.action === 'Attack') {
+      } else if (selectedCommand.command === 'Attack') {
         props.ctrl.attackMoveCommand(Array.from(selectedUnits), p, shift);
-      } else if (selectedAction.action === 'Build') {
+      } else if (selectedCommand.command === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
         const gridPos = clampToGrid(p);
         // TODO building size
         const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: 6, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
-          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
+          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedCommand.building, gridPos, shift);
         } else {
           console.log("[MatchController] trying to build in an invalid location")
         }
@@ -136,9 +136,9 @@ export function MatchController(props: MatchControllerProps) {
       break;
     }
 
-    setSelectedAction(undefined);
+    setSelectedCommand(undefined);
 
-  }, [matchMetadata, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
+  }, [matchMetadata, selectedCommand, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
   const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket) {
@@ -159,7 +159,7 @@ export function MatchController(props: MatchControllerProps) {
 
     switch (button) {
     case 0:
-      if (!selectedAction) {
+      if (!selectedCommand) {
         if (shift) {
           // shift-click means add if not there, but remove if there
           setSelectedUnits(prev => {
@@ -182,14 +182,14 @@ export function MatchController(props: MatchControllerProps) {
         break;
       }
 
-      if (selectedAction.action === 'Build') {
+      if (selectedCommand.command === 'Build') {
         // propagate the event so that it hits the map instead
         return;
-      } else if (selectedAction.action === 'Move') {
+      } else if (selectedCommand.command === 'Move') {
         props.ctrl.followCommand(Array.from(selectedUnits), targetId, shift);
-      } else if (selectedAction.action === 'Attack') {
+      } else if (selectedCommand.command === 'Attack') {
         props.ctrl.attackCommand(Array.from(selectedUnits), targetId, shift);
-      } else if (selectedAction.action === 'Harvest') {
+      } else if (selectedCommand.command === 'Harvest') {
         props.ctrl.harvestCommand(Array.from(selectedUnits), targetId, shift);
       }
       break;
@@ -210,10 +210,10 @@ export function MatchController(props: MatchControllerProps) {
 
     originalEvent.stopPropagation();
 
-  }, [lastUpdatePacket, selectedAction, selectedUnits]);
+  }, [lastUpdatePacket, selectedCommand, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
-    setSelectedAction(undefined);
+    setSelectedCommand(undefined);
     if (shift) {
       setSelectedUnits(units => new Set([...units, ...newUnits]));
     } else {
@@ -224,21 +224,21 @@ export function MatchController(props: MatchControllerProps) {
   // TODO track key down state for stuff like a-move clicks
   const keydown = useCallback((e: React.KeyboardEvent) => {
     if (e.keyCode === 27) { // esc
-     setSelectedAction(undefined);
+      setSelectedCommand(undefined);
     }
     else if (e.keyCode === 65) { // a
-     setSelectedAction({ action: 'Attack' })
+      setSelectedCommand({ command: 'Attack' })
     }
     else if (e.keyCode === 87) { // w
       props.ctrl.stopCommand(Array.from(selectedUnits));
-      setSelectedAction(undefined);
+      setSelectedCommand(undefined);
     }
     else {
      console.log(e.keyCode);
     }
-  }, [selectedAction, selectedUnits]);
+  }, [selectedCommand, selectedUnits]);
 
-  const gameDivStyle = selectedAction ? { cursor: "pointer"} : { };
+  const gameDivStyle = selectedCommand ? { cursor: "pointer"} : { };
 
   const showGame =
     matchMetadata &&
@@ -304,8 +304,8 @@ export function MatchController(props: MatchControllerProps) {
             ownerIndex={props.ctrl.getPlayerIndex()}
             units={lastUpdatePacket.units}
             ctrl={props.ctrl}
-            selectedAction={selectedAction}
-            setSelectedAction={setSelectedAction}
+            selectedCommand={selectedCommand}
+            setSelectedCommand={setSelectedCommand}
             notify={(msg) => setMessages(m => [...m, msg]) }
           />
           <BottomUnitView
@@ -324,7 +324,7 @@ export function MatchController(props: MatchControllerProps) {
               playerIndex={props.ctrl.getPlayerIndex()}
               units={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              selectedAction={selectedAction}
+              selectedCommand={selectedCommand}
               select={boardSelectUnits}
               mapClick={mapClick}
               unitClick={unitClick}

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
-import { SelectedAction } from '../game/SelectedAction';
-import { canPerformSelectedAction } from '../game/UnitQuery';
+import { SelectedCommand } from '../game/SelectedCommand';
+import { canPerformSelectedCommand } from '../game/UnitQuery';
 
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
@@ -194,7 +194,7 @@ export function SpectateController(props: SpectateControllerProps) {
               playerIndex={0} // TODO - spectator has no player index
               units={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              selectedAction={undefined} // the board needs selected action to show e.g. build preview
+              selectedCommand={undefined} // the board needs selected command to show e.g. build preview
               select={boardSelectUnits}
               mapClick={mapClick}
               unitClick={unitClick}
