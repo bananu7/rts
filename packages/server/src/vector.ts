@@ -46,3 +46,28 @@ export function vecAdd(a: Position, b: Position) {
     a.x += b.x;
     a.y += b.y;
 }
+
+export function scalarMul(a: Position, b: number) {
+    a.x *= b;
+    a.y *= b;
+}
+
+export function normalize(a: Position) {
+    const m = magnitude(a);
+    a.x /= m;
+    a.y /= m;
+}
+
+type WeightedVector = {
+    v: Position,
+    e: number,
+}
+export function weightedDirectionCombine(vs: WeightedVector[]) {
+    const res = { x: 0, y: 0 };
+    for (const {v, e} of vs) {
+        res.x += v.x * e;
+        res.y += v.y * e;
+    }
+    normalize(res);
+    return res;
+}

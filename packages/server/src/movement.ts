@@ -123,7 +123,10 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     separation = V.clamp(separation, MAX_SEPARATION_FORCE);
 
     // push off of terrain
-    const terrainAvoidance = {x: 0, y:0};
+    const TERRAIN_AVOIDANCE_RADIUS = 1.5;
+    const MAX_TERRAIN_AVOIDANCE_FORCE = 1;
+    let terrainAvoidance = {x: 0, y:0};
+    unit.debug.terrainAvoidanceForces = [];
     {
         const terrainNearby =
             allTilesInfluenced
@@ -132,31 +135,50 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
         unit.debug.terrainNearby = terrainNearby;
 
         for (const t of terrainNearby) {
-            const diff = V.difference(currentPos, t);
+            const centerOfTile = {x: t.x + 0.5, y: t.y + 0.5};
+            const diff = V.difference(currentPos, centerOfTile);
             const distance = V.magnitude(diff);
 
             // TODO radius etc
-            if (distance > 1.5) {
+            if (distance > TERRAIN_AVOIDANCE_RADIUS) {
                 continue;
             }
 
             // convert to unit vector
-            diff.x /= distance;
-            diff.y /= distance;
-            V.vecAdd(terrainAvoidance, diff);
+            const force = {
+                x: diff.x / distance,
+                y: diff.y / distance,
+            };
+
+            // TODO crude approximation of linear falloff for my sanity
+            if (distance < 0.5) {
+                V.scalarMul(force, 2)
+            }
+            else if (distance < 1){
+                V.scalarMul(force, 1.2)
+            }
+            else {
+                V.scalarMul(force, 0.5)
+            }
+
+            unit.debug.terrainAvoidanceForces.push(force);
+            V.vecAdd(terrainAvoidance, force);
         }
     }
+    terrainAvoidance = V.clamp(terrainAvoidance, MAX_TERRAIN_AVOIDANCE_FORCE);
     unit.debug.terrainAvoidance = terrainAvoidance;
 
-    let velocity = {
+    const gapDirection = {
         x: Math.cos(nearestGapAngle),
         y: -Math.sin(nearestGapAngle)
     };
 
-    V.vecAdd(velocity, separation);
-    V.vecAdd(velocity, terrainAvoidance);
-    
-    return velocity;
+    const resultDirection = V.weightedDirectionCombine([
+        {v: gapDirection,       e: 0.6},
+        {v: separation,         e: 0.3},
+        {v: terrainAvoidance,   e: 0.1},
+    ]);
+    return resultDirection;
 }
 
 const wrap360 = (x: number) => {
