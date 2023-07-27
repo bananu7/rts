@@ -348,32 +348,38 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     // one after another
     // Returns whether it's reached the target
     const moveApply = (mc: Mover) => {
-        const distancePerTick = mc.speed * (dt / 1000);
-        // TODO: moving target
-        // TODO: collisions
+        const distancePerTick = mc.speed * (dt / 1000); // speed * time in seconds = s
         if (!unit.pathToNext) {
             throw "This unit has a move command but no path computed";
         }
-
-        let distanceLeft = distancePerTick;
-
         unit.debug ??= {};
         unit.debug.pathToNext = unit.pathToNext;
 
-        const target = unit.pathToNext[0];
-        const targetDist = V.distance(target, unit.position);
+        let distanceLeft = distancePerTick;
 
-        const diff = targetDist < distancePerTick ? targetDist : distancePerTick;
+        let target = unit.pathToNext[0];
+        let targetDist = V.distance(target, unit.position);
+
+        // Skip ONE path node if it's in reach of this ticks' movement
+        // TODO we'll see if it helps with jagged turns
+        if (targetDist < distancePerTick) {
+            unit.pathToNext.shift();
+        }
+
+        // this is the direction the unit is facing regardless of actual movement
+        // TODO probably should turn when bypassing obstacles maybe?
         unit.direction = V.angleFromTo(unit.position, target);
 
-        // TODO - slow starts and braking
-        const velocity = checkMovePossibility(unit, g.board.map, presence);
+        // The desired direction is then altered by the collisions with terrain
+        // and other units
+        const computedDirection = checkMovePossibility(unit, g.board.map, presence);
 
+        const velocity = V.mul(computedDirection, distancePerTick);
+
+        // Velocity is the position "jump" applied to all units at once
+        // TODO - slow starts and braking
         V.vecSet(unit.velocity, velocity);
         
-        if (targetDist < distancePerTick)
-            unit.pathToNext.shift();
-
         // if there are no more path steps to do, we've reached the destination
         if (unit.pathToNext.length === 0) {
             // TODO - that will cause stutter at shift-clicked moves

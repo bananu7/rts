@@ -28,6 +28,10 @@ export function sum(a: Position, b: Position) {
     return {x: a.x + b.x, y: a.y + b.y };
 }
 
+export function mul(a: Position, b: number) {
+    return {x: a.x * b, y: a.y * b };
+}
+
 export function angleFromTo(a: Position, b: Position) {
     return (Math.atan2(a.y-b.y, b.x-a.x) + Math.PI * 2) % (Math.PI * 2);
 }
