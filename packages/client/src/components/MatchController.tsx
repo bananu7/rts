@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
 import { SelectedCommand } from '../game/SelectedCommand';
-import { canPerformSelectedCommand } from '../game/UnitQuery';
+import { canPerformSelectedCommand, getBuildingSizeFromBuildingName } from '../game/UnitQuery';
 import { clampToGrid } from '../game/Grid';
-
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
 import { BottomUnitView } from './BottomUnitView';
@@ -122,8 +121,9 @@ export function MatchController(props: MatchControllerProps) {
         // Only send one harvester to build
         // TODO send the closest one
         const gridPos = clampToGrid(p);
-        // TODO building size
-        const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: 6, type: 'Building'}, gridPos);
+
+        const buildingSize = getBuildingSizeFromBuildingName(selectedCommand.building);
+        const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: buildingSize, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
           props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedCommand.building, gridPos, shift);
         } else {

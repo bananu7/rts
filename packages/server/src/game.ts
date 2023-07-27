@@ -779,11 +779,16 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!isBuildPlacementOk(g.board.map, g.units, buildingComponent, cmd.position))
                     throw "[game] Unit ordered to build but some tiles are obscured";
 
-                const BUILDING_DISTANCE = 2;
-                switch(moveTowards(cmd.position, BUILDING_DISTANCE)) {
+                // the buildings are pretty large, so the worker should go towards the center
+                const buildingSize = buildingComponent.size;
+                const middleOfTheBuilding = V.sumScalar(cmd.position, buildingSize/2);
+                // and is able to build once they reach the perimeter
+                const buildingDistance = buildingComponent.size / 2 + 1;
+
+                switch(moveTowards(middleOfTheBuilding, buildingDistance)) {
                 case 'Unreachable':
-                    clearCurrentCommand();
-                    break;
+                    throw "[game] Unit ordered to build but location is unreachable.";
+
                 case 'ReachedTarget':
                     owner.resources -= buildCapability.buildCost;
                     // TODO - this should take time

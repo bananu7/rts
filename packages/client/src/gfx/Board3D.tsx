@@ -10,7 +10,6 @@ import {
 import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, TilePos, Building } from '@bananu7-rts/server/src/types'
-import { getUnitDataByName } from '@bananu7-rts/server/src/units'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -20,6 +19,7 @@ import { BuildPreview } from './BuildPreview'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedCommand } from '../game/SelectedCommand'
+import { getBuildingSizeFromBuildingName } from '../game/UnitQuery'
 
 export interface Props {
     board: Board;
@@ -90,20 +90,11 @@ export function Board3D(props: Props) {
     const createBuildPreview = useCallback(() => {
         if (!props.selectedCommand)
             return;
+
         if (props.selectedCommand.command !== 'Build')
             return;
 
-        const unitData = getUnitDataByName(props.selectedCommand.building);
-
-        if (!unitData)
-            throw new Error("No unit data for the build command building");
-
-        // TODO component finding doesn't work on UnitData :(
-        const buildingComponent = unitData.find(c => c.type === 'Building') as Building;
-        if (!buildingComponent)
-            throw new Error("Build command target unit data doesn't have a Building component");
-
-        const buildingSize = buildingComponent.size;
+        const buildingSize = getBuildingSizeFromBuildingName(props.selectedCommand.building);
 
         return (<BuildPreview
             buildingSize={buildingSize}

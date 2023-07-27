@@ -28,6 +28,10 @@ export function sum(a: Position, b: Position) {
     return {x: a.x + b.x, y: a.y + b.y };
 }
 
+export function sumScalar(a: Position, b: number) {
+    return { x: a.x + b, y: a.y + b };
+}
+
 export function mul(a: Position, b: number) {
     return {x: a.x * b, y: a.y * b };
 }

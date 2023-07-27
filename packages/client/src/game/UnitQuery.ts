@@ -3,7 +3,10 @@ import {
    Unit,
    ProductionFacility,
    Builder,
+   CommandBuild,
+   Building,
 } from '@bananu7-rts/server/src/types'
+import { getUnitDataByName } from '@bananu7-rts/server/src/units'
 
 import { SelectedCommand } from './SelectedCommand'
 
@@ -40,4 +43,18 @@ export function canPerformSelectedCommand(unit: Unit, command: SelectedCommand):
     case 'Build':
         return canBuild(unit, command.building);
     }
+}
+
+export function getBuildingSizeFromBuildingName(name: string): number {
+    const unitData = getUnitDataByName(name);
+
+    if (!unitData)
+        throw new Error("No unit data for the build command building");
+
+    // TODO component finding doesn't work on UnitData :(
+    const buildingComponent = unitData.find(c => c.type === 'Building') as Building;
+    if (!buildingComponent)
+        throw new Error("Build command target unit data doesn't have a Building component");
+
+    return buildingComponent.size;
 }
