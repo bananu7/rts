@@ -391,10 +391,25 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return false;
     }
 
-    const findUnitPosition = (targetId: UnitId) => {
+    const findUnitReferencePosition = (target: Unit) => {
+        // For regular units, their position is in the middle
+        // For buildings, it's the top-left corner
+        const bc = getBuildingComponent(target);
+        
+        if (!bc) {
+            return { x: target.position.x, y: target.position.y };
+        } else {
+            return {
+                x: target.position.x + (bc.size / 2),
+                y: target.position.y + (bc.size / 2),
+            }
+        }
+    }
+
+    const findUnitReferencePositionById = (targetId: UnitId) => {
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (target)
-            return { x: target.position.x, y: target.position.y };
+            return findUnitReferencePosition(target);
         else
             return;
     }
@@ -451,7 +466,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         units.sort((ba, bb) => {
-            return V.distance(unit.position, ba.position) - V.distance(unit.position, bb.position);
+            // TODO for buildings it should use perimeter instead of reference?
+            const baPos = findUnitReferencePosition(ba);
+            const bbPos = findUnitReferencePosition(bb);
+            return V.distance(unit.position, baPos) - V.distance(unit.position, bbPos);
         });
         
         return units[0];
@@ -491,13 +509,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     const aggro = (ac: Attacker, target: Unit) => {
         // if out of range, just move to target
-        if (V.distance(unit.position, target.position) > ac.range) {
+        const targetPos = findUnitReferencePosition(target);
+        if (V.distance(unit.position, targetPos) > ac.range) {
             // Right now the attack command is upheld even if the unit can't move
             // SC in that case just cancels the attack command - TODO decide
-            moveTowards(target.position, ac.range);
+            moveTowards(targetPos, ac.range);
         } else {
             unit.state.action = 'Attacking';
-            unit.direction = V.angleFromTo(unit.position, target.position);
+            unit.direction = V.angleFromTo(unit.position, targetPos);
             attemptDamage(ac, target);
         }
     }
@@ -593,7 +612,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
 
         case 'Follow': {
-            const targetPos = findUnitPosition(cmd.target);
+            const targetPos = findUnitReferencePositionById(cmd.target);
             if (!targetPos) {
                 clearCurrentCommand();
                 break;
@@ -640,12 +659,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 clearCurrentCommand();
                 break;
             }
+            const targetPos = findUnitReferencePosition(target);
 
             if (!hc.resourcesCarried) {
                 const HARVESTING_DISTANCE = 2;
                 const HARVESTING_RESOURCE_COUNT = 8;
 
-                switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
+                // TODO - should resources use perimeter?
+                switch(moveTowards(targetPos, HARVESTING_DISTANCE)) {
                 case 'Unreachable':
                     clearCurrentCommand();
                     break;
@@ -670,10 +691,15 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     u.kind === 'Base'
                 );
 
-                if (!target)
+                if (!target) {
+                    // no bases to carry resources to; unlikely but possible
                     break;
+                }
 
-                switch(moveTowards(target.position, DROPOFF_DISTANCE)) {
+                const targetPos = findUnitReferencePosition(target);
+
+                // TODO perimeter navigation (change moveTowards argument to Destination)
+                switch(moveTowards(targetPos, DROPOFF_DISTANCE)) {
                 case 'Unreachable':
                     // TODO if closest base is unreachable maybe try next one?
                     clearCurrentCommand();
@@ -733,6 +759,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             p.productionState.timeLeft -= dt;
 
+            const refPos = findUnitReferencePosition(unit);
+            const producedUnitPosition = { x: refPos.x, y: refPos.y+4 };
+
             if (p.productionState.timeLeft < 0) {
                 // TODO - automatic counter
                 g.lastUnitId += 1;
@@ -740,7 +769,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     g.lastUnitId,
                     unit.owner,
                     p.productionState.unitType,
-                    { x: unit.position.x, y: unit.position.y+4 }, // TODO find a good spot for a new unit
+                    producedUnitPosition,
                 ));
 
                 // TODO - build queue
@@ -780,6 +809,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     throw "[game] Unit ordered to build but some tiles are obscured";
 
                 // the buildings are pretty large, so the worker should go towards the center
+                // TODO is there a way to use findUnitReferencePosition here for consistency?
                 const buildingSize = buildingComponent.size;
                 const middleOfTheBuilding = V.sumScalar(cmd.position, buildingSize/2);
                 // and is able to build once they reach the perimeter

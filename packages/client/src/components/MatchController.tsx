@@ -187,10 +187,13 @@ export function MatchController(props: MatchControllerProps) {
         return;
       } else if (selectedCommand.command === 'Move') {
         props.ctrl.followCommand(Array.from(selectedUnits), targetId, shift);
+        setSelectedCommand(undefined);
       } else if (selectedCommand.command === 'Attack') {
         props.ctrl.attackCommand(Array.from(selectedUnits), targetId, shift);
+        setSelectedCommand(undefined);
       } else if (selectedCommand.command === 'Harvest') {
         props.ctrl.harvestCommand(Array.from(selectedUnits), targetId, shift);
+        setSelectedCommand(undefined);
       }
       break;
     case 2:
