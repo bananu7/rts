@@ -1,5 +1,6 @@
-import { GameMap, TilePos, Position, Unit } from './types'
+import { GameMap, TilePos, Position, Unit, BuildingMap } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
+import { distance } from './vector.js'
 
 function octileDistance(a: TilePos, b: TilePos) {
     const dx = Math.abs(a.x - b.x);
@@ -39,7 +40,7 @@ class HashMap<K,V> {
 }
 
 // A*
-function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
+function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: GameMap, buildings: BuildingMap) {
     // explode converts to linear index for the purposes of map storage
     // 1-dimensional indexing and comparisons.
     const explode = (p: TilePos) => p.x+p.y*m.w; 
@@ -57,25 +58,36 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
     cameFrom.set(start, undefined);
     costSoFar.set(start, 0);
 
-    const explodedB = explode(b);
+    const closeEnoughToTarget = (current: TilePos) => {
+        // TODO TilePos distance?
+        return distance(endPos as Position, current as Position) <= tolerance;
+    };
 
     const isTileWithinBounds = (t: TilePos) => t.x > 0 && t.y > 0 && t.x < m.w && t.y < m.h;
 
     // this is necessary because path lies on edges of tiles, not through the middle
     // this check verifies the "width" of the path to be 2
     // TODO different sizes for different units?
-    const isClearAroundTile = (t: TilePos) => (
-        m.tiles[explode(t)] === 0 &&
-        m.tiles[explode({x: t.x,   y: t.y-1})] === 0 &&
-        m.tiles[explode({x: t.x-1, y: t.y})] === 0 &&
-        m.tiles[explode({x: t.x-1, y: t.y-1})] === 0
-    );
+    const isClearAroundTile = (t: TilePos) => {
+        const locations = [
+            explode(t),
+            explode({x: t.x,   y: t.y-1}),
+            explode({x: t.x-1, y: t.y}),
+            explode({x: t.x-1, y: t.y-1})
+        ];
 
+        return ! locations.some(t => m.tiles[t] !== 0 || buildings.get(t));
+    };
+
+    let pathFinish = undefined;
     while (!q.isEmpty()) {
         const [current, v] = q.poll() as [TilePos, number]; // TODO this `as` looks like a bug in pqueue typing
 
-        if (explodedB === explode(current))
+        // Check when finished
+        if (closeEnoughToTarget(current)) {
+            pathFinish = current;
             break;
+        }
 
         const options = 
             getSurroundingPos(current)
@@ -95,7 +107,7 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
 
             if (!costOfNext || newCost < costOfNext) {
                 costSoFar.set(next, newCost);
-                const priority = newCost + heuristic(b, next);
+                const priority = newCost + heuristic(endPos, next);
                 q.add([next, priority]);
 
                 cameFrom.set(next, current);
@@ -104,13 +116,13 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
     }
 
     // TODO I don't think that's a correct check
-    if (q.isEmpty())
+    if (!pathFinish || q.isEmpty())
         return undefined;
 
     // Reconstruct the path from the chained map
     const path = [] as TilePos[];
     let explodedStart = explode(start);
-    let current = b;
+    let current = pathFinish;
 
     while(explode(current) !== explodedStart) {
         path.push(current);
@@ -123,10 +135,10 @@ function gridPathFind(start: TilePos, b: TilePos, m: GameMap) {
     return path;
 }
 
-export function pathFind(a: Position, b: Position, m: GameMap)  {
+export function pathFind(a: Position, b: Position, tolerance: number, m: GameMap, buildings: BuildingMap)  {
     const unitTilePos = { x: Math.floor(a.x), y: Math.floor(a.y) };
     const destTilePos =  { x: Math.floor(b.x), y: Math.floor(b.y) };
-    const path = gridPathFind(unitTilePos, destTilePos, m);
+    const path = gridPathFind(unitTilePos, destTilePos, tolerance, m, buildings);
 
     // improve the resulting path slightly, if found
     if (!path) {

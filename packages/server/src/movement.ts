@@ -1,8 +1,9 @@
 import {
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, Position, TilePos, PresenceMap,
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, Position, TilePos, PresenceMap, BuildingMap,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Command, CommandFollow, CommandAttack,
 } from './types';
+import { getBuildingComponent } from './components.js'
 
 import * as V from './vector.js'
 import { notEmpty } from './tsutil.js'
@@ -88,6 +89,10 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
     
     let separation = {x:0, y:0};
     for (const u of otherUnitsNearby) {
+        // Don't use separation force on buildings
+        if (getBuildingComponent(u))
+            continue;
+
         const MAX_LOCAL_SEPARATION_FORCE = 2;
         const SEPARATION_OVERCOMP = 1.05; // overcompensation for separation distance
 

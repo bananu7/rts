@@ -1,7 +1,7 @@
 import {
     Milliseconds, Position,
     Board,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, 
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Command, CommandFollow, CommandAttack, CommandMove,
     PlayerState,
@@ -258,9 +258,20 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     });
 }
 
-function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
+// The purpose of presence map is easy finding of nearby enemies
+// The purpose of building map is to pass it to pathfinding to prevent pathing
+// on tiles taken by buildings
+function buildPresenceAndBuildingMaps(units: Unit[], board: Board): [PresenceMap, BuildingMap] {
     const presence: PresenceMap = new Map();
+    const buildings: BuildingMap = new Map();
+
     const explode = (p: Position | TilePos) => Math.floor(p.x) + Math.floor(p.y) * board.map.w;
+
+    const markBuildingTile = (u: Unit, t: TilePos) => {
+        const explodedIndex = explode(t);
+        buildings.set(explodedIndex, u.id);
+    };
+
     const mark = (u: Unit, p: Position | TilePos) => {
         const explodedIndex = explode(p);
         const us = presence.get(explodedIndex) ?? [] as Unit[];
@@ -272,22 +283,26 @@ function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
         const bc = getBuildingComponent(u);
         if (bc) {
             const tilesToMark = tilesTakenByBuilding(bc, u.position);
-            tilesToMark.forEach(t => mark(u, t));
+
+            tilesToMark.forEach(t => {
+                mark(u, t);
+                markBuildingTile(u, t);
+            });
         } else {
             mark(u, u.position);
         }
     }
 
-    return presence;
+    return [presence, buildings];
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
-    const presence = buildPresenceMap(g.units, g.board);
+    const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
 
     // calculate updates and velocities
     for (const unit of g.units) {
-        updateUnit(dt, g, unit, presence);
+        updateUnit(dt, g, unit, presence, buildings);
     }
     // move everything at once
     for (const unit of g.units) {
@@ -305,7 +320,7 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
-function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
+function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap, buildings: BuildingMap) {
     const stopMoving = () => {
         unit.velocity.x = 0;
         unit.velocity.y = 0;
@@ -414,19 +429,19 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return;
     }
 
-    const computePathTo = (targetPos: Position): boolean => {
-        unit.pathToNext = pathFind(unit.position, targetPos, g.board.map);
+    const computePathTo = (targetPos: Position, tolerance: number): boolean => {
+        unit.pathToNext = pathFind(unit.position, targetPos, tolerance, g.board.map, buildings);
         return Boolean(unit.pathToNext);
     }
 
     // Compute a path to the target and execute immediate move towards it
     type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
 
-    const moveTowards = (targetPos: Position, range: number): MoveResult => {
+    const moveTowards = (targetPos: Position, tolerance: number): MoveResult => {
         // assume idle unless we can guarantee movement
         unit.state.action = 'Idle';
 
-        if (V.distance(targetPos, unit.position) < range) {
+        if (V.distance(targetPos, unit.position) < tolerance) {
             return 'ReachedTarget'; // nothing to do
         }
 
@@ -436,13 +451,13 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         // If no path is computed, compute it
         if (!unit.pathToNext) {
-            if (!computePathTo(targetPos))
+            if (!computePathTo(targetPos, tolerance))
                 return 'Unreachable';
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
             const PATH_RECOMPUTE_DISTANCE_THRESHOLD = 3;
             if (V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
-                if (!computePathTo(targetPos))
+                if (!computePathTo(targetPos, tolerance))
                     return 'Unreachable';
             }
             // Otherwise we continue on the path that we have
@@ -618,7 +633,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 break;
             }
 
-            const UNIT_FOLLOW_DISTANCE = 2;
+            // TODO include building&unit size in this distance
+            const UNIT_FOLLOW_DISTANCE = 4;
 
             if (moveTowards(targetPos, UNIT_FOLLOW_DISTANCE) === 'Unreachable') {
                 clearCurrentCommand();
@@ -683,7 +699,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     break;
                 }
             } else {
-                const DROPOFF_DISTANCE = 2;
+                // TODO include building&unit size in this distance
+                const DROPOFF_DISTANCE = 4;
                 // TODO cache the dropoff base
                 // TODO - resource dropoff component
                 const target = findClosestUnitBy(u => 
