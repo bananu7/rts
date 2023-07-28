@@ -371,6 +371,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         if (!unit.pathToNext) {
             throw "This unit has a move command but no path computed";
         }
+
+        // if there are no more path steps to do, we've reached the destination
+        if (unit.pathToNext.length === 0) {
+            // TODO - that will cause stutter at shift-clicked moves
+            stopMoving();
+            return true;
+        }
+
         unit.debug ??= {};
         unit.debug.pathToNext = unit.pathToNext;
 
@@ -398,13 +406,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         // Velocity is the position "jump" applied to all units at once
         // TODO - slow starts and braking
         V.vecSet(unit.velocity, velocity);
-        
-        // if there are no more path steps to do, we've reached the destination
-        if (unit.pathToNext.length === 0) {
-            // TODO - that will cause stutter at shift-clicked moves
-            stopMoving();
-            return true;
-        }
 
         return false;
     }
@@ -460,9 +461,18 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
             const PATH_RECOMPUTE_DISTANCE_THRESHOLD = 3;
-            if (V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
+
+            // TODO this logic is a bit wonky
+            const pathEmpty = unit.pathToNext.length === 0;
+            if (pathEmpty) {
                 if (!computePathTo(targetPos, tolerance))
                     return 'Unreachable';
+            } else {
+                const distanceFromPathEndToTarget = V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]);
+                if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD + tolerance){
+                    if (!computePathTo(targetPos, tolerance))
+                        return 'Unreachable';
+                }
             }
             // Otherwise we continue on the path that we have
         }
