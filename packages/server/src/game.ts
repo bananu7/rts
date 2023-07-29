@@ -379,19 +379,23 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return true;
         }
 
-        unit.debug ??= {};
-        unit.debug.pathToNext = unit.pathToNext;
-
-        let distanceLeft = distancePerTick;
-
         let target = unit.pathToNext[0];
         let targetDist = V.distance(target, unit.position);
 
         // Skip ONE path node if it's in reach of this ticks' movement
-        // TODO we'll see if it helps with jagged turns
         if (targetDist < distancePerTick) {
+            // if that node is the last, move to it ending navigation
+            if (unit.pathToNext.length === 1) {
+                V.vecSet(unit.velocity, V.difference(target, unit.position));
+                return true;
+            }
+
+            // otherwise just remove it for the next iteration
             unit.pathToNext.shift();
         }
+
+        unit.debug ??= {};
+        unit.debug.pathToNext = unit.pathToNext;
 
         // this is the direction the unit is facing regardless of actual movement
         // TODO probably should turn when bypassing obstacles maybe?
