@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState, TilePos } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos, Building } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -18,14 +18,15 @@ import { Building3D } from './Building3D'
 import { BuildPreview } from './BuildPreview'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
-import { SelectedAction } from '../game/SelectedAction'
+import { SelectedCommand } from '../game/SelectedCommand'
+import { getBuildingSizeFromBuildingName } from '../game/UnitQuery'
 
 export interface Props {
     board: Board;
     playerIndex: number;
-    unitStates: UnitState[];
+    units: Unit[];
     selectedUnits: Set<UnitId>;
-    selectedAction: SelectedAction | undefined;
+    selectedCommand: SelectedCommand | undefined;
 
     select: (ids: Set<UnitId>, shift: boolean) => void;
     mapClick: (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
@@ -39,7 +40,7 @@ export function Board3D(props: Props) {
         pointer.current.y = p.y;
     }, [pointer]);
 
-    const units = props.unitStates.map(u => {
+    const units = props.units.map(u => {
         const catalogEntryFn = UNIT_DISPLAY_CATALOG[u.kind];
         if (!catalogEntryFn)
             throw new Error("No display catalog entry for unit" + u.kind);
@@ -67,7 +68,7 @@ export function Board3D(props: Props) {
 
     const selectInBox = (box: Box, shift: boolean) => {
         // TODO - this is a hotfix; Board shouldn't make those decisions...
-        if (props.selectedAction)
+        if (props.selectedCommand)
             return;
 
         function isInBox(p: Position, b: Box) {
@@ -78,13 +79,32 @@ export function Board3D(props: Props) {
             return p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2;
         }
 
-        const selection = props.unitStates
+        const selection = props.units
             .filter(u => isInBox(u.position, box))
             .filter(u => u.owner === props.playerIndex)
             .map(u => u.id);
 
         props.select(new Set(selection), shift);
     };
+
+    const createBuildPreview = useCallback(() => {
+        if (!props.selectedCommand)
+            return;
+
+        if (props.selectedCommand.command !== 'Build')
+            return;
+
+        const buildingSize = getBuildingSizeFromBuildingName(props.selectedCommand.building);
+
+        return (<BuildPreview
+            buildingSize={buildingSize}
+            position={pointer}
+            map={props.board.map}
+            units={props.units} // to check viability
+        />);
+    }, [props.selectedCommand]);
+
+    const buildPreview = useMemo(() => createBuildPreview(), [props.selectedCommand]);
 
     return (
         <group name="board">
@@ -95,11 +115,7 @@ export function Board3D(props: Props) {
                 pointerMove={setPointer}
             />
             { units }
-            {
-                props.selectedAction &&
-                props.selectedAction.action === 'Build' &&
-                <BuildPreview building={props.selectedAction.building} position={pointer} map={props.board.map}/>
-            }
+            { buildPreview }
         </group>
     );
 }

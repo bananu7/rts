@@ -1,28 +1,30 @@
 import {
    UnitId,
    Unit,
-   UnitState,
    ProductionFacility,
    Builder,
+   CommandBuild,
+   Building,
 } from '@bananu7-rts/server/src/types'
+import { getUnitDataByName } from '@bananu7-rts/server/src/units'
 
-import { SelectedAction } from './SelectedAction'
+import { SelectedCommand } from './SelectedCommand'
 
-export function canMove(unit: UnitState | Unit): Boolean {
+export function canMove(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Mover'));
 }
 
 // TODO: perhaps not all units can attack other units, so 
 // this might need target parameter later
-export function canAttack(unit: UnitState | Unit): Boolean {
+export function canAttack(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Attacker'));
 }
 
-export function canHarvest(unit: UnitState | Unit): Boolean {
+export function canHarvest(unit: Unit): Boolean {
     return Boolean(unit.components.find(c => c.type === 'Harvester'));
 }
 
-export function canBuild(unit: UnitState | Unit, building: string): Boolean {
+export function canBuild(unit: Unit, building: string): Boolean {
     const builderComponent = unit.components.find(c => c.type === 'Builder') as Builder;
     if (!builderComponent)
         return false;
@@ -30,8 +32,8 @@ export function canBuild(unit: UnitState | Unit, building: string): Boolean {
     return Boolean(builderComponent.buildingsProduced.find(bp => bp.buildingType === building));
 }
 
-export function canPerformSelectedAction(unit: UnitState | Unit, action: SelectedAction): Boolean {
-    switch (action.action) {
+export function canPerformSelectedCommand(unit: Unit, command: SelectedCommand): Boolean {
+    switch (command.command) {
     case 'Move':
         return canMove(unit);
     case 'Attack':
@@ -39,6 +41,20 @@ export function canPerformSelectedAction(unit: UnitState | Unit, action: Selecte
     case 'Harvest':
         return canHarvest(unit);
     case 'Build':
-        return canBuild(unit, action.building);
+        return canBuild(unit, command.building);
     }
+}
+
+export function getBuildingSizeFromBuildingName(name: string): number {
+    const unitData = getUnitDataByName(name);
+
+    if (!unitData)
+        throw new Error("No unit data for the build command building");
+
+    // TODO component finding doesn't work on UnitData :(
+    const buildingComponent = unitData.find(c => c.type === 'Building') as Building;
+    if (!buildingComponent)
+        throw new Error("Build command target unit data doesn't have a Building component");
+
+    return buildingComponent.size;
 }

@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
-import { SelectedAction } from '../game/SelectedAction';
-import { canPerformSelectedAction } from '../game/UnitQuery';
+import { SelectedCommand } from '../game/SelectedCommand';
+import { canPerformSelectedCommand, getBuildingSizeFromBuildingName } from '../game/UnitQuery';
 import { clampToGrid } from '../game/Grid';
-
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
 import { BottomUnitView } from './BottomUnitView';
@@ -17,33 +16,28 @@ import { Board3D } from '../gfx/Board3D';
 
 import { MatchControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 
 type MatchControllerProps = {
-  ctrl: MatchControl
+  ctrl: MatchControl,
 }
 export function MatchController(props: MatchControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
-  const [serverState, setServerState] = useState<Game | null>(null);
-
+ 
+  const [matchMetadata, setMatchMetadata] = useState<MatchMetadata | null>(null);
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
+
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
-  const [selectedAction, setSelectedAction] = useState<SelectedAction | undefined>(undefined);
+  const [selectedCommand, setSelectedCommand] = useState<SelectedCommand | undefined>(undefined);
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
- 
-  const updateMatchState = useCallback(() => {
-    props.ctrl.getMatchState()
-    .then(s => setServerState(s));
-  }, []);
 
   const leaveMatch = useCallback(async () => {
     await props.ctrl.leaveMatch();
     setLastUpdatePacket(null);
-    setServerState(null);
-  }, [props.ctrl, setLastUpdatePacket, setServerState]);
+  }, [props.ctrl]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
@@ -61,70 +55,77 @@ export function MatchController(props: MatchControllerProps) {
         .filter(id => su.has(id))
       );
 
-      // If after that the selected action can't be performed by the remaining units,
+      // If after that the selected command can't be performed by the remaining units,
       // clear it
-      setSelectedAction(sa => {
-        if (!sa) {
+      setSelectedCommand(sc => {
+        if (!sc) {
           return undefined;
         }
 
-        let canKeepAction = false;
+        let canKeepCommand = false;
         // TODO maybe units should be indexed by id in the local state?
         for (const u of p.units) {
           if (!newSelectedUnits.has(u.id))
             continue;
 
-          if (canPerformSelectedAction(u, sa)) {
-            canKeepAction = true;
+          if (canPerformSelectedCommand(u, sc)) {
+            canKeepCommand = true;
             break;
           }
         }
 
-        if (!canKeepAction) {
+        if (!canKeepCommand) {
           return undefined;
         } else {
-          return sa;
+          return sc;
         }
       });
 
       return newSelectedUnits;
     });
-  }, [setLastUpdatePacket, setSelectedUnits]);
+  }, []);
+
+  const downloadMatchMetadata = useCallback(() => {
+    props.ctrl.getMatchMetadata().then(s => setMatchMetadata(s));
+  }, []);
 
   // previously onMatchConnected
   useEffect(() => {
     console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
-    updateMatchState();
+    downloadMatchMetadata();
   }, []);
 
-  const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
+  const lines = useMemo(() =>
+    msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>)
+  , [msgs]);
 
   const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
       return;
 
     // TODO that's kinda annoying that server state is nullable here
-    if (!serverState)
+    if (!matchMetadata)
       return;
 
     // TODO key being pressed and then RMB is attack move
     switch (button) {
     case 0:
-      if (!selectedAction) {
+      if (!selectedCommand) {
         break;
-      } else if (selectedAction.action === 'Move') {
+      } else if (selectedCommand.command === 'Move') {
         props.ctrl.moveCommand(Array.from(selectedUnits), p, shift);
-      } else if (selectedAction.action === 'Attack') {
+      } else if (selectedCommand.command === 'Attack') {
         props.ctrl.attackMoveCommand(Array.from(selectedUnits), p, shift);
-      } else if (selectedAction.action === 'Build') {
+      } else if (selectedCommand.command === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
         const gridPos = clampToGrid(p);
-        // TODO building size
-        const emptyForBuilding = mapEmptyForBuilding(serverState.board.map, 6, gridPos);
+
+        const buildingSize = getBuildingSizeFromBuildingName(selectedCommand.building);
+        const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: buildingSize, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
-          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedAction.building, gridPos, shift);
+          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedCommand.building, gridPos, shift);
         } else {
           console.log("[MatchController] trying to build in an invalid location")
         }
@@ -135,9 +136,9 @@ export function MatchController(props: MatchControllerProps) {
       break;
     }
 
-    setSelectedAction(undefined);
+    setSelectedCommand(undefined);
 
-  }, [serverState, selectedAction, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
+  }, [matchMetadata, selectedCommand, selectedUnits]); // TODO will get recomputed on every new state, should it use ref?
 
   const unitClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, targetId: UnitId, button: number, shift: boolean) => {
     if (!lastUpdatePacket) {
@@ -158,7 +159,7 @@ export function MatchController(props: MatchControllerProps) {
 
     switch (button) {
     case 0:
-      if (!selectedAction) {
+      if (!selectedCommand) {
         if (shift) {
           // shift-click means add if not there, but remove if there
           setSelectedUnits(prev => {
@@ -181,15 +182,18 @@ export function MatchController(props: MatchControllerProps) {
         break;
       }
 
-      if (selectedAction.action === 'Build') {
+      if (selectedCommand.command === 'Build') {
         // propagate the event so that it hits the map instead
         return;
-      } else if (selectedAction.action === 'Move') {
+      } else if (selectedCommand.command === 'Move') {
         props.ctrl.followCommand(Array.from(selectedUnits), targetId, shift);
-      } else if (selectedAction.action === 'Attack') {
+        setSelectedCommand(undefined);
+      } else if (selectedCommand.command === 'Attack') {
         props.ctrl.attackCommand(Array.from(selectedUnits), targetId, shift);
-      } else if (selectedAction.action === 'Harvest') {
+        setSelectedCommand(undefined);
+      } else if (selectedCommand.command === 'Harvest') {
         props.ctrl.harvestCommand(Array.from(selectedUnits), targetId, shift);
+        setSelectedCommand(undefined);
       }
       break;
     case 2:
@@ -209,10 +213,10 @@ export function MatchController(props: MatchControllerProps) {
 
     originalEvent.stopPropagation();
 
-  }, [lastUpdatePacket, selectedAction, selectedUnits]);
+  }, [lastUpdatePacket, selectedCommand, selectedUnits]);
 
   const boardSelectUnits = (newUnits: Set<UnitId>, shift: boolean) => {
-    setSelectedAction(undefined);
+    setSelectedCommand(undefined);
     if (shift) {
       setSelectedUnits(units => new Set([...units, ...newUnits]));
     } else {
@@ -223,24 +227,24 @@ export function MatchController(props: MatchControllerProps) {
   // TODO track key down state for stuff like a-move clicks
   const keydown = useCallback((e: React.KeyboardEvent) => {
     if (e.keyCode === 27) { // esc
-     setSelectedAction(undefined);
+      setSelectedCommand(undefined);
     }
     else if (e.keyCode === 65) { // a
-     setSelectedAction({ action: 'Attack' })
+      setSelectedCommand({ command: 'Attack' })
     }
     else if (e.keyCode === 87) { // w
       props.ctrl.stopCommand(Array.from(selectedUnits));
-      setSelectedAction(undefined);
+      setSelectedCommand(undefined);
     }
     else {
      console.log(e.keyCode);
     }
-  }, [selectedAction, selectedUnits]);
+  }, [selectedCommand, selectedUnits]);
 
-  const gameDivStyle = selectedAction ? { cursor: "pointer"} : { };
+  const gameDivStyle = selectedCommand ? { cursor: "pointer"} : { };
 
   const showGame =
-    serverState &&
+    matchMetadata &&
     lastUpdatePacket &&
     ( lastUpdatePacket.state.id === 'Precount'||
       lastUpdatePacket.state.id === 'Play' ||
@@ -276,21 +280,20 @@ export function MatchController(props: MatchControllerProps) {
       }
 
       {
-        serverState &&
+        matchMetadata &&
         <>
          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           { showMainMenu &&
             <div className="MainMenu">
               <h3>Main menu</h3>
               <h4>You are player #{props.ctrl.getPlayerIndex()}</h4>
-              { !serverState && <button>Play</button> }
-              { serverState && <button onClick={async () => {
+              { !matchMetadata && <button>Play</button> }
+              { matchMetadata && <button onClick={async () => {
                 await leaveMatch();
                 setShowMainMenu(false);
               }}>Leave game</button> }
-              { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+              { matchMetadata && <button onClick={() => { console.log(matchMetadata) }}>Dump match metadata</button> }
               { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
-              { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
             </div>
           }
         </>
@@ -304,8 +307,8 @@ export function MatchController(props: MatchControllerProps) {
             ownerIndex={props.ctrl.getPlayerIndex()}
             units={lastUpdatePacket.units}
             ctrl={props.ctrl}
-            selectedAction={selectedAction}
-            setSelectedAction={setSelectedAction}
+            selectedCommand={selectedCommand}
+            setSelectedCommand={setSelectedCommand}
             notify={(msg) => setMessages(m => [...m, msg]) }
           />
           <BottomUnitView
@@ -320,17 +323,17 @@ export function MatchController(props: MatchControllerProps) {
           />
           <View3D>
             <Board3D
-              board={serverState.board}
+              board={matchMetadata.board}
               playerIndex={props.ctrl.getPlayerIndex()}
-              unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
+              units={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              selectedAction={selectedAction}
+              selectedCommand={selectedCommand}
               select={boardSelectUnits}
               mapClick={mapClick}
               unitClick={unitClick}
             />
           </View3D>
-          <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
+          <Minimap board={matchMetadata.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
         </>
       }
 

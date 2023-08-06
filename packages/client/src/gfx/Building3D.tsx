@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, UnitState } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -27,7 +27,7 @@ const invisibleMaterial = new THREE.MeshBasicMaterial({
 });
 
 type Building3DProps = {
-    unit: UnitState,
+    unit: Unit,
     selected: boolean,
     displayEntry: BuildingDisplayEntry,
     click?: (originalEvent: ThreeEvent<MouseEvent>, id: UnitId, button: number, shift: boolean) => void,
@@ -68,7 +68,7 @@ export function Building3D(props: Building3DProps) {
     }, []);
 
     // TODO animate buildings when they're producing
-    const animate = props.unit.status === 'Moving';
+    const action = props.unit.state.action;
 
     return (
         <group>
@@ -91,7 +91,7 @@ export function Building3D(props: Building3DProps) {
                     />
                 </group>
 
-                <FileModel path={modelPath} accentColor={color} animate={animate}/>
+                <FileModel path={modelPath} accentColor={color} animate={action}/>
             </group>
         </group>
     );

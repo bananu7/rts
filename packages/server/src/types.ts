@@ -9,54 +9,69 @@ export type Milliseconds = number;
 
 export type UnitId = number;
 
-// Network connectivity
+// used for MatchList
+export type MatchId = string;
+
 export type MatchInfo = {
-    matchId: string,
+    matchId: MatchId,
     playerCount: number,
     status: GameState, 
 }
 
-export type IdentificationPacket = {
-    userId: UserId,
-    matchId: string, 
+// constant for the entire match, used by the match controller
+export type PlayerMetadata = {
+    readonly index: PlayerIndex,
+    readonly userId: UserId,
+    readonly color: number,
 }
 
-export type Action = ActionMove | ActionStop | ActionFollow | ActionAttackMove | ActionAttack | ActionHarvest | ActionProduce | ActionBuild;
-export type ActionMove = {
+export type MatchMetadata = {
+    readonly matchId: MatchId;
+    readonly players: PlayerMetadata[],
+    readonly board: Board,
+}
+
+export type IdentificationPacket = {
+    userId: UserId,
+    matchId: MatchId, 
+}
+
+export type Command = CommandMove | CommandStop | CommandFollow | CommandAttackMove | CommandAttack | CommandHarvest | CommandProduce | CommandBuild;
+export type CommandMove = {
     typ: 'Move',
     target: Position,
 }
-export type ActionStop = {
+export type CommandStop = {
     typ: 'Stop'
 }
-export type ActionFollow = {
+export type CommandFollow = {
     typ: 'Follow',
     target: UnitId,
 }
-export type ActionAttackMove = {
+export type CommandAttackMove = {
     typ: 'AttackMove',
     target: Position,
 }
-export type ActionAttack = {
+export type CommandAttack = {
     typ: 'Attack',
     target: UnitId,
 }
-export type ActionHarvest = {
+export type CommandHarvest = {
     typ: 'Harvest',
     target: UnitId,
 }
-export type ActionProduce = {
+export type CommandProduce = {
     typ: 'Produce',
     unitToProduce: string,
 }
-export type ActionBuild = {
+export type CommandBuild = {
     typ: 'Build',
     building: string,
     position: Position,
 }
 
 export type CommandPacket = {
-    action: Action,
+    command: Command,
     unitIds: UnitId[],
     shift: boolean,
 }
@@ -64,22 +79,8 @@ export type CommandPacket = {
 export type UpdatePacket = {
     state: GameState,
     tickNumber: number,
-    units: UnitState[],
+    units: Unit[],
     player: PlayerState,
-}
-
-export type UnitState = {
-    debug?: any;
-
-    id: number,
-    kind: string,
-    status: 'Moving'|'Attacking'|'Harvesting'|'Producing'|'Idle',
-    readonly position: Position,
-    velocity: Position, // TODO - Position to Vec2
-    direction: number,
-    owner: number,
-
-    components: Component[],
 }
 
 // Components
@@ -161,25 +162,35 @@ export type TilePos = { x: number, y: number }
 export type PlayerIndex = number
 export type UserId = string
 
+
+export type UnitAction = 'Moving'|'Attacking'|'Harvesting'|'Idle'|'Producing'|'Building';
+
+// TODO this should probably be a separate variable instead
+type UnitActionState = {
+    action: UnitAction,
+    actionTime: number, // how long has the unit been performing the current action?
+}
+
 // represents a non-empty queue
 export type UnitActiveState = {
     state: 'active',
-    current: Action,
-    rest: Action[],
-}
+    current: Command,
+    rest: Command[],    
+} & UnitActionState
 
 export type UnitIdleState = {
     state: 'idle',
     idlePosition: Position,
-}
+} & UnitActionState
 
-export type ActionState = UnitIdleState | UnitActiveState;
+export type UnitState = UnitIdleState | UnitActiveState;
 
 export type Unit = {
     debug?: any;
 
     readonly id: number,
-    actionState: ActionState,
+    state: UnitState,
+
     readonly kind: string, // TODO should this be in a component
     readonly owner: PlayerIndex,
     readonly position: Position,
@@ -188,6 +199,7 @@ export type Unit = {
 
     readonly components: Component[],
 
+    // Only used on the server
     pathToNext?: TilePos[],
 }
 
@@ -197,7 +209,7 @@ export type PlayerState = {
 
 export type Game = {
     // uuid: UUID, TODO
-    matchId: string,
+    matchId: MatchId,
     state: GameState,
     tickNumber: number,
     players: PlayerState[],
@@ -230,3 +242,4 @@ export type GameState = {
 }
 
 export type PresenceMap = Map<number, Unit[]>;
+export type BuildingMap = Map<number, UnitId>;

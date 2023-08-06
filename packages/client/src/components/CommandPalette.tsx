@@ -5,13 +5,12 @@ import {
    UpdatePacket,
    UnitId,
    Unit,
-   UnitState,
    Position,
    ProductionFacility,
    Builder,
 } from '@bananu7-rts/server/src/types'
 import { MatchControl } from '../Multiplayer'
-import { SelectedAction } from '../game/SelectedAction'
+import { SelectedCommand } from '../game/SelectedCommand'
 
 type ButtonProps = {
     x?: number,
@@ -42,9 +41,9 @@ function Button(props: ButtonProps) {
 type Props = {
     resources: number, // used to check if the player can afford stuff
     selectedUnits: Set<UnitId>,
-    selectedAction: SelectedAction | undefined,
-    setSelectedAction: (a: SelectedAction | undefined) => void,
-    units: UnitState[],
+    selectedCommand: SelectedCommand | undefined,
+    setSelectedCommand: (a: SelectedCommand | undefined) => void,
+    units: Unit[],
     ctrl: MatchControl,
     ownerIndex: number,
     notify: (text: string) => void,
@@ -54,7 +53,7 @@ export function CommandPalette(props: Props) {
         return <div></div>;
     }
 
-    const units: UnitState[] = 
+    const units: Unit[] = 
         Array.from(props.selectedUnits)
         .map(id => {
             const unit = props.units.find(u => u.id === id);
@@ -77,7 +76,7 @@ export function CommandPalette(props: Props) {
 
     const stop = () => {
         props.ctrl.stopCommand(Array.from(props.selectedUnits));
-        props.setSelectedAction(undefined);
+        props.setSelectedCommand(undefined);
     }
 
     const productionUnits = (() => {
@@ -144,7 +143,7 @@ export function CommandPalette(props: Props) {
     })();
 
     const build = (building: string, position: Position) =>
-        props.setSelectedAction({ action: 'Build', building });
+        props.setSelectedCommand({ command: 'Build', building });
 
     // TODO - second click to determine position
     const buildButtons = availableBuildings.map(bp => {
@@ -153,9 +152,9 @@ export function CommandPalette(props: Props) {
         const time = Math.floor(bp.buildTime / 1000);
 
         const active = 
-            props.selectedAction &&
-            props.selectedAction.action === 'Build' &&
-            props.selectedAction.building === b || false;
+            props.selectedCommand &&
+            props.selectedCommand.command === 'Build' &&
+            props.selectedCommand.building === b || false;
 
         const canAfford = props.resources >= cost;
 
@@ -188,10 +187,10 @@ export function CommandPalette(props: Props) {
     let hint = "";
     /* TODO - contextual hints disabled for now
     maybe a tutorial mode would help?
-    if (props.selectedAction) {
-        switch (props.selectedAction.action) {
+    if (props.SelectedCommand) {
+        switch (props.SelectedCommand.command) {
             case 'Build':
-                hint = `Left-click on the map to build a ${props.selectedAction.building}.`;
+                hint = `Left-click on the map to build a ${props.SelectedCommand.building}.`;
                 break;
             case 'Move':
                 hint = "Left-click on the map to move, or on a unit to follow it.";
@@ -214,8 +213,8 @@ export function CommandPalette(props: Props) {
                 <Button
                     key="Move"
                     x={1} y={1}
-                    active={props.selectedAction && props.selectedAction.action === 'Move' || false}
-                    onClick={() => props.setSelectedAction({ action: 'Move'})}
+                    active={props.selectedCommand && props.selectedCommand.command === 'Move' || false}
+                    onClick={() => props.setSelectedCommand({ command: 'Move'})}
                 >
                     <span style={{fontSize: "2.3em"}}>➜</span>
                     <span className="tooltip">Move a unit to a specific location or order it to follow a unit.</span>
@@ -227,8 +226,8 @@ export function CommandPalette(props: Props) {
                 <Button
                     key="Harvest"
                     x={1} y={2}
-                    active={props.selectedAction && props.selectedAction.action === 'Harvest' || false}
-                    onClick={() => props.setSelectedAction({ action: 'Harvest'})}
+                    active={props.selectedCommand && props.selectedCommand.command === 'Harvest' || false}
+                    onClick={() => props.setSelectedCommand({ command: 'Harvest'})}
                 >
                     <span style={{fontSize: "2.3em"}}>⛏️</span>
                     <span className="tooltip">Harvest a resource node</span>
@@ -243,7 +242,7 @@ export function CommandPalette(props: Props) {
                 onClick={stop}
             >
                 <span style={{fontSize: "2.3em"}}>✖</span>
-                <span className="tooltip">Stop the current action and all the queued ones.</span>
+                <span className="tooltip">Stop the current command and all the queued ones.</span>
             </Button>
 
             {
@@ -251,8 +250,8 @@ export function CommandPalette(props: Props) {
                 <Button
                     key="attack"
                     x={3} y={1}
-                    active={props.selectedAction && props.selectedAction.action === 'Attack' || false}
-                    onClick={() => props.setSelectedAction({ action: 'Attack'})}
+                    active={props.selectedCommand && props.selectedCommand.command === 'Attack' || false}
+                    onClick={() => props.setSelectedCommand({ command: 'Attack'})}
                 >
                     <span style={{fontSize: "2.3em"}}>⚔️</span>
                     <span className="tooltip">Attack an enemy unit or move towards a point and attack any enemy units on the way</span>

@@ -1,22 +1,26 @@
 import {
     Milliseconds, Position,
     Board,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, TilePos, UnitState, 
+    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
-    Action, ActionFollow, ActionAttack, ActionMove,
+    Command, CommandFollow, CommandAttack, CommandMove,
     PlayerState,
 } from './types';
 
 import * as V from './vector.js'
-import { pathFind } from './pathfinding.js'
+import { pathFind, destinationDistance, Destination } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
-import { mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
+import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 
+
+// TODO include building&unit size in this distance
+const UNIT_FOLLOW_DISTANCE = 0.5;
 // general accuracy when the unit assumes it has reached
 // its destination
-const MOVEMENT_EPSILON = 0.2;
+const MAP_MOVEMENT_TOLERANCE = 1.0;
 // how far the unit will run away from the idle position
 // to chase an enemy that it spotted.
 const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
@@ -44,34 +48,53 @@ export function startGame(g: Game) {
     g.state = {id: 'Precount', count: 0};
 }
 
-function commandOne(shift: boolean, action: Action, unit: Unit, playerIndex: number) {
+function commandOne(shift: boolean, command: Command, unit: Unit, playerIndex: number) {
     if (unit.owner !== playerIndex) {
         console.info(`[game] Player tried to control other player's unit`);
         return;
     }
 
     // Don't even add/set actions that the unit won't accept
-    const accept = willAcceptAction(unit, action);
+    const accept = willAcceptCommand(unit, command);
     if (!accept) {
-        console.info(`[game] Rejecting action ${action.typ} for unit ${unit.id}`);
+        console.info(`[game] Rejecting command ${command.typ} for unit ${unit.id}`);
         return;
     }
 
-    console.log(`[game] Adding action ${action.typ} for unit ${unit.id}`);
-
-    if (unit.actionState.state === 'idle') {
-        unit.actionState = {
+    switch (command.typ) {
+    case 'Move':
+        console.log(`[game] Command: Move unit ${unit.id} towards [${command.target.x}, ${command.target.y}]`);
+        break;
+    case 'AttackMove':
+        console.log(`[game] Command: AttackMove unit ${unit.id} towards [${command.target.x}, ${command.target.y}]`);
+        break;
+    case 'Follow':
+        console.log(`[game] Command: Follow, unit ${unit.id} follows ${command.target}`);
+        break;
+    case 'Attack':
+        console.log(`[game] Command: Attack, unit ${unit.id} attacks ${command.target}`);
+        break;
+    default:
+        console.log(`[game] Command: ${command.typ} for unit ${unit.id}`);
+        break;
+    }
+    
+    if (unit.state.state === 'idle') {
+        unit.state = {
             state: 'active',
-            current: action,
+            action: 'Idle',
+            actionTime: 0,
+            current: command,
             rest: []
         }
     } else {
         if (shift) {
-            unit.actionState.rest.push(action);
+            unit.state.rest.push(command);
         }
         else {
-            unit.actionState.current = action;
-            unit.actionState.rest = [];
+            unit.state.current = command;
+            unit.state.rest = [];
+            delete unit.pathToNext;
         }
     }
 }
@@ -130,9 +153,9 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
     if (g.state.id !== 'Play')
         return;
 
-    // if multiple units get a move action, spread their targets out
-    if (c.action.typ === 'Move' || c.action.typ === 'AttackMove') {
-        const target = c.action.target;
+    // if multiple units get a move command, spread their targets out
+    if (c.command.typ === 'Move' || c.command.typ === 'AttackMove') {
+        const target = c.command.target;
         const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
         const isAcceptable = (p: Position) => g.board.map.tiles[explode(p)] === 0; // TODO - out of bounds etc
 
@@ -143,7 +166,7 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
         
         // find all units that will participate in spiral formation forming
         const simps = us
-            .filter(u => willAcceptAction(u, c.action))
+            .filter(u => willAcceptCommand(u, c.command))
             .map(u => ({ unit: u, position: u.position }))
         ;
 
@@ -163,27 +186,27 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
             }
         });
 
-        // send the action to eah unit individually
+        // send the command to each unit individually
         ssimps.forEach(s => {
-            const action = {
+            const command = {
                 typ: 'Move',
                 target: { x: s.position.x, y: s.position.y }
-            } as ActionMove;
-            commandOne(c.shift, action, s.unit, playerIndex);
+            } as CommandMove;
+            commandOne(c.shift, command, s.unit, playerIndex);
         });
     }
 
     else {
         us.forEach(u => {
-            commandOne(c.shift, c.action, u, playerIndex);
+            commandOne(c.shift, c.command, u, playerIndex);
         });
     }
 }
 
-function willAcceptAction(unit: Unit, action: Action) {
+function willAcceptCommand(unit: Unit, command: Command) {
     // TODO maybe this should be better streamlined, like in a dictionary
-    // of required components for each action?
-    switch(action.typ) {
+    // of required components for each command?
+    switch(command.typ) {
     case 'Move': 
         if (!getMoveComponent(unit))
             return false;
@@ -229,29 +252,11 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
         updateUnits(dt, g);
     }
 
-    const unitUpdates: UnitState[] = g.units
-        .map(u => {
-            // TODO pull actual action that's done right at the moment
-            // (including cooldowns etc)
-            // maybe this should happen client-side actually?
-            const actionToStatus = {
-                'Attack': 'Attacking',
-                'AttackMove': 'Attacking',
-                'Follow': 'Moving',
-                'Move': 'Moving',
-                'Harvest': 'Harvesting',
-                'Produce': 'Producing',
-                'Build': 'Idle',
-                'Stop': 'Idle',
-            }
-            type US = 'Moving'|'Attacking'|'Harvesting'|'Idle';
-            const status: (US) = u.actionState.state === 'active' ?
-                (actionToStatus[u.actionState.current.typ] as US) :
-                'Idle';
-
+    const unitUpdates: Unit[] = g.units
+        .map(u => {            
             return {
                 id: u.id,
-                status,
+                state: u.state,
                 position: u.position,
                 direction: u.direction,
                 velocity: u.velocity,
@@ -273,41 +278,20 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     });
 }
 
-const getHpComponent = (unit: Unit): Hp => {
-    return unit.components.find(c => c.type === 'Hp') as Hp;
-}
-
-const getMoveComponent = (unit: Unit): Mover => {
-    return unit.components.find(c => c.type === 'Mover') as Mover;
-}
-
-const getAttackerComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Attacker') as Attacker;
-}
-
-const getHarvesterComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Harvester') as Harvester;
-}
-
-const getProducerComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'ProductionFacility') as ProductionFacility;
-}
-
-const getBuilderComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Builder') as Builder;
-}
-
-const getVisionComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Vision') as Vision;
-}
-
-const getBuildingComponent = (unit: Unit) => {
-    return unit.components.find(c => c.type === 'Building') as Building;
-};
-
-function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
+// The purpose of presence map is easy finding of nearby enemies
+// The purpose of building map is to pass it to pathfinding to prevent pathing
+// on tiles taken by buildings
+function buildPresenceAndBuildingMaps(units: Unit[], board: Board): [PresenceMap, BuildingMap] {
     const presence: PresenceMap = new Map();
+    const buildings: BuildingMap = new Map();
+
     const explode = (p: Position | TilePos) => Math.floor(p.x) + Math.floor(p.y) * board.map.w;
+
+    const markBuildingTile = (u: Unit, t: TilePos) => {
+        const explodedIndex = explode(t);
+        buildings.set(explodedIndex, u.id);
+    };
+
     const mark = (u: Unit, p: Position | TilePos) => {
         const explodedIndex = explode(p);
         const us = presence.get(explodedIndex) ?? [] as Unit[];
@@ -318,23 +302,27 @@ function buildPresenceMap(units: Unit[], board: Board): PresenceMap {
     for (const u of units) {
         const bc = getBuildingComponent(u);
         if (bc) {
-            const tilesToMark = tilesTakenByBuilding(bc.size, u.position);
-            tilesToMark.forEach(t => mark(u, t));
+            const tilesToMark = tilesTakenByBuilding(bc, u.position);
+
+            tilesToMark.forEach(t => {
+                mark(u, t);
+                markBuildingTile(u, t);
+            });
         } else {
             mark(u, u.position);
         }
     }
 
-    return presence;
+    return [presence, buildings];
 }
 
 function updateUnits(dt: Milliseconds, g: Game) {
     // Build a unit presence map
-    const presence = buildPresenceMap(g.units, g.board);
+    const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
 
     // calculate updates and velocities
     for (const unit of g.units) {
-        updateUnit(dt, g, unit, presence);
+        updateUnit(dt, g, unit, presence, buildings);
     }
     // move everything at once
     for (const unit of g.units) {
@@ -352,7 +340,7 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
-function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap) {
+function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap, buildings: BuildingMap) {
     const stopMoving = () => {
         unit.velocity.x = 0;
         unit.velocity.y = 0;
@@ -370,18 +358,20 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     const becomeIdleAtCurrentPosition = () => {
-        unit.actionState = {
+        unit.state = {
             state: 'idle',
+            action: 'Idle',
+            actionTime: 0,
             idlePosition: { x: unit.position.x, y: unit.position.y },
         }
     }
 
-    const clearCurrentAction = () => {
+    const clearCurrentCommand = () => {
         stopMoving();
-        if (unit.actionState.state === 'active') {
-            const next = unit.actionState.rest.shift();
+        if (unit.state.state === 'active') {
+            const next = unit.state.rest.shift();
             if (next) {
-                unit.actionState.current = next;
+                unit.state.current = next;
             }
             else {
                 becomeIdleAtCurrentPosition();
@@ -389,36 +379,15 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
     }
 
-    // TODO - handle more than one action per tick
+    // TODO - handle more than one command per tick
     // requires pulling out the distance traveled so that two moves can't happen
     // one after another
     // Returns whether it's reached the target
     const moveApply = (mc: Mover) => {
-        const distancePerTick = mc.speed * (dt / 1000);
-        // TODO: moving target
-        // TODO: collisions
+        const distancePerTick = mc.speed * (dt / 1000); // speed * time in seconds = s
         if (!unit.pathToNext) {
             throw "This unit has a move command but no path computed";
         }
-
-        let distanceLeft = distancePerTick;
-
-        unit.debug ??= {};
-        unit.debug.pathToNext = unit.pathToNext;
-
-        const target = unit.pathToNext[0];
-        const targetDist = V.distance(target, unit.position);
-
-        const diff = targetDist < distancePerTick ? targetDist : distancePerTick;
-        unit.direction = V.angleFromTo(unit.position, target);
-
-        // TODO - slow starts and braking
-        const velocity = checkMovePossibility(unit, g.board.map, presence);
-
-        V.vecSet(unit.velocity, velocity);
-        
-        if (targetDist < distancePerTick)
-            unit.pathToNext.shift();
 
         // if there are no more path steps to do, we've reached the destination
         if (unit.pathToNext.length === 0) {
@@ -427,27 +396,78 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return true;
         }
 
+        let target = unit.pathToNext[0];
+        let targetDist = V.distance(target, unit.position);
+
+        // Skip ONE path node if it's in reach of this ticks' movement
+        if (targetDist < distancePerTick) {
+            // if that node is the last, move to it ending navigation
+            if (unit.pathToNext.length === 1) {
+                V.vecSet(unit.velocity, V.difference(target, unit.position));
+                return true;
+            }
+
+            // otherwise just remove it for the next iteration
+            unit.pathToNext.shift();
+        }
+
+        unit.debug ??= {};
+        unit.debug.pathToNext = unit.pathToNext;
+
+        // this is the direction the unit is facing regardless of actual movement
+        // TODO probably should turn when bypassing obstacles maybe?
+        unit.direction = V.angleFromTo(unit.position, target);
+
+        // The desired direction is then altered by the collisions with terrain
+        // and other units
+        const computedDirection = checkMovePossibility(unit, g.board.map, presence);
+
+        const velocity = V.mul(computedDirection, distancePerTick);
+
+        // Velocity is the position "jump" applied to all units at once
+        // TODO - slow starts and braking
+        V.vecSet(unit.velocity, velocity);
+
         return false;
     }
 
-    const findUnitPosition = (targetId: UnitId) => {
+    const getUnitReferencePosition = (target: Unit) => {
+        // For regular units, their position is in the middle
+        // For buildings, it's the top-left corner
+        const bc = getBuildingComponent(target);
+        
+        if (!bc) {
+            return { x: target.position.x, y: target.position.y };
+        } else {
+            return {
+                x: target.position.x + (bc.size / 2),
+                y: target.position.y + (bc.size / 2),
+            }
+        }
+    }
+
+    const getUnitReferencePositionById = (targetId: UnitId) => {
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (target)
-            return { x: target.position.x, y: target.position.y };
+            return getUnitReferencePosition(target);
         else
             return;
     }
 
-    const computePathTo = (targetPos: Position): boolean => {
-        unit.pathToNext = pathFind(unit.position, targetPos, g.board.map);
+    const computePathTo = (destination: Destination, tolerance: number): boolean => {
+        unit.pathToNext = pathFind(unit.position, destination, tolerance, g.board.map, buildings);
         return Boolean(unit.pathToNext);
     }
 
     // Compute a path to the target and execute immediate move towards it
     type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
+    type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
-    const moveTowards = (targetPos: Position, range: number): MoveResult => {
-        if (V.distance(targetPos, unit.position) < range) {
+    const moveTowards = (destination: Destination, tolerance: number): MoveResult => {
+        // assume idle unless we can guarantee movement
+        unit.state.action = 'Idle';
+
+        if (destinationDistance(unit.position, destination) < tolerance) {
             return 'ReachedTarget'; // nothing to do
         }
 
@@ -457,23 +477,68 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         // If no path is computed, compute it
         if (!unit.pathToNext) {
-            if (!computePathTo(targetPos))
+            if (!computePathTo(destination, tolerance))
                 return 'Unreachable';
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
             const PATH_RECOMPUTE_DISTANCE_THRESHOLD = 3;
-            if (V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]) > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
-                if (!computePathTo(targetPos))
+
+            // TODO this logic is a bit wonky
+            const pathEmpty = unit.pathToNext.length === 0;
+            if (pathEmpty) {
+                if (!computePathTo(destination, tolerance))
                     return 'Unreachable';
+            } else {
+                const distanceFromPathEndToTarget = destinationDistance(unit.pathToNext[unit.pathToNext.length-1], destination);
+                if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD + tolerance){
+                    if (!computePathTo(destination, tolerance))
+                        return 'Unreachable';
+                }
             }
             // Otherwise we continue on the path that we have
         }
 
         // At this point we certainly have a path
-        if (moveApply(mc))
+        if (moveApply(mc)) {
             return 'ReachedTarget';
+        }
+
+        unit.state.action = 'Moving';
 
         return 'Moving';
+    }
+
+    const moveTowardsPoint = (targetPos: Position, tolerance: number): MoveResult => {
+        return moveTowards({type: 'MapDestination', position: {x: targetPos.x, y: targetPos.y}}, MAP_MOVEMENT_TOLERANCE);
+    }
+
+    const moveTowardsUnit = (target: Unit, extraTolerance: number): MoveResult => {
+        const bc = getBuildingComponent(target);
+
+        const tolerance = extraTolerance + UNIT_FOLLOW_DISTANCE;
+        if (!bc) {
+            return moveTowardsPoint(getUnitReferencePosition(target), tolerance);
+        } else {
+            const tiles = tilesTakenByBuilding(bc, target.position);
+            return moveTowards({ type: 'BuildingDestination', tiles }, tolerance);
+        }
+    }
+
+    // helper
+    const moveTowardsUnitById = (targetId: UnitId, extraTolerance: number): MoveToUnitResult => {
+        const target = g.units.find(u => u.id === targetId);
+        if (target) {
+            return moveTowardsUnit(target, extraTolerance);
+        } else {
+            return 'TargetNonexistent';
+        }
+    }
+
+    const unitDistance = (a: Unit, b: Unit): number => {
+         // TODO for buildings it should use perimeter instead of reference?
+        const aPos = getUnitReferencePosition(a);
+        const bPos = getUnitReferencePosition(b);
+        return V.distance(aPos, bPos);
     }
 
     const findClosestUnitBy = (p: (u: Unit) => boolean) => {
@@ -483,9 +548,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return;
         }
 
-        units.sort((ba, bb) => {
-            return V.distance(unit.position, ba.position) - V.distance(unit.position, bb.position);
-        });
+        units.sort((a, b) => unitDistance(unit, a) - unitDistance(unit, b));
         
         return units[0];
     }
@@ -524,12 +587,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     const aggro = (ac: Attacker, target: Unit) => {
         // if out of range, just move to target
-        if (V.distance(unit.position, target.position) > ac.range) {
+        if (unitDistance(unit, target) > ac.range) {
             // Right now the attack command is upheld even if the unit can't move
             // SC in that case just cancels the attack command - TODO decide
-            moveTowards(target.position, ac.range);
+            moveTowardsUnit(target, ac.range);
         } else {
-            unit.direction = V.angleFromTo(unit.position, target.position);
+            unit.state.action = 'Attacking';
+            const targetPos = getUnitReferencePosition(target);
+            unit.direction = V.angleFromTo(unit.position, targetPos);
             attemptDamage(ac, target);
         }
     }
@@ -545,7 +610,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     }
 
     // Idle state
-    if (unit.actionState.state === 'idle') {
+    if (unit.state.state === 'idle') {
         const ac = getAttackerComponent(unit);
 
         // TODO run away when attacked
@@ -557,28 +622,28 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         if (!target) {
             // try to return to the idle position;
             // if it's close enough, it shouldn't start moving at all
-            moveTowards(unit.actionState.idlePosition, MOVEMENT_EPSILON);
+            moveTowardsPoint(unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE);
             return;   
         }
 
         // TODO: hysteresis
-        const distanceFromIdle = V.distance(unit.position, unit.actionState.idlePosition);
+        const distanceFromIdle = V.distance(unit.position, unit.state.idlePosition);
         if (distanceFromIdle < MAXIMUM_IDLE_AGGRO_RANGE){
             aggro(ac, target);
         } else {
-            moveTowards(unit.actionState.idlePosition, MOVEMENT_EPSILON);
+            moveTowardsPoint(unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE);
         }
         
         return;
     }
 
-    const cmd = unit.actionState.current;
+    const cmd = unit.state.current;
     const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
     switch (cmd.typ) {
         case 'Move': {
-            if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
-                clearCurrentAction();
+            if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+                clearCurrentCommand();
             }
             break;
         }
@@ -600,16 +665,16 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     // lose aggro
                     // TODO: aggro hysteresis?
                     // just move
-                    if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
-                        clearCurrentAction();
+                    if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+                        clearCurrentCommand();
                     }
                 } else {
                     aggro(ac, closestTarget);
                 }
             } else {
                 // just move
-                if (moveTowards(cmd.target, MOVEMENT_EPSILON) !== 'Moving') {
-                    clearCurrentAction();
+                if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+                    clearCurrentCommand();
                 }
             }
 
@@ -618,40 +683,34 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         case 'Stop': {
             stopMoving();
-            // TODO dedicated cancel action
+            // TODO dedicated cancel command
             cancelProduction();
             becomeIdleAtCurrentPosition();
             break;
         }
 
         case 'Follow': {
-            const targetPos = findUnitPosition(cmd.target);
-            if (!targetPos) {
-                clearCurrentAction();
+            const moveResult = moveTowardsUnitById(cmd.target, UNIT_FOLLOW_DISTANCE);
+            if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
+                clearCurrentCommand();
                 break;
             }
-
-            const UNIT_FOLLOW_DISTANCE = 2;
-
-            if (moveTowards(targetPos, UNIT_FOLLOW_DISTANCE) === 'Unreachable') {
-                clearCurrentAction();
-                break;
-            }
-
             break;
         }
 
         case 'Attack': {
             const ac = getAttackerComponent(unit);
             if (!ac) {
-                clearCurrentAction();
+                console.info('[game] A unit without an Attacker component received an Attack command');
+                clearCurrentCommand();
                 break;
             }
 
-            const target = g.units.find(u => u.id === cmd.target); // TODO Map
+            // target not existing is a common situation if the target got destroyed
+            // after the command was made
+            const target = g.units.find(u => u.id === cmd.target);
             if (!target) {
-                // the target unit doesn't exist, end this action
-                clearCurrentAction();
+                clearCurrentCommand();
                 break;
             }
 
@@ -662,14 +721,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         case 'Harvest': {
             const hc = getHarvesterComponent(unit);
             if (!hc) {
-                clearCurrentAction();
+                clearCurrentCommand();
                 break;
             }
 
             const target = g.units.find(u => u.id === cmd.target);
             if (!target) {
                 // TODO find other nearby resource
-                clearCurrentAction();
+                clearCurrentCommand();
                 break;
             }
 
@@ -677,9 +736,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const HARVESTING_DISTANCE = 2;
                 const HARVESTING_RESOURCE_COUNT = 8;
 
-                switch(moveTowards(target.position, HARVESTING_DISTANCE)) {
+                // TODO - should resources use perimeter?
+                switch(moveTowardsUnit(target, HARVESTING_DISTANCE)) {
                 case 'Unreachable':
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 case 'ReachedTarget':
                     if (hc.harvestingProgress >= hc.harvestingTime) {
@@ -688,12 +748,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                         // maybe i could use some "exit state function"?
                         hc.harvestingProgress = 0;
                     } else {
+                        unit.state.action = 'Harvesting';
                         hc.harvestingProgress += dt;
                     }
                     break;
                 }
             } else {
-                const DROPOFF_DISTANCE = 2;
+                // TODO include building&unit size in this distance
+                const DROPOFF_DISTANCE = 1;
                 // TODO cache the dropoff base
                 // TODO - resource dropoff component
                 const target = findClosestUnitBy(u => 
@@ -701,13 +763,15 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     u.kind === 'Base'
                 );
 
-                if (!target)
+                if (!target) {
+                    // no bases to carry resources to; unlikely but possible
                     break;
+                }
 
-                switch(moveTowards(target.position, DROPOFF_DISTANCE)) {
+                switch(moveTowardsUnit(target, DROPOFF_DISTANCE)) {
                 case 'Unreachable':
                     // TODO if closest base is unreachable maybe try next one?
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 case 'ReachedTarget':
                     owner.resources += hc.resourcesCarried;
@@ -724,7 +788,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // in the component anyway?
             const p = getProducerComponent(unit);
             if (!p) {
-                clearCurrentAction();
+                clearCurrentCommand();
                 break;
             }
 
@@ -732,14 +796,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 const numberOfPlayerUnits = g.units.filter(u => u.owner === unit.owner).length;
                 if (numberOfPlayerUnits >= MAX_PLAYER_UNITS) {
                     console.info("[game] Unit orderded to produce but maximum unit count reached");
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 }
 
                 const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
                 if (!utp) {
                     console.info("[game] Unit orderded to produce but it can't produce this unit type");
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 }
 
@@ -747,7 +811,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
                 if (cost > owner.resources) {
                     console.info("[game] Unit ordered to produce but player doesn't have enough resources");
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 }
 
@@ -764,6 +828,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             p.productionState.timeLeft -= dt;
 
+            const refPos = getUnitReferencePosition(unit);
+            const producedUnitPosition = { x: refPos.x, y: refPos.y+4 };
+
             if (p.productionState.timeLeft < 0) {
                 // TODO - automatic counter
                 g.lastUnitId += 1;
@@ -771,11 +838,11 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     g.lastUnitId,
                     unit.owner,
                     p.productionState.unitType,
-                    { x: unit.position.x, y: unit.position.y+4 }, // TODO find a good spot for a new unit
+                    producedUnitPosition,
                 ));
 
                 // TODO - build queue
-                clearCurrentAction();
+                clearCurrentCommand();
                 p.productionState = undefined;
             }
 
@@ -807,14 +874,20 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!buildingComponent)
                     throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
 
-                if (!mapEmptyForBuilding(g.board.map, buildingComponent.size, cmd.position))
+                if (!isBuildPlacementOk(g.board.map, g.units, buildingComponent, cmd.position))
                     throw "[game] Unit ordered to build but some tiles are obscured";
 
-                const BUILDING_DISTANCE = 2;
-                switch(moveTowards(cmd.position, BUILDING_DISTANCE)) {
+                // the buildings are pretty large, so the worker should go towards the center
+                // TODO is there a way to use getUnitReferencePosition here for consistency?
+                const buildingSize = buildingComponent.size;
+                const middleOfTheBuilding = V.sumScalar(cmd.position, buildingSize/2);
+                // and is able to build once they reach the perimeter
+                const buildingDistance = buildingComponent.size / 2 + 1;
+
+                switch(moveTowardsPoint(middleOfTheBuilding, buildingDistance)) {
                 case 'Unreachable':
-                    clearCurrentAction();
-                    break;
+                    throw "[game] Unit ordered to build but location is unreachable.";
+
                 case 'ReachedTarget':
                     owner.resources -= buildCapability.buildCost;
                     // TODO - this should take time
@@ -827,14 +900,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                         cmd.building,
                         { x: cmd.position.x, y: cmd.position.y },
                     ));
-                    clearCurrentAction();
+                    clearCurrentCommand();
                     break;
                 }
                 break;
             }
             catch(e) {
                 console.info(e);
-                clearCurrentAction();
+                clearCurrentCommand();
                 break;
             }
             break;

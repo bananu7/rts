@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 
-import { SelectedAction } from '../game/SelectedAction';
-import { canPerformSelectedAction } from '../game/UnitQuery';
+import { SelectedCommand } from '../game/SelectedCommand';
+import { canPerformSelectedCommand } from '../game/UnitQuery';
 
 import { Minimap } from './Minimap';
 import { CommandPalette } from './CommandPalette';
@@ -16,31 +16,27 @@ import { Board3D } from '../gfx/Board3D';
 
 import { SpectatorControl } from '../Multiplayer';
 
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 
 type SpectateControllerProps = {
   ctrl: SpectatorControl
 }
+
 export function SpectateController(props: SpectateControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
-  const [serverState, setServerState] = useState<Game | null>(null);
+  const [matchMetadata, setMatchMetadata] = useState<MatchMetadata | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
- 
-  const updateMatchState = useCallback(() => {
-    props.ctrl.getMatchState()
-    .then(s => setServerState(s));
-  }, []);
 
   const stopSpectating = useCallback(async () => {
     await props.ctrl.stopSpectating();
     setLastUpdatePacket(null);
-    setServerState(null);
-  }, [props.ctrl, setLastUpdatePacket, setServerState]);
+    setMatchMetadata(null);
+  }, [props.ctrl]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
     setLastUpdatePacket(p);
@@ -52,12 +48,17 @@ export function SpectateController(props: SpectateControllerProps) {
       );
       return newSelectedUnits;
     });
-  }, [setLastUpdatePacket, setSelectedUnits]);
+  }, []);
+
+  const downloadMatchMetadata = useCallback(() => {
+    props.ctrl.getMatchMetadata()
+    .then(s => setMatchMetadata(s));
+  }, [setMatchMetadata]);
 
   useEffect(() => {
     console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
-    updateMatchState();
+    downloadMatchMetadata();
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);
@@ -121,7 +122,7 @@ export function SpectateController(props: SpectateControllerProps) {
 
 
   const showGame =
-    serverState &&
+    matchMetadata &&
     lastUpdatePacket &&
     ( lastUpdatePacket.state.id === 'Precount'||
       lastUpdatePacket.state.id === 'Play' ||
@@ -157,20 +158,19 @@ export function SpectateController(props: SpectateControllerProps) {
       }
 
       {
-        serverState &&
+        matchMetadata &&
         <>
          <button className="MainMenuButton" onClick={() => setShowMainMenu((smm) => !smm) }>Menu</button>
           { showMainMenu &&
             <div className="MainMenu">
               <h3>Main menu</h3>
-              { !serverState && <button>Play</button> }
-              { serverState && <button onClick={async () => {
+              { !matchMetadata && <button>Play</button> }
+              { matchMetadata && <button onClick={async () => {
                 await stopSpectating();
                 setShowMainMenu(false);
               }}>Stop spectating</button> }
-              { serverState && <button onClick={() => { console.log(serverState) }}>Dump state</button> }
+              { matchMetadata && <button onClick={() => { console.log(matchMetadata) }}>Dump state</button> }
               { lastUpdatePacket && <button onClick={() => { console.log(lastUpdatePacket) }}>Dump update packet</button> }
-              { serverState && <button onClick={() => { updateMatchState() }}>Update state</button> }
             </div>
           }
         </>
@@ -190,17 +190,17 @@ export function SpectateController(props: SpectateControllerProps) {
           />
           <View3D>
             <Board3D
-              board={serverState.board}
+              board={matchMetadata.board}
               playerIndex={0} // TODO - spectator has no player index
-              unitStates={lastUpdatePacket ? lastUpdatePacket.units : []}
+              units={lastUpdatePacket ? lastUpdatePacket.units : []}
               selectedUnits={selectedUnits}
-              selectedAction={undefined} // the board needs selected action to show e.g. build preview
+              selectedCommand={undefined} // the board needs selected command to show e.g. build preview
               select={boardSelectUnits}
               mapClick={mapClick}
               unitClick={unitClick}
             />
           </View3D>
-          <Minimap board={serverState.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
+          <Minimap board={matchMetadata.board} units={lastUpdatePacket ? lastUpdatePacket.units : []} />
         </>
       }
 

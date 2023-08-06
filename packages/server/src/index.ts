@@ -5,7 +5,7 @@ import cors from 'cors'
 import bodyParser from 'body-parser'
 
 import {newGame, startGame, tick, command} from './game.js';
-import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId } from './types.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
 
@@ -21,6 +21,7 @@ type PlayerEntry = {
     index: number,
     user: UserId,
     channel?: ServerChannel,
+    color: number,
 }
 
 type SpectatorEntry = {
@@ -30,9 +31,21 @@ type SpectatorEntry = {
 
 type Match = {
     game: Game,
-    matchId: string,
+    matchId: MatchId,
     players: PlayerEntry[],
     spectators: SpectatorEntry[],
+}
+
+function getMatchMetadata(m: Match): MatchMetadata {
+    return {
+        matchId: m.matchId,
+        board: m.game.board,
+        players: m.players.map(p => ({
+            index: p.index,
+            userId: p.user,
+            color: p.color
+        })),
+    };
 }
 
 const app = express()
@@ -60,7 +73,23 @@ app.get('/version', (req, res) => {
     res.send(version);
 });
 
-app.get('/getMatchState', (req, res) => {
+app.get('/getMatchMetadata', (req, res) => {
+    const match = matches.find(m => m.matchId === req.query.matchId);
+    if (match) {
+        res.send(JSON.stringify(getMatchMetadata(match)));
+    }
+    else {
+        res.sendStatus(404);
+    }
+});
+
+// TODO debug apis should require a secret
+app.get('/debugGetPath', (req, res) => {
+    // TODO: pull the pathfinding path of a given unit
+    res.sendStatus(500);
+});
+
+app.get('/debugGetMatchState', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {
         res.send(JSON.stringify(match.game));
@@ -68,11 +97,6 @@ app.get('/getMatchState', (req, res) => {
     else {
         res.sendStatus(404);
     }
-});
-
-app.get('/debugGetPath', (req, res) => {
-    // TODO: pull the pathfinding path of a given unit
-    res.sendStatus(500);
 });
 
 let lastMatchId = 0;
@@ -101,6 +125,7 @@ app.post('/create', async (req, res) => {
         });
 
         match.spectators.forEach((s, i) => 
+            // TODO spectators should get a separate packet
             s.channel.emit('tick', updatePackets[0])
         );
         // io.room(matchId).emit('tick', updatePackets[0]);
@@ -151,7 +176,8 @@ app.post('/join', async (req, res) => {
                 break;
         }
         console.log(`[index] Adding user ${userId} as player number ${index} in match ${matchId}`);
-        match.players.push({ user: userId, index });
+        // TODO - assign colors        
+        match.players.push({ user: userId, index, color: 0 });
 
         res.send(JSON.stringify({
             playerIndex: index

@@ -1,5 +1,5 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
-import { Game, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { Game, MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
 
 export type OnChatMessage = (msg: string) => void;
@@ -177,9 +177,15 @@ class AbstractControl {
     protected channel?: ClientChannel;
     protected leaveMatchHandler?: () => void;
 
-    async getMatchState() {
-        console.log("[multiplayer] Getting match state");
-        return fetch(`${HTTP_API_URL}/getMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    async debugGetMatchState() {
+        console.log("[multiplayer] Getting debug match state");
+        return fetch(`${HTTP_API_URL}/debugGetMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    }
+
+    async getMatchMetadata(): Promise<MatchMetadata> {
+        console.log("[multiplayer] Getting match metadata");
+        // TODO - API urls should be in shared constants
+        return fetch(`${HTTP_API_URL}/getMatchMetadata?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
     }
 
     protected _getChannel(): ClientChannel {
@@ -250,7 +256,7 @@ export class MatchControl extends AbstractControl {
 
     moveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Move',
                 target
             },
@@ -262,7 +268,7 @@ export class MatchControl extends AbstractControl {
 
     stopCommand(unitIds: UnitId[]) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Stop',
             },
             unitIds,
@@ -273,7 +279,7 @@ export class MatchControl extends AbstractControl {
 
     followCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
+            command: {
                 typ: 'Follow',
                 target
             },
@@ -285,10 +291,10 @@ export class MatchControl extends AbstractControl {
 
     attackCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Attack',
-            target
-        },
+            command: {
+                typ: 'Attack',
+                target
+            },
             unitIds,
             shift,
         };
@@ -297,10 +303,10 @@ export class MatchControl extends AbstractControl {
 
     attackMoveCommand(unitIds: UnitId[], target: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'AttackMove',
-            target
-        },
+            command: {
+                typ: 'AttackMove',
+                target
+            },
             unitIds,
             shift,
         };
@@ -309,10 +315,10 @@ export class MatchControl extends AbstractControl {
 
     produceCommand(unitIds: UnitId[], unitToProduce: string) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Produce',
-            unitToProduce
-        },
+            command: {
+                typ: 'Produce',
+                unitToProduce
+            },
             unitIds,
             shift: false,
         };
@@ -321,11 +327,11 @@ export class MatchControl extends AbstractControl {
 
     buildCommand(unitIds: UnitId[], building: string, position: Position, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Build',
-            building,
-            position
-        },
+            command: {
+                typ: 'Build',
+                building,
+                position
+            },
             unitIds,
             shift,
         };
@@ -334,10 +340,10 @@ export class MatchControl extends AbstractControl {
 
     harvestCommand(unitIds: UnitId[], target: UnitId, shift: boolean) {
         const cmd : CommandPacket = {
-            action: {
-            typ: 'Harvest',
-            target,
-        },
+            command: {
+                typ: 'Harvest',
+                target,
+            },
             unitIds,
             shift,
         };
