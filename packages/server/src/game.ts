@@ -8,7 +8,7 @@ import {
 } from './types';
 
 import * as V from './vector.js'
-import { pathFind } from './pathfinding.js'
+import { pathFind, destinationDistance, Destination } from './pathfinding.js'
 import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
@@ -20,7 +20,7 @@ import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterCom
 const UNIT_FOLLOW_DISTANCE = 0.5;
 // general accuracy when the unit assumes it has reached
 // its destination
-const MAP_MOVEMENT_TOLERANCE = 0.2;
+const MAP_MOVEMENT_TOLERANCE = 1.0;
 // how far the unit will run away from the idle position
 // to chase an enemy that it spotted.
 const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
@@ -61,8 +61,24 @@ function commandOne(shift: boolean, command: Command, unit: Unit, playerIndex: n
         return;
     }
 
-    console.log(`[game] Adding command ${command.typ} for unit ${unit.id}`);
-
+    switch (command.typ) {
+    case 'Move':
+        console.log(`[game] Command: Move unit ${unit.id} towards [${command.target.x}, ${command.target.y}]`);
+        break;
+    case 'AttackMove':
+        console.log(`[game] Command: AttackMove unit ${unit.id} towards [${command.target.x}, ${command.target.y}]`);
+        break;
+    case 'Follow':
+        console.log(`[game] Command: Follow, unit ${unit.id} follows ${command.target}`);
+        break;
+    case 'Attack':
+        console.log(`[game] Command: Attack, unit ${unit.id} attacks ${command.target}`);
+        break;
+    default:
+        console.log(`[game] Command: ${command.typ} for unit ${unit.id}`);
+        break;
+    }
+    
     if (unit.state.state === 'idle') {
         unit.state = {
             state: 'active',
@@ -438,8 +454,8 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return;
     }
 
-    const computePathTo = (targetPos: Position, tolerance: number): boolean => {
-        unit.pathToNext = pathFind(unit.position, targetPos, tolerance, g.board.map, buildings);
+    const computePathTo = (destination: Destination, tolerance: number): boolean => {
+        unit.pathToNext = pathFind(unit.position, destination, tolerance, g.board.map, buildings);
         return Boolean(unit.pathToNext);
     }
 
@@ -447,11 +463,11 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
     type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
-    const moveTowardsPoint = (targetPos: Position, tolerance: number): MoveResult => {
+    const moveTowards = (destination: Destination, tolerance: number): MoveResult => {
         // assume idle unless we can guarantee movement
         unit.state.action = 'Idle';
 
-        if (V.distance(targetPos, unit.position) < tolerance) {
+        if (destinationDistance(unit.position, destination) < tolerance) {
             return 'ReachedTarget'; // nothing to do
         }
 
@@ -461,7 +477,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         // If no path is computed, compute it
         if (!unit.pathToNext) {
-            if (!computePathTo(targetPos, tolerance))
+            if (!computePathTo(destination, tolerance))
                 return 'Unreachable';
         } else {
             // If we have a path, but the target is too far from its destination, also compute it
@@ -470,12 +486,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // TODO this logic is a bit wonky
             const pathEmpty = unit.pathToNext.length === 0;
             if (pathEmpty) {
-                if (!computePathTo(targetPos, tolerance))
+                if (!computePathTo(destination, tolerance))
                     return 'Unreachable';
             } else {
-                const distanceFromPathEndToTarget = V.distance(targetPos, unit.pathToNext[unit.pathToNext.length-1]);
+                const distanceFromPathEndToTarget = destinationDistance(unit.pathToNext[unit.pathToNext.length-1], destination);
                 if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD + tolerance){
-                    if (!computePathTo(targetPos, tolerance))
+                    if (!computePathTo(destination, tolerance))
                         return 'Unreachable';
                 }
             }
@@ -492,13 +508,20 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return 'Moving';
     }
 
+    const moveTowardsPoint = (targetPos: Position, tolerance: number): MoveResult => {
+        return moveTowards({type: 'MapDestination', position: {x: targetPos.x, y: targetPos.y}}, MAP_MOVEMENT_TOLERANCE);
+    }
+
     const moveTowardsUnit = (target: Unit, extraTolerance: number): MoveResult => {
         const bc = getBuildingComponent(target);
 
-        const extraBuildingTolerance = bc ? (bc.size / 2) : 0;
-        const tolerance = extraTolerance + extraBuildingTolerance + UNIT_FOLLOW_DISTANCE;
-
-        return moveTowardsPoint(getUnitReferencePosition(target), tolerance);
+        const tolerance = extraTolerance + UNIT_FOLLOW_DISTANCE;
+        if (!bc) {
+            return moveTowardsPoint(getUnitReferencePosition(target), tolerance);
+        } else {
+            const tiles = tilesTakenByBuilding(bc, target.position);
+            return moveTowards({ type: 'BuildingDestination', tiles }, tolerance);
+        }
     }
 
     // helper
