@@ -2,10 +2,39 @@ import { GameMap, TilePos, Position, Unit, BuildingMap } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
 import { distance } from './vector.js'
 
+export type MapDestination = {
+    type: 'MapDestination',
+    position: Position,
+}
+export type BuildingDestination = {
+    type: 'BuildingDestination',
+    tiles: TilePos[],
+}
+export type Destination = MapDestination | BuildingDestination;
+
+export function destinationDistance(a: Position, destination: Destination) {
+    if (destination.type === 'MapDestination')
+        return distance(destination.position as Position, a as Position);
+    else {
+        const tileDistances = destination.tiles.map(t => distance(t as Position, a as Position));
+        return Math.min(...tileDistances);
+    }
+}
+
 function octileDistance(a: TilePos, b: TilePos) {
     const dx = Math.abs(a.x - b.x);
     const dy = Math.abs(a.y - b.y);
     return dx + dy - 0.58 * Math.min(dx, dy);
+}
+
+function destinationOctileDistance(a: TilePos, destination: Destination) {
+    // TODO duplication with destinationDistance?
+    if (destination.type === 'MapDestination')
+        return octileDistance(destination.position, a);
+    else {
+        const tileDistances = destination.tiles.map(t => octileDistance(t, a));
+        return Math.min(...tileDistances);
+    }
 }
 
 function getSurroundingPos(p: TilePos): TilePos[] {
@@ -40,7 +69,7 @@ class HashMap<K,V> {
 }
 
 // A*
-function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: GameMap, buildings: BuildingMap) {
+function gridPathFind(start: TilePos, destination: Destination, tolerance: number, m: GameMap, buildings: BuildingMap) {
     // explode converts to linear index for the purposes of map storage
     // 1-dimensional indexing and comparisons.
     const explode = (p: TilePos) => p.x+p.y*m.w; 
@@ -48,7 +77,7 @@ function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: Gam
     const comp = ([a, av]: [TilePos, number], [b,bv]: [TilePos, number]) => av < bv;
     const q = new FastPriorityQueue(comp);
 
-    const heuristic = octileDistance;
+    const heuristic = destinationOctileDistance;
 
     q.add([start, 0]);
 
@@ -59,8 +88,7 @@ function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: Gam
     costSoFar.set(start, 0);
 
     const closeEnoughToTarget = (current: TilePos) => {
-        // TODO TilePos distance?
-        return distance(endPos as Position, current as Position) <= tolerance;
+       return destinationDistance(current as Position, destination) <= tolerance;
     };
 
     const isTileWithinBounds = (t: TilePos) => t.x > 0 && t.y > 0 && t.x < m.w && t.y < m.h;
@@ -107,7 +135,7 @@ function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: Gam
 
             if (!costOfNext || newCost < costOfNext) {
                 costSoFar.set(next, newCost);
-                const priority = newCost + heuristic(endPos, next);
+                const priority = newCost + heuristic(next, destination);
                 q.add([next, priority]);
 
                 cameFrom.set(next, current);
@@ -116,7 +144,7 @@ function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: Gam
     }
 
     // TODO I don't think that's a correct check
-    if (!pathFinish || q.isEmpty())
+    if (!pathFinish)
         return undefined;
 
     // Reconstruct the path from the chained map
@@ -135,13 +163,13 @@ function gridPathFind(start: TilePos, endPos: TilePos, tolerance: number, m: Gam
     return path;
 }
 
-export function pathFind(a: Position, b: Position, tolerance: number, m: GameMap, buildings: BuildingMap)  {
+export function pathFind(a: Position, destination: Destination, tolerance: number, m: GameMap, buildings: BuildingMap): Position[] | undefined {
     const unitTilePos = { x: Math.floor(a.x), y: Math.floor(a.y) };
-    const destTilePos =  { x: Math.floor(b.x), y: Math.floor(b.y) };
-    const path = gridPathFind(unitTilePos, destTilePos, tolerance, m, buildings);
+    const path = gridPathFind(unitTilePos, destination, tolerance, m, buildings);
 
     // improve the resulting path slightly, if found
     if (!path) {
+        console.log("[pathfinding] Path not found")
         return;
     }
 
@@ -172,7 +200,9 @@ export function pathFind(a: Position, b: Position, tolerance: number, m: GameMap
     }
 
     newPath.pop(); // remove last grid tile to avoid backtracking
-    newPath.push(b); // add the precise destination as the last step
+    if (destination.type === 'MapDestination') {
+        newPath.push(destination.position); // add the precise destination as the last step
+    }
 
     return newPath;
 };
