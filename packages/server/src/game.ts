@@ -78,6 +78,7 @@ function commandOne(shift: boolean, command: Command, unit: Unit, playerIndex: n
         else {
             unit.state.current = command;
             unit.state.rest = [];
+            delete unit.pathToNext;
         }
     }
 }
