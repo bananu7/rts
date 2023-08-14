@@ -75,5 +75,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ./
-          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server, ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
