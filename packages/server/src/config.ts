@@ -45,3 +45,7 @@ export function getConfig(): Config {
 
     return config;
 }
+
+export function printConfig(config: Config) {
+    console.dir(config, {colors: true});
+}

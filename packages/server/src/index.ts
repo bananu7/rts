@@ -8,12 +8,13 @@ import {newGame, startGame, tick, command} from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
-import { getVersion, getConfig } from './config.js'
+import { getVersion, getConfig, printConfig } from './config.js'
 
 const version = getVersion();
-const config = getConfig();
+console.log(`[index] Starting RTS server - ${version}`);
 
-console.log(`Starting RTS server - ${version}`);
+const config = getConfig();
+printConfig(config);
 
 type PlayerEntry = {
     index: number,
