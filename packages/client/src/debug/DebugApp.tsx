@@ -5,7 +5,7 @@ import { Multiplayer, MatchControl, SpectatorControl } from '../Multiplayer';
 import { Board, Unit } from '@bananu7-rts/server/src/types'
 import { MatchList } from '../components/MatchList';
 
-const multiplayer = new Multiplayer("debug_user");
+const multiplayer = await Multiplayer.new("debug_user");
 
 type Props = {
     board: Board,

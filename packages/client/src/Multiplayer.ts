@@ -12,7 +12,7 @@ export type MultiplayerConfig = {
 
 export class Multiplayer {
     // TODO I don't like this being nullable but i can't initialize it in the ctor since it needs to be async
-    channel?: ClientChannel;
+    channel: ClientChannel;
     geckosSetUp: boolean;
     userId: string;
 
@@ -21,20 +21,17 @@ export class Multiplayer {
     _onConnected?: (data: Data) => void;
     _onSpectating?: (data: Data) => void;
 
-    constructor(userId: string) {
+    private constructor(channel: ClientChannel, userId: string) {
         console.log("[Multiplayer] First-time init");
         console.log(`[Multiplayer] GECKOS_URL = ${GECKOS_URL}`);
         console.log(`[Multiplayer] GECKOS_PORT = ${GECKOS_PORT}`);
 
+        this.channel = channel;
         this.userId = userId;
         this.geckosSetUp = false;
     }
 
-    // TODO: Spectator rejoin
-    async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
-        if (this.geckosSetUp)
-            return;
-
+    static async new(userId: string): Promise<Multiplayer> {
         console.log('[Multiplayer] Getting server public address for WebRTC connection');
         const iceResponse = await fetch(HTTP_API_URL + '/iceServers');
         const iceServers = await iceResponse.json();
@@ -47,7 +44,14 @@ export class Multiplayer {
             port: GECKOS_PORT,
             iceServers
         });
-        this.channel = channel;
+
+        return new Multiplayer(channel, userId);
+    }
+
+    // TODO: Spectator rejoin
+    async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
+        if (this.geckosSetUp)
+            return;
 
         console.log('[Multiplayer] Setting up for for the first time')
         this.geckosSetUp = true;
@@ -55,7 +59,7 @@ export class Multiplayer {
         this.onChatMessage = config.onChatMessage;
 
         return new Promise(resolve => {
-            channel.onConnect((error: any) => {
+            this.channel.onConnect((error: any) => {
                 if (error) {
                     console.error(error.message)
                     return
@@ -64,23 +68,23 @@ export class Multiplayer {
                 console.log('[Multiplayer] Channel set up correctly')
 
                 // set up handlers
-                channel.on('chat message', (data: Data) => {
+                this.channel.on('chat message', (data: Data) => {
                     this.onChatMessage && this.onChatMessage(data as string);
                 })
 
-                channel.on('connection failure', (data: Data) => {
+                this.channel.on('connection failure', (data: Data) => {
                     console.log("[Multiplayer] server refused join or rejoin, clearing match association");
                     localStorage.removeItem('matchId');
                 });
 
                 // TODO ? - Bind to events via proxy because geckos doesn't rebind
-                channel.on('spectating', (data: Data) => {
+                this.channel.on('spectating', (data: Data) => {
                     if (this._onSpectating)
                         this._onSpectating(data);
                 });
 
                 // TODO change strings to enums because i just made a typo here
-                channel.on('connected', (data: Data) => {
+                this.channel.on('connected', (data: Data) => {
                     if (this._onConnected)
                         this._onConnected(data);
                 });
@@ -91,9 +95,6 @@ export class Multiplayer {
     }
 
     protected async reconnect(): Promise<MatchControl | undefined> {
-        if (!this.channel)
-            throw new Error("Multiplayer tried reconnecting without being setup first");
-
         const matchId = localStorage.getItem('matchId') || undefined;
         if (!matchId) {
             console.log(`[Multiplayer] No stored matchId found for reconnect.`)
@@ -102,16 +103,15 @@ export class Multiplayer {
 
         console.log(`[Multiplayer] Reconnecting to match ${matchId}`)
 
-        const channel = this.channel;
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, channel, matchId, playerIndex));
+                resolve(new MatchControl(this.userId, this.channel, matchId, playerIndex));
             };
-            channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
+            this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
         });
     }
 
@@ -123,9 +123,6 @@ export class Multiplayer {
     }
 
     async joinMatch(matchId: string): Promise<MatchControl> {
-        if (!this.channel)
-            throw new Error("Multiplayer tried joinMatch without being setup first");
-
         console.log(`[Multiplayer] joining match ${matchId}`)
         const joinData = {
             matchId,
@@ -155,31 +152,26 @@ export class Multiplayer {
             matchId
         };
 
-        const channel = this.channel;
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, channel, matchId, resj.playerIndex));
+                resolve(new MatchControl(this.userId, this.channel, matchId, resj.playerIndex));
             };
-            channel.emit('connect', data);
+            this.channel.emit('connect', data);
         });
     }
 
 
     spectateMatch(matchId: string): Promise<SpectatorControl> {
-        if (!this.channel)
-            throw new Error("Multiplayer tried spectateMatch without being setup first");
-
         console.log(`[Multiplayer] spectating match ${matchId}`)
         const data : IdentificationPacket = {
             userId: this.userId,
             matchId
         };
 
-        const channel = this.channel;
         return new Promise ((resolve) => {
             this._onSpectating = (data: Data) => {
                 console.log("[Multiplayer] Received spectate confirmation from server");
@@ -187,9 +179,9 @@ export class Multiplayer {
                 localStorage.setItem('matchId', matchId);
                 localStorage.setItem('spectate', 'true');
 
-                resolve(new SpectatorControl(matchId, channel));
+                resolve(new SpectatorControl(matchId, this.channel));
             };
-            channel.emit('spectate', data);
+            this.channel.emit('spectate', data);
         });
     }
 }

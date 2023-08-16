@@ -17,7 +17,7 @@ if (!userId) {
   else
     throw "No user id present; set item 'userId' in localStorage to play";
 }
-const multiplayer = new Multiplayer(userId);
+const multiplayer = await Multiplayer.new(userId);
 
 
 function App() {
