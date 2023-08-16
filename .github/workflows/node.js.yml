@@ -73,7 +73,7 @@ jobs:
 
       -
         name: Build and push server container - PR to main
-        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'pull_request' }}
         uses: docker/build-push-action@v3
         with:
           context: ./
