@@ -19,7 +19,6 @@ export type Config = {
     httpPort: number,
     tickMs: number,
     baseUrl: string,
-    webrtcIp: string,
 }
 
 export function getDefaultConfig(): Config {

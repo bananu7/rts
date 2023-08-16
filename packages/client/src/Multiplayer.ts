@@ -11,7 +11,8 @@ export type MultiplayerConfig = {
 }
 
 export class Multiplayer {
-    channel: ClientChannel;
+    // TODO I don't like this being nullable but i can't initialize it in the ctor since it needs to be async
+    channel?: ClientChannel;
     geckosSetUp: boolean;
     userId: string;
 
@@ -36,16 +37,17 @@ export class Multiplayer {
 
         console.log('[Multiplayer] Getting server public address for WebRTC connection');
         const iceResponse = await fetch(HTTP_API_URL + '/iceServers');
-        const iceServers = await ipResponse.json();
+        const iceServers = await iceResponse.json();
 
         console.log("[Multiplayer] Received the iceServers configuration from server:")
         console.dir(iceServers, {colors: true});
 
-        this.channel = geckos({
+        const channel = geckos({
             url: GECKOS_URL,
             port: GECKOS_PORT,
             iceServers
         });
+        this.channel = channel;
 
         console.log('[Multiplayer] Setting up for for the first time')
         this.geckosSetUp = true;
@@ -53,7 +55,7 @@ export class Multiplayer {
         this.onChatMessage = config.onChatMessage;
 
         return new Promise(resolve => {
-            this.channel.onConnect((error: any) => {
+            channel.onConnect((error: any) => {
                 if (error) {
                     console.error(error.message)
                     return
@@ -62,23 +64,23 @@ export class Multiplayer {
                 console.log('[Multiplayer] Channel set up correctly')
 
                 // set up handlers
-                this.channel.on('chat message', (data: Data) => {
+                channel.on('chat message', (data: Data) => {
                     this.onChatMessage && this.onChatMessage(data as string);
                 })
 
-                this.channel.on('connection failure', (data: Data) => {
+                channel.on('connection failure', (data: Data) => {
                     console.log("[Multiplayer] server refused join or rejoin, clearing match association");
                     localStorage.removeItem('matchId');
                 });
 
                 // TODO ? - Bind to events via proxy because geckos doesn't rebind
-                this.channel.on('spectating', (data: Data) => {
+                channel.on('spectating', (data: Data) => {
                     if (this._onSpectating)
                         this._onSpectating(data);
                 });
 
                 // TODO change strings to enums because i just made a typo here
-                this.channel.on('connected', (data: Data) => {
+                channel.on('connected', (data: Data) => {
                     if (this._onConnected)
                         this._onConnected(data);
                 });
@@ -89,6 +91,9 @@ export class Multiplayer {
     }
 
     protected async reconnect(): Promise<MatchControl | undefined> {
+        if (!this.channel)
+            throw new Error("Multiplayer tried reconnecting without being setup first");
+
         const matchId = localStorage.getItem('matchId') || undefined;
         if (!matchId) {
             console.log(`[Multiplayer] No stored matchId found for reconnect.`)
@@ -97,15 +102,16 @@ export class Multiplayer {
 
         console.log(`[Multiplayer] Reconnecting to match ${matchId}`)
 
+        const channel = this.channel;
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, this.channel, matchId, playerIndex));
+                resolve(new MatchControl(this.userId, channel, matchId, playerIndex));
             };
-            this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
+            channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
         });
     }
 
@@ -117,6 +123,9 @@ export class Multiplayer {
     }
 
     async joinMatch(matchId: string): Promise<MatchControl> {
+        if (!this.channel)
+            throw new Error("Multiplayer tried joinMatch without being setup first");
+
         console.log(`[Multiplayer] joining match ${matchId}`)
         const joinData = {
             matchId,
@@ -146,26 +155,31 @@ export class Multiplayer {
             matchId
         };
 
+        const channel = this.channel;
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, this.channel, matchId, resj.playerIndex));
+                resolve(new MatchControl(this.userId, channel, matchId, resj.playerIndex));
             };
-            this.channel.emit('connect', data);
+            channel.emit('connect', data);
         });
     }
 
 
     spectateMatch(matchId: string): Promise<SpectatorControl> {
+        if (!this.channel)
+            throw new Error("Multiplayer tried spectateMatch without being setup first");
+
         console.log(`[Multiplayer] spectating match ${matchId}`)
         const data : IdentificationPacket = {
             userId: this.userId,
             matchId
         };
 
+        const channel = this.channel;
         return new Promise ((resolve) => {
             this._onSpectating = (data: Data) => {
                 console.log("[Multiplayer] Received spectate confirmation from server");
@@ -173,9 +187,9 @@ export class Multiplayer {
                 localStorage.setItem('matchId', matchId);
                 localStorage.setItem('spectate', 'true');
 
-                resolve(new SpectatorControl(matchId, this.channel));
+                resolve(new SpectatorControl(matchId, channel));
             };
-            this.channel.emit('spectate', data);
+            channel.emit('spectate', data);
         });
     }
 }

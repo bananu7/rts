@@ -54,7 +54,7 @@ app.use(bodyParser.urlencoded({ extended: true }))
 const server = http.createServer(app)
 
 const io = geckos({
-  iceServers: config.iceServers
+  iceServers: config.serverIceServers
 })
 
 const matches : Match[] = [];
