@@ -73,7 +73,7 @@ jobs:
 
       -
         name: Build and push server container - PR to main
-        if: github.base_ref == 'refs/heads/main' && github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main' }}
         uses: docker/build-push-action@v3
         with:
           context: ./
@@ -82,7 +82,7 @@ jobs:
 
       -
         name: Build and push server container - main branch
-        if: github.ref == 'refs/heads/main'
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: docker/build-push-action@v3
         with:
           context: ./
