@@ -75,6 +75,10 @@ app.get('/version', (req, res) => {
     res.send(version);
 });
 
+app.get('/iceServers', (req, res) => {
+    res.send(JSON.stringify(config.clientIceServers));
+});
+
 app.get('/getMatchMetadata', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {

@@ -25,19 +25,27 @@ export class Multiplayer {
         console.log(`[Multiplayer] GECKOS_URL = ${GECKOS_URL}`);
         console.log(`[Multiplayer] GECKOS_PORT = ${GECKOS_PORT}`);
 
-        this.channel = geckos({
-          url: GECKOS_URL,
-          port: GECKOS_PORT
-        });
-        this.geckosSetUp = false;
-
         this.userId = userId;
+        this.geckosSetUp = false;
     }
 
     // TODO: Spectator rejoin
     async setup(config: MultiplayerConfig): Promise<MatchControl | undefined>{
         if (this.geckosSetUp)
             return;
+
+        console.log('[Multiplayer] Getting server public address for WebRTC connection');
+        const iceResponse = await fetch(HTTP_API_URL + '/iceServers');
+        const iceServers = await ipResponse.json();
+
+        console.log("[Multiplayer] Received the iceServers configuration from server:")
+        console.dir(iceServers, {colors: true});
+
+        this.channel = geckos({
+            url: GECKOS_URL,
+            port: GECKOS_PORT,
+            iceServers
+        });
 
         console.log('[Multiplayer] Setting up for for the first time')
         this.geckosSetUp = true;

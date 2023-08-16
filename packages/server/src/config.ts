@@ -12,15 +12,20 @@ export function getVersion() {
 }
 
 export type Config = {
-    iceServers: RTCIceServer[],
+    // in scenarios with no NAT hairpinning, the server can get local cluster
+    // address, while the client gets the public address; either way, the flexibility is nice.
+    clientIceServers: RTCIceServer[],
+    serverIceServers: RTCIceServer[], 
     httpPort: number,
     tickMs: number,
     baseUrl: string,
+    webrtcIp: string,
 }
 
 export function getDefaultConfig(): Config {
     return {
-        iceServers: iceServers,
+        clientIceServers: iceServers,
+        serverIceServers: iceServers,
         httpPort: 9208,
         tickMs: 50,
         baseUrl: "",
