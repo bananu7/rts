@@ -73,17 +73,19 @@ jobs:
 
       -
         name: Build and push server container - PR to main
+        if: github.base_ref == 'refs/heads/main' && github.event_name == 'pull_request'
         uses: docker/build-push-action@v3
         with:
           context: ./
-          push: ${{ github.base_ref == 'refs/heads/main' && github.event_name == 'pull_request' }}
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-pr-${{ steps.vars.outputs.sha_short }}
 
       -
         name: Build and push server container - main branch
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v3
         with:
           context: ./
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/rts:server, ${{ secrets.DOCKERHUB_USERNAME }}/rts:server-${{ steps.vars.outputs.sha_short }}
 
