@@ -5,8 +5,6 @@ import { Multiplayer, MatchControl, SpectatorControl } from '../Multiplayer';
 import { Board, Unit } from '@bananu7-rts/server/src/types'
 import { MatchList } from '../components/MatchList';
 
-const multiplayer = await Multiplayer.new("debug_user");
-
 type Props = {
     board: Board,
     units: Unit[],
@@ -61,6 +59,7 @@ export function DebugMap(props: Props) {
 }
 
 export default function DebugApp() {
+    const [multiplayer, setMultiplayer] = useState<Multiplayer | null>(null);
     const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
     const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
@@ -74,7 +73,12 @@ export default function DebugApp() {
     };
 
     useEffect(() => {
-        multiplayer.setup({});
+        const setup = async () => {
+            const multiplayer = await Multiplayer.new("debug_user");
+            multiplayer.setup({});
+            setMultiplayer(multiplayer);
+        };
+        setup();
     });
 
     const onUpdatePacket = (p:UpdatePacket) => {
@@ -82,6 +86,10 @@ export default function DebugApp() {
     };
 
     const joinMatch = async (matchId: string) => {
+        if (!multiplayer) {
+            console.warn("[App] Ignoring joinMatch because multiplayer isn't initialized yet")
+            return;
+        }
         const ctrl = await multiplayer.joinMatch(matchId);
         console.log(`[DebugApp] Connected to a match ${matchId}`);
         ctrl.setOnUpdatePacket(onUpdatePacket);
@@ -89,6 +97,10 @@ export default function DebugApp() {
     };
 
     const spectateMatch = async (matchId: string) => {
+        if (!multiplayer) {
+            console.warn("[App] Ignoring spectateMatch because multiplayer isn't initialized yet")
+            return;
+        }
         const ctrl = await multiplayer.spectateMatch(matchId);
         console.log(`[DebugApp] Spectating match ${matchId}`);
         setController(ctrl);
@@ -99,8 +111,8 @@ export default function DebugApp() {
           <h2>Debug view</h2>
           <button onClick={refresh}>Refresh</button>
           <MatchList
-            joinMatch={matchId => multiplayer.joinMatch(matchId)}
-            spectateMatch={matchId => multiplayer.spectateMatch(matchId)}
+            joinMatch={joinMatch}
+            spectateMatch={spectateMatch}
           />
           <span>{lastUpdatePacket ? JSON.stringify(lastUpdatePacket) : ""}</span>
           {
