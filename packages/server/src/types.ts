@@ -205,6 +205,7 @@ export type Unit = {
 
 export type PlayerState = {
     resources: number,
+    stillInGame: boolean,
 }
 
 export type WinCondition = 'BuildingElimination'|'OneLeft';

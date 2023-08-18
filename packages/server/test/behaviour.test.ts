@@ -1,11 +1,12 @@
 import { tick } from '../src/game.js'
 import { Game, PlayerState, Unit, GameMap } from '../src/types'
-import { describe, test, expect } from '@jest/globals';
+//import { describe, test, expect } from '@jest/globals';
+import { expect, test } from 'vitest'
 
 const TICK_MS = 50;
 
 function createOnePlayerState(): PlayerState {
-    return { resources: 0 };
+    return { resources: 0, stillInGame: true };
 }
 
 function createTestMap(): GameMap {
@@ -31,7 +32,7 @@ function createBasicGame(override: Partial<Game>): Game {
         matchId: "test",
         state: { id: 'Play' },
         tickNumber: 1,
-        players: [createOnePlayerState()],
+        players: [createOnePlayerState(), createOnePlayerState()],
         board,
         units,
         lastUnitId: units.length,
@@ -41,8 +42,8 @@ function createBasicGame(override: Partial<Game>): Game {
     return {...defaultGame, ...override};
 }
 
-test('basic/winCondition', () => {
-    const game = createBasicGame({});
+test('basic/winCondition/BuildingElimination', () => {
+    const game = createBasicGame({ winCondition: 'BuildingElimination'});
 
     tick(TICK_MS, game);
 
