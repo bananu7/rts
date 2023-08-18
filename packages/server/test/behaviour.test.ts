@@ -1,7 +1,8 @@
-import { tick } from '../src/game.js'
+import { tick, command } from '../src/game.js'
+import { createUnit } from '../src/units.js'
 import { Game, PlayerState, Unit, GameMap } from '../src/types'
 //import { describe, test, expect } from '@jest/globals';
-import { expect, test } from 'vitest'
+import { expect, test, describe } from 'vitest'
 
 const TICK_MS = 50;
 
@@ -10,7 +11,7 @@ function createOnePlayerState(): PlayerState {
 }
 
 function createTestMap(): GameMap {
-    const size = 10;
+    const size = 20;
 
     const tiles = new Array(size*size).fill(0);
 
@@ -42,6 +43,16 @@ function createBasicGame(override: Partial<Game>): Game {
     return {...defaultGame, ...override};
 }
 
+function spawnUnit(g: Game, owner: number, kind: string, position: Position) {
+    g.lastUnitId += 1;
+    g.units.push(createUnit(
+        g.lastUnitId,
+        owner,
+        kind,
+        position,
+    ));
+}
+
 test('basic/winCondition/BuildingElimination', () => {
     const game = createBasicGame({ winCondition: 'BuildingElimination'});
 
@@ -50,11 +61,43 @@ test('basic/winCondition/BuildingElimination', () => {
     expect(game.state.id).toBe('GameEnded');
 });
 
-test('basic/empty', () => {
-    const game = createBasicGame({ winCondition: 'OneLeft'});
+test('basic/winCondition/OneLeft', () => {
+    const game = createBasicGame({ 
+        winCondition: 'OneLeft',
+        players: [createOnePlayerState(), createOnePlayerState()],
+    });
 
     tick(TICK_MS, game);
 
     expect(game.state.id).toBe('Play');
-    expect(game.units.length).toBe(0);
+});
+
+describe('movement', () => {
+    test('move to map', () => {
+        const game = createBasicGame({});
+
+        spawnUnit(game, 0, "Harvester", {x: 5, y: 5});
+        tick(TICK_MS, game);
+        command({
+                command: { typ: 'Move', target: { x: 15, y: 15 }},
+                unitIds: [1]
+            },
+            game,
+            0
+        );
+
+        tick(TICK_MS, game);
+
+        expect(game.units[0].state.state).toBe('active');
+        expect(game.units[0].state.action).toBe('Moving');
+
+        for (let i = 0; i < 20 * 10; i++)
+            tick(TICK_MS, game);
+
+        expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].position.x).toBeCloseTo(15, 0);
+        expect(game.units[0].position.y).toBeCloseTo(15, 0);
+
+        expect(game.state.id).toBe('Play');
+    });
 });
