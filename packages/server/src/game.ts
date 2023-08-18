@@ -40,6 +40,7 @@ export function newGame(matchId: string, map: GameMap): Game {
         },
         units,
         lastUnitId: units.length,
+        winCondition: 'BuildingElimination',
     }
 }
 

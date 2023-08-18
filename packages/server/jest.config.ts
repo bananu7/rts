@@ -50,7 +50,9 @@ const config: Config = {
   // dependencyExtractor: undefined,
 
   // Make calling deprecated APIs throw helpful error messages
-  // errorOnDeprecated: false,  
+  // errorOnDeprecated: false,
+
+  extensionsToTreatAsEsm: ['.ts'],  
 
   // The default configuration for fake timers
   // fakeTimers: {
@@ -163,9 +165,7 @@ const config: Config = {
   // ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-  // testPathIgnorePatterns: [
-  //   "\\\\node_modules\\\\"
-  // ],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
   // testRegex: [],
