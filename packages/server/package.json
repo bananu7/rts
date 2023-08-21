@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "vitest",
+    "test": "tsc && vitest",
     "build": "tsc -p .",
     "dev": "node dist/index.js",
     "debug": "node --inspect dist/index.js"

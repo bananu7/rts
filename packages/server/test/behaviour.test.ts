@@ -1,7 +1,6 @@
 import { tick, command } from '../src/game.js'
 import { createUnit } from '../src/units.js'
-import { Game, PlayerState, Unit, GameMap } from '../src/types'
-//import { describe, test, expect } from '@jest/globals';
+import { Game, PlayerState, Unit, GameMap, Position } from '../src/types'
 import { expect, test, describe } from 'vitest'
 
 const TICK_MS = 50;
@@ -62,7 +61,7 @@ test('basic/winCondition/BuildingElimination', () => {
 });
 
 test('basic/winCondition/OneLeft', () => {
-    const game = createBasicGame({ 
+    const game = createBasicGame({
         winCondition: 'OneLeft',
         players: [createOnePlayerState(), createOnePlayerState()],
     });
@@ -80,7 +79,8 @@ describe('movement', () => {
         tick(TICK_MS, game);
         command({
                 command: { typ: 'Move', target: { x: 15, y: 15 }},
-                unitIds: [1]
+                unitIds: [1],
+                shift: true,
             },
             game,
             0
