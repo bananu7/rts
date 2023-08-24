@@ -8,5 +8,3 @@ export const GECKOS_URL =
     import.meta.env.DEV ?
     'http://localhost' :
     '/';
-
-export const GECKOS_PORT = 9208;

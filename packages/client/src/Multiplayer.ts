@@ -1,6 +1,6 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
 import { Game, MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
-import { HTTP_API_URL, GECKOS_URL, GECKOS_PORT } from './config'
+import { HTTP_API_URL, GECKOS_URL } from './config'
 
 export type OnChatMessage = (msg: string) => void;
 export type OnUpdatePacket = (p: UpdatePacket) => void;
@@ -24,7 +24,6 @@ export class Multiplayer {
     private constructor(channel: ClientChannel, userId: string) {
         console.log("[Multiplayer] First-time init");
         console.log(`[Multiplayer] GECKOS_URL = ${GECKOS_URL}`);
-        console.log(`[Multiplayer] GECKOS_PORT = ${GECKOS_PORT}`);
 
         this.channel = channel;
         this.userId = userId;
@@ -41,7 +40,7 @@ export class Multiplayer {
 
         const channel = geckos({
             url: GECKOS_URL,
-            port: GECKOS_PORT,
+            port: null, // see https://github.com/geckosio/geckos.io#new-in-version-171
             iceServers
         });
 
