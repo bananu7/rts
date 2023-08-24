@@ -12,6 +12,9 @@ COPY yarn.lock ./
 RUN npm install -g lerna
 RUN lerna init
 
+RUN apt-get update
+RUN apt-get install -y git-lfs cmake
+
 # Install dependencies for both client and server
 RUN mkdir -p ./packages/client
 COPY ./packages/client/package.json ./packages/client
@@ -44,8 +47,6 @@ COPY ./packages/client/index.html ./
 
 # get assets
 RUN git clone https://github.com/bananu7/rts-assets.git --depth 1
-RUN apt-get update
-RUN apt-get install -y git-lfs
 RUN git lfs install
 RUN cd rts-assets && git lfs pull
 RUN cp ./rts-assets/models/**/*.glb ./public/
@@ -59,6 +60,9 @@ FROM node:18
 WORKDIR /var/lib/app
 
 # install run deps
+RUN apt-get update
+RUN apt-get install -y cmake
+
 COPY ./packages/server/package.json ./
 RUN yarn install --production
 
@@ -70,7 +74,4 @@ COPY ./packages/server/version.txt ./
 COPY ./packages/server/assets ./assets
 COPY --from=0 /var/lib/app/packages/client/dist ./client
 
-EXPOSE 9208
 CMD [ "node", "index.js" ]
-
-

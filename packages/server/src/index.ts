@@ -1,4 +1,4 @@
-import geckos, { Data, iceServers, ServerChannel } from '@geckos.io/server'
+import geckos, { Data, ServerChannel } from '@geckos.io/server'
 import http from 'http'
 import express from 'express'
 import cors from 'cors'
@@ -8,14 +8,13 @@ import {newGame, startGame, tick, command} from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
+import { getVersion, getConfig, printConfig } from './config.js'
 
-let version = "uknown version";
-try {
-    version = readFileSync("version.txt", "utf8");
-}
-catch (err) { }
+const version = getVersion();
+console.log(`[index] Starting RTS server - ${version}`);
 
-console.log(`Starting RTS server - ${version}`);
+const config = getConfig();
+printConfig(config);
 
 type PlayerEntry = {
     index: number,
@@ -53,13 +52,19 @@ app.use(cors())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 const server = http.createServer(app)
-const io = geckos({ iceServers })
+
+const io = geckos({
+  iceServers: config.serverIceServers
+})
 
 const matches : Match[] = [];
 
 io.addServer(server)
 
-app.get('/listMatches', (req, res) => {
+// for baseURL mounting
+const rts = express.Router()
+
+rts.get('/listMatches', (req, res) => {
     const matchInfos : MatchInfo[] = matches.map(m => { return {
         matchId: m.matchId,
         playerCount: m.players.length,
@@ -69,11 +74,15 @@ app.get('/listMatches', (req, res) => {
     res.send(JSON.stringify(matchInfos));
 });
 
-app.get('/version', (req, res) => {
+rts.get('/version', (req, res) => {
     res.send(version);
 });
 
-app.get('/getMatchMetadata', (req, res) => {
+rts.get('/iceServers', (req, res) => {
+    res.send(JSON.stringify(config.clientIceServers));
+});
+
+rts.get('/getMatchMetadata', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {
         res.send(JSON.stringify(getMatchMetadata(match)));
@@ -84,12 +93,12 @@ app.get('/getMatchMetadata', (req, res) => {
 });
 
 // TODO debug apis should require a secret
-app.get('/debugGetPath', (req, res) => {
+rts.get('/debugGetPath', (req, res) => {
     // TODO: pull the pathfinding path of a given unit
     res.sendStatus(500);
 });
 
-app.get('/debugGetMatchState', (req, res) => {
+rts.get('/debugGetMatchState', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {
         res.send(JSON.stringify(match.game));
@@ -101,16 +110,15 @@ app.get('/debugGetMatchState', (req, res) => {
 
 let lastMatchId = 0;
 
-app.post('/create', async (req, res) => {
+rts.post('/create', async (req, res) => {
     // TODO - load or w/e
     const map = await getMap('assets/map.png');
     const matchId = String(++lastMatchId); // TODO
     const game = newGame(matchId, map);
     matches.push({ game, matchId, players: [], spectators: [] });
 
-    const TICK_MS = 50;
     setInterval(() => {
-        const updatePackets = tick(TICK_MS, game);
+        const updatePackets = tick(config.tickMs, game);
         const match = matches.find(m => m.matchId === matchId);
 
         if (!match)
@@ -124,18 +132,18 @@ app.post('/create', async (req, res) => {
             p.channel.emit('tick', updatePackets[i]);
         });
 
-        match.spectators.forEach((s, i) => 
+        match.spectators.forEach((s, i) =>
             // TODO spectators should get a separate packet
             s.channel.emit('tick', updatePackets[0])
         );
         // io.room(matchId).emit('tick', updatePackets[0]);
-    }, TICK_MS);
+    }, config.tickMs);
 
     console.log(`[index] Match ${matchId} created`);
 })
 
 // register a particular user as a player in a match
-app.post('/join', async (req, res) => {
+rts.post('/join', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
@@ -176,7 +184,7 @@ app.post('/join', async (req, res) => {
                 break;
         }
         console.log(`[index] Adding user ${userId} as player number ${index} in match ${matchId}`);
-        // TODO - assign colors        
+        // TODO - assign colors
         match.players.push({ user: userId, index, color: 0 });
 
         res.send(JSON.stringify({
@@ -189,11 +197,11 @@ app.post('/join', async (req, res) => {
     }
 });
 
-app.post('/leave', async (req, res) => {
+rts.post('/leave', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
-        
+
         const match = matches.find(m => m.matchId === matchId);
         if (!match) {
             res.send('OK');
@@ -205,7 +213,7 @@ app.post('/leave', async (req, res) => {
             res.send('OK');
             return;
         }
-    } 
+    }
     catch(e) {
         res.sendStatus(500);
         console.error(e);
@@ -249,7 +257,7 @@ io.onConnection(channel => {
     channel.on('connect', (data: Data) => {
         // TODO properly validate data format
         const packet = data as IdentificationPacket;
-        
+
         const m = matches.find(m => m.matchId === packet.matchId);
         if (!m) {
             console.warn("[index] Received a connect request to a match that doesn't exist");
@@ -319,6 +327,6 @@ io.onConnection(channel => {
 })
 
 // Serve client files
-app.use(express.static('client'));
-
-server.listen(9208)
+app.use(config.baseUrl, express.static('client'));
+app.use(config.baseUrl, rts);
+server.listen(config.httpPort)

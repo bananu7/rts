@@ -8,19 +8,8 @@ import { SpectateController } from './components/SpectateController';
 import { Multiplayer, MatchControl, SpectatorControl } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 
-// TODO
-let userId = localStorage.getItem("userId");
-if (!userId) {
-  userId = window.prompt("Please provide your user id");
-  if (userId)
-    localStorage.setItem('userId', userId);
-  else
-    throw "No user id present; set item 'userId' in localStorage to play";
-}
-const multiplayer = new Multiplayer(userId);
-
-
 function App() {
+  const [multiplayer, setMultiplayer] = useState<Multiplayer | null>(null);
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
   const cleanupOnLeave = () => {
@@ -30,6 +19,18 @@ function App() {
 
   useEffect(() => {
     const setupMultiplayer = async () => {
+      // TODO
+      let userId = localStorage.getItem("userId");
+      if (!userId) {
+        userId = window.prompt("Please provide your user id");
+        if (userId)
+          localStorage.setItem('userId', userId);
+        else
+          throw "No user id present; set item 'userId' in localStorage to play";
+      }
+
+      const multiplayer = await Multiplayer.new(userId);
+      setMultiplayer(multiplayer);
       const rejoinedCtrl = await multiplayer.setup({});
      
       if (rejoinedCtrl) {
@@ -49,6 +50,11 @@ function App() {
   }, []);
 
   const joinMatch = async (matchId: string) => {
+    if (!multiplayer) {
+      console.warn("[App] Ignoring joinMatch because multiplayer isn't initialized yet")
+      return;
+    }
+
     const ctrl = await multiplayer.joinMatch(matchId);
     console.log(`[App] Connected to a match ${matchId}`);
     ctrl.setOnLeaveMatch(cleanupOnLeave);
@@ -56,12 +62,22 @@ function App() {
   };
 
   const spectateMatch = async (matchId: string) => {
+    if (!multiplayer) {
+      console.warn("[App] Ignoring spectateMatch because multiplayer isn't initialized yet")
+      return;
+    }
+
     const ctrl = await multiplayer.spectateMatch(matchId);
     console.log(`[App] Spectating match ${matchId}`);
     ctrl.setOnLeaveMatch(cleanupOnLeave);
     setController(ctrl);
   };
   
+  const createMatchButton = 
+    multiplayer
+      ? <button onClick={() => multiplayer.createMatch()}>Create</button>
+      : <button disabled={true}>Create</button>;
+
   const matchList = (
     <div className="App" tabIndex={0}>
       <div className="card">
@@ -80,7 +96,7 @@ function App() {
           spectateMatch={spectateMatch}
         />
         <div style={{textAlign:"center"}}>
-          <button onClick={() => multiplayer.createMatch()}>Create</button>
+          { createMatchButton }
         </div>
       </div>
     </div>
