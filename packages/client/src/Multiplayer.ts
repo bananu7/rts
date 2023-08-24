@@ -11,7 +11,6 @@ export type MultiplayerConfig = {
 }
 
 export class Multiplayer {
-    // TODO I don't like this being nullable but i can't initialize it in the ctor since it needs to be async
     channel: ClientChannel;
     geckosSetUp: boolean;
     userId: string;
