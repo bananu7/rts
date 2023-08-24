@@ -61,7 +61,10 @@ const matches : Match[] = [];
 
 io.addServer(server)
 
-app.get('/listMatches', (req, res) => {
+// for baseURL mounting
+const rts = express.Router()
+
+rts.get('/listMatches', (req, res) => {
     const matchInfos : MatchInfo[] = matches.map(m => { return {
         matchId: m.matchId,
         playerCount: m.players.length,
@@ -71,15 +74,15 @@ app.get('/listMatches', (req, res) => {
     res.send(JSON.stringify(matchInfos));
 });
 
-app.get('/version', (req, res) => {
+rts.get('/version', (req, res) => {
     res.send(version);
 });
 
-app.get('/iceServers', (req, res) => {
+rts.get('/iceServers', (req, res) => {
     res.send(JSON.stringify(config.clientIceServers));
 });
 
-app.get('/getMatchMetadata', (req, res) => {
+rts.get('/getMatchMetadata', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {
         res.send(JSON.stringify(getMatchMetadata(match)));
@@ -90,12 +93,12 @@ app.get('/getMatchMetadata', (req, res) => {
 });
 
 // TODO debug apis should require a secret
-app.get('/debugGetPath', (req, res) => {
+rts.get('/debugGetPath', (req, res) => {
     // TODO: pull the pathfinding path of a given unit
     res.sendStatus(500);
 });
 
-app.get('/debugGetMatchState', (req, res) => {
+rts.get('/debugGetMatchState', (req, res) => {
     const match = matches.find(m => m.matchId === req.query.matchId);
     if (match) {
         res.send(JSON.stringify(match.game));
@@ -107,7 +110,7 @@ app.get('/debugGetMatchState', (req, res) => {
 
 let lastMatchId = 0;
 
-app.post('/create', async (req, res) => {
+rts.post('/create', async (req, res) => {
     // TODO - load or w/e
     const map = await getMap('assets/map.png');
     const matchId = String(++lastMatchId); // TODO
@@ -140,7 +143,7 @@ app.post('/create', async (req, res) => {
 })
 
 // register a particular user as a player in a match
-app.post('/join', async (req, res) => {
+rts.post('/join', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
@@ -194,7 +197,7 @@ app.post('/join', async (req, res) => {
     }
 });
 
-app.post('/leave', async (req, res) => {
+rts.post('/leave', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
@@ -324,5 +327,6 @@ io.onConnection(channel => {
 })
 
 // Serve client files
-app.use(express.static('client'));
+app.use(config.baseUrl, express.static('client'));
+app.use(config.baseUrl, rts);
 server.listen(config.httpPort)
