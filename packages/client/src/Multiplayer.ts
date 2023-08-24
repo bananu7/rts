@@ -40,7 +40,7 @@ export class Multiplayer {
 
         const channel = geckos({
             url: GECKOS_URL,
-            port: null, // see https://github.com/geckosio/geckos.io#new-in-version-171
+            port: null as undefined, // see https://github.com/geckosio/geckos.io#new-in-version-171
             iceServers
         });
 
