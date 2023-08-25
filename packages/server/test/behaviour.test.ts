@@ -144,6 +144,25 @@ describe('produce action', () => {
 });
 
 describe('build action', () => {
+    test('ensure resources', () => {
+        const game = createBasicGame({});
+        spawnUnit(game, 1, "Harvester", {x: 5, y: 5});
+
+        command({
+                command: { typ: 'Build', building: "Barracks", position: { x: 4, y: 4 }},
+                unitIds: [1],
+                shift: true,
+            },
+            game,
+            1
+        );
+
+        tick(TICK_MS, game);
+
+        expect(game.players[0].resources).toBe(0);
+        expect(game.units[0].state.state).toBe('idle');
+    });
+
     // TODO - currently the game allows placing the building on top of the harvester
     // once this is fixed, the test will succeed!
     test.skip('build on top', () => {
