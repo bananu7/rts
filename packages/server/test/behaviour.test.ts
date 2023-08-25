@@ -75,7 +75,7 @@ describe('movement', () => {
     test('move to map', () => {
         const game = createBasicGame({});
 
-        spawnUnit(game, 0, "Harvester", {x: 5, y: 5});
+        spawnUnit(game, 1, "Harvester", {x: 5, y: 5});
         tick(TICK_MS, game);
         command({
                 command: { typ: 'Move', target: { x: 15, y: 15 }},
@@ -83,7 +83,7 @@ describe('movement', () => {
                 shift: true,
             },
             game,
-            0
+            1
         );
 
         tick(TICK_MS, game);
