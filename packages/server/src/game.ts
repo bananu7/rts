@@ -4,7 +4,7 @@ import {
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Command, CommandFollow, CommandAttack, CommandMove,
-    PlayerState,
+    PlayerState, UnitProductionCapability, BuildCapability
 } from './types';
 
 import * as V from './vector.js'
@@ -13,8 +13,10 @@ import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
 import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
-import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
+import { findPositionForProducedUnit } from './game/produce.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util.js'
 
 // TODO include building&unit size in this distance
 const UNIT_FOLLOW_DISTANCE = 0.5;
@@ -100,48 +102,6 @@ function commandOne(shift: boolean, command: Command, unit: Unit, playerIndex: n
     }
 }
 
-// This code generates an offset position for a given spiral index
-function spiral(p: Position, i: number, scale: number) {
-    const offsets = [
-        // target
-        [0,0],
-        // layer 1
-        [1,0],
-        [1,1],
-        [0,1],
-        [-1,1],
-        [-1,0],
-        [-1,-1],
-        [0, -1],
-        [1, -1],
-        // layer 2
-        [2,0],
-        [2,1],
-        [2,2],
-        [1,2],
-        [0,2],
-        [-1,2],
-        [-2,2],
-        [-2,1],
-        [-2,0],
-        [-2,-1],
-        [-2,-2],
-        [-1,-2],
-        [0,-2],
-        [1,-2],
-        [2,-2],
-        [2,-1],
-    ];
-
-    // if more units are trying to reach the same location, it's likely that the spiral
-    // would need to be adjusted anyway
-    if (i < offsets.length) {
-        return { x: offsets[i][0] * scale + p.x, y: offsets[i][1] * scale + p.y };
-    } else {
-        return { x: p.x, y: p.y };
-    }
-}
-
 export function command(c: CommandPacket, g: Game, playerIndex: number) {
     const us: Unit[] = c.unitIds
         .map(id => g.units.find(u => id === u.id))
@@ -202,34 +162,6 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
             commandOne(c.shift, c.command, u, playerIndex);
         });
     }
-}
-
-function willAcceptCommand(unit: Unit, command: Command) {
-    // TODO maybe this should be better streamlined, like in a dictionary
-    // of required components for each command?
-    switch(command.typ) {
-    case 'Move': 
-        if (!getMoveComponent(unit))
-            return false;
-        break;
-    case 'Attack':
-        if (!getAttackerComponent(unit))
-            return false;
-        break;
-    case 'Harvest':
-        if (!getHarvesterComponent(unit))
-            return false;
-        break;
-    case 'Build':
-        if (!getBuilderComponent(unit))
-            return false;
-        break;
-    case 'Produce':
-        if (!getProducerComponent(unit))
-            return false;
-        break;
-    }
-    return true;
 }
 
 // Returns a list of update packets, one for each player
@@ -444,21 +376,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         V.vecSet(unit.velocity, velocity);
 
         return false;
-    }
-
-    const getUnitReferencePosition = (target: Unit) => {
-        // For regular units, their position is in the middle
-        // For buildings, it's the top-left corner
-        const bc = getBuildingComponent(target);
-        
-        if (!bc) {
-            return { x: target.position.x, y: target.position.y };
-        } else {
-            return {
-                x: target.position.x + (bc.size / 2),
-                y: target.position.y + (bc.size / 2),
-            }
-        }
     }
 
     const getUnitReferencePositionById = (targetId: UnitId) => {
@@ -815,7 +732,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     break;
                 }
 
-                const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
+                const utp = p.unitsProduced.find((up: UnitProductionCapability) => up.unitType == cmd.unitToProduce);
                 if (!utp) {
                     console.info("[game] Unit orderded to produce but it can't produce this unit type");
                     clearCurrentCommand();
@@ -843,8 +760,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             p.productionState.timeLeft -= dt;
 
-            const refPos = getUnitReferencePosition(unit);
-            const producedUnitPosition = { x: refPos.x, y: refPos.y+4 };
+            const producedUnitPosition = findPositionForProducedUnit(unit, p.productionState.unitType);
 
             if (p.productionState.timeLeft < 0) {
                 // TODO - automatic counter
@@ -870,7 +786,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (!bc)
                     throw "[game] Unit without a builder component ordered to build";
 
-                const buildCapability = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
+                const buildCapability = bc.buildingsProduced.find((bp: BuildCapability) => bp.buildingType === cmd.building);
                 if (!buildCapability)
                     throw "[game] Unit ordered to build something it can't";
 
