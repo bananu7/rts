@@ -38,7 +38,7 @@ export function isBuildPlacementOk(gm: GameMap, units: Unit[], building: Buildin
         return false;
 
     // TODO this should perhaps be cached?
-    const buildings = units.map(u => ({ pos: u.position, bc: getBuildingComponent(u)})).filter(({pos, bc}) => bc);
+    const buildings = units.map(u => ({ pos: u.position, bc: getBuildingComponent(u)})).filter(({bc}) => bc);
     const tiles = buildings.map(({pos, bc}) => tilesTakenByBuilding(bc, pos));
 
     // TODO this is getting duplicated, maybe GameMap needs better utility functions

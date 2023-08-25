@@ -101,3 +101,33 @@ describe('movement', () => {
         expect(game.state.id).toBe('Play');
     });
 });
+
+describe('build action', () => {
+    // TODO - currently the game allows placing the building on top of the harvester
+    // once this is fixed, the test will succeed!
+    test.skip('build on top', () => {
+        const game = createBasicGame({});
+
+        game.players[0].resources += 1000;
+
+        spawnUnit(game, 1, "Harvester", {x: 5, y: 5});
+
+        tick(TICK_MS, game);
+
+        command({
+                command: { typ: 'Build', building: "Barracks", position: { x: 4, y: 4 }},
+                unitIds: [1],
+                shift: true,
+            },
+            game,
+            1
+        );
+
+        for (let i = 0; i < 20 * 10; i++)
+            tick(TICK_MS, game);
+
+        console.log(game.units)
+
+        expect(game.units.length).toBe(1);
+    });
+});
