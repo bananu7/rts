@@ -16,7 +16,7 @@ import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from '.
 
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
 import { findPositionForProducedUnit } from './game/produce.js'
-import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance } from './game/util.js'
 
 // TODO include building&unit size in this distance
 const UNIT_FOLLOW_DISTANCE = 0.5;
@@ -464,13 +464,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         } else {
             return 'TargetNonexistent';
         }
-    }
-
-    const unitDistance = (a: Unit, b: Unit): number => {
-         // TODO for buildings it should use perimeter instead of reference?
-        const aPos = getUnitReferencePosition(a);
-        const bPos = getUnitReferencePosition(b);
-        return V.distance(aPos, bPos);
     }
 
     const findClosestUnitBy = (p: (u: Unit) => boolean) => {
