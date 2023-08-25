@@ -830,6 +830,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 break;
             }
             catch(e) {
+                // TODO this should raise if the exception is any other than the errors above
                 console.info(e);
                 clearCurrentCommand();
                 break;
