@@ -205,15 +205,20 @@ export type Unit = {
 
 export type PlayerState = {
     resources: number,
+    stillInGame: boolean,
 }
+
+export type WinCondition = 'BuildingElimination'|'OneLeft';
 
 export type Game = {
     // uuid: UUID, TODO
-    matchId: MatchId,
+    readonly matchId: MatchId,
+    readonly board: Board,
+    readonly winCondition: WinCondition,
+
     state: GameState,
-    tickNumber: number,
     players: PlayerState[],
-    board: Board,
+    tickNumber: number,
     units: Unit[],
     lastUnitId: number,
 }

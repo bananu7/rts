@@ -34,12 +34,13 @@ export function newGame(matchId: string, map: GameMap): Game {
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
-        players: [{resources: 50}, {resources: 50}],
+        players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
         board: {
             map: map,
         },
         units,
         lastUnitId: units.length,
+        winCondition: 'BuildingElimination',
     }
 }
 
@@ -241,12 +242,26 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
         }
         break;
     case 'Play':
-        const e = eliminated(g);
-        // TODO alliances, actual game type etc.
-        if (e.length > 0) {
-            console.log('[game] Game ended by elimination');
-            g.state = {id: 'GameEnded'};
+        // TODO figure out who won
+        switch (g.winCondition) {
+        case 'BuildingElimination':
+            const e = eliminated(g);
+            // TODO more than 2 players
+            if (e.length > 0) {
+                console.log('[game] Game ended by building elimination');
+                g.state = {id: 'GameEnded'};
+            }
+            break;
+
+        case 'OneLeft':
+            const playersLeft = g.players.filter(ps => ps.stillInGame).length;
+            if (playersLeft <= 1) {
+                console.log('[game] Game ended - only one player left');
+                g.state = {id: 'GameEnded'};
+            }
+            break;
         }
+
         g.tickNumber += 1;
 
         updateUnits(dt, g);
