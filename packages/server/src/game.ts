@@ -713,6 +713,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // in the component anyway?
             const p = getProducerComponent(unit);
             if (!p) {
+                console.info("[game] Unit orderded to produce but isn't a producer");
                 clearCurrentCommand();
                 break;
             }
@@ -752,10 +753,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             }
 
             p.productionState.timeLeft -= dt;
-
-            const producedUnitPosition = findPositionForProducedUnit(unit, p.productionState.unitType);
-
             if (p.productionState.timeLeft < 0) {
+                const producedUnitPosition = findPositionForProducedUnit(unit, p.productionState.unitType);
+
                 // TODO - automatic counter
                 g.lastUnitId += 1;
                 g.units.push(createUnit(
