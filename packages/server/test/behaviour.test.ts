@@ -52,23 +52,25 @@ function spawnUnit(g: Game, owner: number, kind: string, position: Position) {
     ));
 }
 
-test('basic/winCondition/BuildingElimination', () => {
-    const game = createBasicGame({ winCondition: 'BuildingElimination'});
+describe('win condition', () => {
+    test('BuildingElimination', () => {
+        const game = createBasicGame({ winCondition: 'BuildingElimination'});
 
-    tick(TICK_MS, game);
+        tick(TICK_MS, game);
 
-    expect(game.state.id).toBe('GameEnded');
-});
-
-test('basic/winCondition/OneLeft', () => {
-    const game = createBasicGame({
-        winCondition: 'OneLeft',
-        players: [createOnePlayerState(), createOnePlayerState()],
+        expect(game.state.id).toBe('GameEnded');
     });
 
-    tick(TICK_MS, game);
+    test('OneLeft', () => {
+        const game = createBasicGame({
+            winCondition: 'OneLeft',
+            players: [createOnePlayerState(), createOnePlayerState()],
+        });
 
-    expect(game.state.id).toBe('Play');
+        tick(TICK_MS, game);
+
+        expect(game.state.id).toBe('Play');
+    });
 });
 
 describe('movement', () => {
@@ -80,7 +82,7 @@ describe('movement', () => {
         command({
                 command: { typ: 'Move', target: { x: 15, y: 15 }},
                 unitIds: [1],
-                shift: true,
+                shift: false,
             },
             game,
             1
@@ -104,14 +106,13 @@ describe('movement', () => {
 
 describe('produce action', () => {
     test('ensure resources', () => {
-
         const game = createBasicGame({});
         spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
 
         command({
                 command: { typ: 'Produce', unitToProduce: "Trooper" },
                 unitIds: [1],
-                shift: true,
+                shift: false,
             },
             game,
             1
@@ -124,6 +125,7 @@ describe('produce action', () => {
     });
 
     test('find appropriate location for the unit', () => {
+        // TODO this tests needs to be repeated with different cases of problematic surroundings near the building
         const game = createBasicGame({});
         spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
 
@@ -132,14 +134,32 @@ describe('produce action', () => {
         command({
                 command: { typ: 'Produce', unitToProduce: "Trooper" },
                 unitIds: [1],
-                shift: true,
+                shift: false,
             },
             game,
             1
         );
 
-        for (let i = 0; i < 20 * 10; i++)
+        for (let i = 0; i < 15 * 10; i++)
             tick(TICK_MS, game);
+
+        expect(game.units.length).toBe(2);
+
+        // after the unit has been produced, it's hard to tell what a "valid"
+        // location is, but at the very least it should be able to move
+        command({
+                command: { typ: 'Move', target: { x: 15, y: 15 }},
+                unitIds: [2],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        tick(TICK_MS, game);
+
+        expect(game.units[1].state.state).toBe('active');
+        expect(game.units[1].state.action).toBe('Moving');
     });
 });
 
