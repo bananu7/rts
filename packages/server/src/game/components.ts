@@ -1,7 +1,7 @@
 import { 
     Unit,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building
-} from './types'
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component
+} from '../types'
 
 export const getHpComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Hp') as Hp;

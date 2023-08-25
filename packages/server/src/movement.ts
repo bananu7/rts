@@ -3,7 +3,7 @@ import {
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision,
     Command, CommandFollow, CommandAttack,
 } from './types';
-import { getBuildingComponent } from './components.js'
+import { getBuildingComponent } from './game/components.js'
 
 import * as V from './vector.js'
 import { notEmpty } from './tsutil.js'

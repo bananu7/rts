@@ -102,6 +102,47 @@ describe('movement', () => {
     });
 });
 
+describe('produce action', () => {
+    test('ensure resources', () => {
+
+        const game = createBasicGame({});
+        spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
+
+        command({
+                command: { typ: 'Produce', unitToProduce: "Trooper" },
+                unitIds: [1],
+                shift: true,
+            },
+            game,
+            1
+        );
+
+        tick(TICK_MS, game);
+
+        expect(game.players[0].resources).toBe(0);
+        expect(game.units[0].state.state).toBe('idle');
+    });
+
+    test('find appropriate location for the unit', () => {
+        const game = createBasicGame({});
+        spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
+
+        game.players[0].resources += 1000;
+
+        command({
+                command: { typ: 'Produce', unitToProduce: "Trooper" },
+                unitIds: [1],
+                shift: true,
+            },
+            game,
+            1
+        );
+
+        for (let i = 0; i < 20 * 10; i++)
+            tick(TICK_MS, game);
+    });
+});
+
 describe('build action', () => {
     // TODO - currently the game allows placing the building on top of the harvester
     // once this is fixed, the test will succeed!

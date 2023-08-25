@@ -1,5 +1,5 @@
 import { Game, GameMap, TilePos, Position, Building, Unit } from './types'
-import { getBuildingComponent } from './components.js'
+import { getBuildingComponent } from './game/components.js'
 import { notEmpty } from './tsutil.js'
 
 export function tilesTakenByBuilding(building: Building, position: Position): TilePos[] {
