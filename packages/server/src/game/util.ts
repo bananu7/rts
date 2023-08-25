@@ -1,5 +1,6 @@
 import { Position, Unit, Command, Component } from '../types'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
+import * as V from '../vector.js'
 
 // This code generates an offset position for a given spiral index
 export function spiral(p: Position, i: number, scale: number) {
@@ -84,4 +85,11 @@ export function getUnitReferencePosition(target: Unit): Position {
             y: target.position.y + (bc.size / 2),
         }
     }
+}
+
+export function unitDistance(a: Unit, b: Unit): number {
+     // TODO for buildings it should use perimeter instead of reference?
+    const aPos = getUnitReferencePosition(a);
+    const bPos = getUnitReferencePosition(b);
+    return V.distance(aPos, bPos);
 }
