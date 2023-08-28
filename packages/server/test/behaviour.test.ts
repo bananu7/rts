@@ -1,6 +1,6 @@
 import { tick, command } from '../src/game.js'
 import { createUnit } from '../src/units.js'
-import { Game, PlayerState, Unit, GameMap, Position } from '../src/types'
+import { Game, PlayerState, Unit, GameMap, Position, TilePos } from '../src/types'
 import { expect, test, describe } from 'vitest'
 
 const TICK_MS = 50;
@@ -50,6 +50,15 @@ function spawnUnit(g: Game, owner: number, kind: string, position: Position) {
         kind,
         position,
     ));
+}
+
+function markRectangle(m: GameMap, a: TilePos, b: TilePos) {
+    for (let x = a.x; x <= b.x; x += 1) {
+        for (let y = a.y; y <= b.y; y += 1) {
+            m.tiles[y * m.w + x] = 1;
+        }
+    }
+
 }
 
 describe('win condition', () => {
@@ -107,6 +116,7 @@ describe('movement', () => {
 describe('produce action', () => {
     test('ensure resources', () => {
         const game = createBasicGame({});
+
         spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
 
         command({
@@ -124,12 +134,18 @@ describe('produce action', () => {
         expect(game.units[0].state.state).toBe('idle');
     });
 
-    test('find appropriate location for the unit', () => {
-        // TODO this tests needs to be repeated with different cases of problematic surroundings near the building
+    test.each([
+        { name: "empty map", f: () => {} },
+        { name: "no space below", f: (game: Game) => {
+            markRectangle(game.board.map, {x: 4, y: 10}, {x: 10, y: 12});
+        }},
+    ])('find appropriate location for the unit - $name', ({f}) => {
         const game = createBasicGame({});
-        spawnUnit(game, 1, "Barracks", {x: 5, y: 5});
+        spawnUnit(game, 1, "Barracks", {x: 4, y: 4});
 
         game.players[0].resources += 1000;
+
+        f(game);        
 
         command({
                 command: { typ: 'Produce', unitToProduce: "Trooper" },
@@ -142,6 +158,8 @@ describe('produce action', () => {
 
         for (let i = 0; i < 15 * 10; i++)
             tick(TICK_MS, game);
+
+        console.log(game.units);
 
         expect(game.units.length).toBe(2);
 
@@ -156,7 +174,11 @@ describe('produce action', () => {
             1
         );
 
+        debugger;
+
         tick(TICK_MS, game);
+
+        console.log(game.units);
 
         expect(game.units[1].state.state).toBe('active');
         expect(game.units[1].state.action).toBe('Moving');
