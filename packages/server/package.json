@@ -6,7 +6,7 @@
   "scripts": {
     "test": "tsc && vitest",
     "build": "tsc -p .",
-    "dev": "node dist/index.js",
+    "dev": "node dist/src/index.js",
     "debug": "node --inspect dist/index.js"
   },
   "author": "",
