@@ -74,6 +74,14 @@ rts.get('/listMatches', (req, res) => {
     res.send(JSON.stringify(matchInfos));
 });
 
+rts.get('/healthz', (req, res) => {
+    res.send("ok");
+});
+
+rts.get('/readiness', (req, res) => {
+    res.send("ok");
+});
+
 rts.get('/version', (req, res) => {
     res.send(version);
 });
