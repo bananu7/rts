@@ -326,7 +326,19 @@ io.onConnection(channel => {
     })
 })
 
+if (!config.baseUrl.startsWith('/'))
+    throw new Error("baseUrl must start with '/'!");
+
 // Serve client files
 app.use(config.baseUrl, express.static('client'));
 app.use(config.baseUrl, rts);
+
+app.get('/healthz', (req, res) => {
+    res.send("ok");
+});
+
+app.get('/readiness', (req, res) => {
+    res.send("ok");
+});
+
 server.listen(config.httpPort)
