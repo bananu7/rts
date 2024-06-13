@@ -2,7 +2,7 @@
 
 ################################
 # first stage - build
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install deps for both packages
@@ -56,7 +56,7 @@ RUN yarn build
 
 ################################
 # second stage - run
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install run deps
