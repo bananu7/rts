@@ -696,7 +696,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         p.productionState.timeLeft -= dt;
         if (p.productionState.timeLeft < 0) {
-            const producedUnitPosition = findPositionForProducedUnit(unit, p.productionState.unitType);
+            const producedUnitPosition = findPositionForProducedUnit(g, unit, p.productionState.unitType, presence, buildings);
 
             // TODO - automatic counter
             g.lastUnitId += 1;
@@ -773,6 +773,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
                 // update the buildings map so that the unit is actually pushed out of the
                 // newly constructed building
+                // TODO - game interface should cover that
                 const [presenceNew, buildingsNew] = buildPresenceAndBuildingMaps(g.units, g.board);
                 presence = presenceNew;
                 buildings = buildingsNew;
@@ -781,7 +782,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 if (teleportPosition) {
                     V.vecSet(unit.position, teleportPosition);
                 } else {
-                    throw new Error("Cannot find a good name to teleport a unit after building")
+                    throw new Error("Cannot find a good place to teleport a unit after building")
                 }
 
                 clearCurrentCommand();

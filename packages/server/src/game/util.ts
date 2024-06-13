@@ -44,6 +44,73 @@ export function spiral(p: Position, i: number, scale: number) {
     }
 }
 
+const generateLayer = (n: number): [number, number][] => {
+    const res: [number, number][] = [];
+    // CCW order
+
+    /*
+        #0
+        .....
+        .....
+        ..P..
+        .....
+        .....
+
+        #1
+        .....
+        .TTT.
+        .LPR.
+        .BBB.
+        .....
+
+        #2
+         <<<
+
+        TTTTT
+        L...R  ^
+        L.P.R  ^
+        L...R  ^
+        BBBBB
+
+         >>>
+    */
+
+    // bottom
+    for (let x = -n; x <= n; x += 1) {
+        res.push([x, n]);
+    }
+    // right
+    for (let y = n-1; y >= -n+1; y -= 1) {
+        res.push([n, y]);
+    }
+    // top
+    for (let x = n; x >= -n; x -= 1) {
+        res.push([x, -n]);
+    }
+    // left
+    for (let y = -n+1; y <= n-1; y += 1) {
+        res.push([-n, y]);
+    }
+    return res;
+}
+
+const CONCENTRIC_LAYERS = ([[0,0]]).concat(
+    generateLayer(1),
+    generateLayer(2),
+    generateLayer(3),
+    generateLayer(4),
+    generateLayer(5),
+);
+
+
+export function concentric(p: Position, i: number): Position | undefined {
+    if (i < CONCENTRIC_LAYERS.length) {
+        return { x: CONCENTRIC_LAYERS[i][0] + p.x, y: CONCENTRIC_LAYERS[i][1] + p.y };
+    } else {
+        return undefined;
+    }
+}
+
 export function willAcceptCommand(unit: Unit, command: Command) {
     // TODO maybe this should be better streamlined, like in a dictionary
     // of required components for each command?
@@ -95,26 +162,38 @@ export function unitDistance(a: Unit, b: Unit): number {
 }
 
 
-export function findClosestEmptySpot(
+export function findClosestEmptyTile(
     g: Game,
     position: Position,
     presence: PresenceMap,
     buildings: BuildingMap
 ): Position | undefined {
-    const MAX_SPIRAL_POSITIONS_TO_CHECK = 24;
+    const MAX_POSITIONS_TO_CHECK = 30;
+
+    const pos = {
+        x: Math.floor(position.x),
+        y: Math.floor(position.y)
+    };
 
     // TODO - duplicated logic
     const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
 
-    for (let i = 0; i < MAX_SPIRAL_POSITIONS_TO_CHECK; i++) {
-        const p = spiral(position, i, 1);
+    for (let i = 0; i < MAX_POSITIONS_TO_CHECK; i++) {
+        const p = concentric(pos, i);
+        if (!p) {
+            console.log("Spot not found")
+            return undefined;
+        }
+
         const noBuilding = ! buildings.has(explode(p));
         const noUnit = ! presence.has(explode(p));
 
         if (noBuilding && noUnit) {
+            console.log("Found empty spot ", p)
             return p;
         }
     }
 
+    console.log("Spot not found")
     return undefined;
 }
