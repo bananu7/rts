@@ -29,6 +29,7 @@ const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
 // maximum number of units per player
 const MAX_PLAYER_UNITS = 50;
 
+class GenericLogicError extends Error {}
 class InvalidCommandError extends Error {}
 class ComponentMissingError extends Error {}
 
@@ -700,7 +701,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
             if (!producedUnitPosition){
                 p.productionState = undefined;
-                throw new Error("Cannot produce unit because of insufficient space");
+                throw new GenericLogicError("Cannot produce unit because of insufficient space");
             }
 
             // TODO - automatic counter
@@ -890,6 +891,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         } else if (e instanceof InvalidCommandError) {
             console.info("[game] " + e.message);
             clearCurrentCommand();
+        } else if (e instanceof GenericLogicError) {
+            console.error("[game] Logic error during command processing: " + e.message);
+            clearCurrentCommand();
+        } else if (e instanceof Error) {
+            console.error("[game] Significant error during command processing: " + e.message);
+            throw e;
         } else {
             console.error("[game] Unknown error during command processing");
             throw e;

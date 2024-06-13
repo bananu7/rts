@@ -326,8 +326,8 @@ io.onConnection(channel => {
     })
 })
 
-if (!config.baseUrl.startsWith('/'))
-    throw new Error("baseUrl must start with '/'!");
+if (!config.baseUrl.startsWith('/') && !(config.baseUrl === ""))
+    throw new Error("baseUrl must start with '/' or be empty!");
 
 // Serve client files
 app.use(config.baseUrl, express.static('client'));

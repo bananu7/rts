@@ -100,6 +100,9 @@ const CONCENTRIC_LAYERS = ([[0,0]]).concat(
     generateLayer(3),
     generateLayer(4),
     generateLayer(5),
+    generateLayer(6),
+    generateLayer(7),
+    generateLayer(8),
 );
 
 
@@ -168,7 +171,7 @@ export function findClosestEmptyTile(
     presence: PresenceMap,
     buildings: BuildingMap
 ): Position | undefined {
-    const MAX_POSITIONS_TO_CHECK = 30;
+    const MAX_POSITIONS_TO_CHECK = 100;
 
     const pos = {
         x: Math.floor(position.x),
@@ -192,6 +195,5 @@ export function findClosestEmptyTile(
         }
     }
 
-    console.log("Spot not found")
     return undefined;
 }
