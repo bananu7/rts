@@ -3,8 +3,8 @@ import {
     Board,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
-    Command, CommandFollow, CommandAttack, CommandMove,
-    PlayerState,
+    Command, CommandFollow, CommandAttack, CommandMove, CommandAttackMove, CommandStop, CommandHarvest, CommandProduce, CommandBuild,
+    PlayerState, UnitProductionCapability, BuildCapability
 } from './types';
 
 import * as V from './vector.js'
@@ -13,8 +13,10 @@ import { checkMovePossibility } from './movement.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './units.js'
 import { notEmpty } from './tsutil.js'
 import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
-import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
+import { findPositionForProducedUnit } from './game/produce.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance, findClosestEmptyTile } from './game/util.js'
 
 // TODO include building&unit size in this distance
 const UNIT_FOLLOW_DISTANCE = 0.5;
@@ -26,6 +28,10 @@ const MAP_MOVEMENT_TOLERANCE = 1.0;
 const MAXIMUM_IDLE_AGGRO_RANGE = 3.5;
 // maximum number of units per player
 const MAX_PLAYER_UNITS = 50;
+
+class GenericLogicError extends Error {}
+class InvalidCommandError extends Error {}
+class ComponentMissingError extends Error {}
 
 export function newGame(matchId: string, map: GameMap): Game {
     const units = createStartingUnits();
@@ -100,48 +106,6 @@ function commandOne(shift: boolean, command: Command, unit: Unit, playerIndex: n
     }
 }
 
-// This code generates an offset position for a given spiral index
-function spiral(p: Position, i: number, scale: number) {
-    const offsets = [
-        // target
-        [0,0],
-        // layer 1
-        [1,0],
-        [1,1],
-        [0,1],
-        [-1,1],
-        [-1,0],
-        [-1,-1],
-        [0, -1],
-        [1, -1],
-        // layer 2
-        [2,0],
-        [2,1],
-        [2,2],
-        [1,2],
-        [0,2],
-        [-1,2],
-        [-2,2],
-        [-2,1],
-        [-2,0],
-        [-2,-1],
-        [-2,-2],
-        [-1,-2],
-        [0,-2],
-        [1,-2],
-        [2,-2],
-        [2,-1],
-    ];
-
-    // if more units are trying to reach the same location, it's likely that the spiral
-    // would need to be adjusted anyway
-    if (i < offsets.length) {
-        return { x: offsets[i][0] * scale + p.x, y: offsets[i][1] * scale + p.y };
-    } else {
-        return { x: p.x, y: p.y };
-    }
-}
-
 export function command(c: CommandPacket, g: Game, playerIndex: number) {
     const us: Unit[] = c.unitIds
         .map(id => g.units.find(u => id === u.id))
@@ -202,34 +166,6 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
             commandOne(c.shift, c.command, u, playerIndex);
         });
     }
-}
-
-function willAcceptCommand(unit: Unit, command: Command) {
-    // TODO maybe this should be better streamlined, like in a dictionary
-    // of required components for each command?
-    switch(command.typ) {
-    case 'Move': 
-        if (!getMoveComponent(unit))
-            return false;
-        break;
-    case 'Attack':
-        if (!getAttackerComponent(unit))
-            return false;
-        break;
-    case 'Harvest':
-        if (!getHarvesterComponent(unit))
-            return false;
-        break;
-    case 'Build':
-        if (!getBuilderComponent(unit))
-            return false;
-        break;
-    case 'Produce':
-        if (!getProducerComponent(unit))
-            return false;
-        break;
-    }
-    return true;
 }
 
 // Returns a list of update packets, one for each player
@@ -446,21 +382,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return false;
     }
 
-    const getUnitReferencePosition = (target: Unit) => {
-        // For regular units, their position is in the middle
-        // For buildings, it's the top-left corner
-        const bc = getBuildingComponent(target);
-        
-        if (!bc) {
-            return { x: target.position.x, y: target.position.y };
-        } else {
-            return {
-                x: target.position.x + (bc.size / 2),
-                y: target.position.y + (bc.size / 2),
-            }
-        }
-    }
-
     const getUnitReferencePositionById = (targetId: UnitId) => {
         const target = g.units.find(u => u.id === targetId); // TODO Map
         if (target)
@@ -549,13 +470,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
     }
 
-    const unitDistance = (a: Unit, b: Unit): number => {
-         // TODO for buildings it should use perimeter instead of reference?
-        const aPos = getUnitReferencePosition(a);
-        const bPos = getUnitReferencePosition(b);
-        return V.distance(aPos, bPos);
-    }
-
     const findClosestUnitBy = (p: (u: Unit) => boolean) => {
         const units = g.units.filter(p);
 
@@ -614,6 +528,278 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         }
     }
 
+    // Commands
+    const moveCommand = (cmd: CommandMove) => {
+        if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+            clearCurrentCommand();
+        }
+    };
+
+    const attackMoveCommand = (cmd: CommandAttackMove) => {
+        const ac = getAttackerComponent(unit);
+        // TODO just execute move to go together with formation
+        if (!ac) {
+            return;
+        }
+
+        const closestTarget = detectNearbyEnemy();
+        if (closestTarget) {
+            const MAX_PATH_DEVIATION = 5;
+
+            // TODO compute
+            const pathDeviation = 0; //computePathDeviation(unit);
+            if (pathDeviation > MAX_PATH_DEVIATION) {
+                // lose aggro
+                // TODO: aggro hysteresis?
+                // just move
+                if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+                    clearCurrentCommand();
+                }
+            } else {
+                aggro(ac, closestTarget);
+            }
+        } else {
+            // just move
+            if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
+                clearCurrentCommand();
+            }
+        }
+    }
+
+    const attackCommand = (cmd: CommandAttack) =>  {
+        const ac = getAttackerComponent(unit);
+        if (!ac) {
+            throw new ComponentMissingError("Attacker");
+        }
+
+        // target not existing is a common situation if the target got destroyed
+        // after the command was made
+        const target = g.units.find(u => u.id === cmd.target);
+        if (!target) {
+            clearCurrentCommand();
+            return;
+        }
+
+        aggro(ac, target);
+    };
+
+    const stopCommand = (_cmd: CommandStop) => {
+        stopMoving();
+        // TODO dedicated cancel command
+        cancelProduction();
+        becomeIdleAtCurrentPosition();
+    };
+
+    const followCommand = (cmd: CommandFollow) => {
+        const moveResult = moveTowardsUnitById(cmd.target, UNIT_FOLLOW_DISTANCE);
+        if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
+            clearCurrentCommand();
+        }
+    }
+
+    const harvestCommand = (cmd: CommandHarvest) => {
+        const hc = getHarvesterComponent(unit);
+        if (!hc) {
+            throw new ComponentMissingError("Harvester");
+        }
+
+        const target = g.units.find(u => u.id === cmd.target);
+        if (!target) {
+            // TODO find other nearby resource
+            clearCurrentCommand();
+            return;
+        }
+
+        if (!hc.resourcesCarried) {
+            const HARVESTING_DISTANCE = 2;
+            const HARVESTING_RESOURCE_COUNT = 8;
+
+            // TODO - should resources use perimeter?
+            switch(moveTowardsUnit(target, HARVESTING_DISTANCE)) {
+            case 'Unreachable':
+                clearCurrentCommand();
+                break;
+            case 'ReachedTarget':
+                if (hc.harvestingProgress >= hc.harvestingTime) {
+                    hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
+                    // TODO - reset harvesting at any other action
+                    // maybe i could use some "exit state function"?
+                    hc.harvestingProgress = 0;
+                } else {
+                    unit.state.action = 'Harvesting';
+                    hc.harvestingProgress += dt;
+                }
+                break;
+            }
+        } else {
+            // TODO include building&unit size in this distance
+            const DROPOFF_DISTANCE = 1;
+            // TODO cache the dropoff base
+            // TODO - resource dropoff component
+            const target = findClosestUnitBy(u => 
+                u.owner === unit.owner &&
+                u.kind === 'Base'
+            );
+
+            if (!target) {
+                // no bases to carry resources to; unlikely but possible
+                return;
+            }
+
+            switch(moveTowardsUnit(target, DROPOFF_DISTANCE)) {
+            case 'Unreachable':
+                // TODO if closest base is unreachable maybe try next one?
+                clearCurrentCommand();
+                return;
+            case 'ReachedTarget':
+                owner.resources += hc.resourcesCarried;
+                hc.resourcesCarried = undefined;
+                return;
+            }
+        }
+    }
+
+    const produceCommand = (cmd: CommandProduce) =>  {
+        // TODO should this happen regardless of the command if i keep the state
+        // in the component anyway?
+        const p = getProducerComponent(unit);
+        if (!p) {
+            throw new ComponentMissingError("Producer");
+        }
+
+        if (!p.productionState) {
+            const numberOfPlayerUnits = g.units.filter(u => u.owner === unit.owner).length;
+            if (numberOfPlayerUnits >= MAX_PLAYER_UNITS) {
+                throw new InvalidCommandError("Unit orderded to produce but maximum unit count reached");
+            }
+
+            const utp = p.unitsProduced.find((up: UnitProductionCapability) => up.unitType == cmd.unitToProduce);
+            if (!utp) {
+                throw new InvalidCommandError("Unit orderded to produce but it can't produce this unit type");
+            }
+
+            const cost = utp.productionCost;
+
+            if (cost > owner.resources) {
+                throw new InvalidCommandError("Unit ordered to produce but player doesn't have enough resources");
+            }
+
+            owner.resources -= cost;
+
+            const time = utp.productionTime;
+            p.productionState = {
+                unitType: cmd.unitToProduce,
+                timeLeft: time,
+                originalCost: cost,
+                originalTimeToProduce: time,
+            };
+        }
+
+        p.productionState.timeLeft -= dt;
+        if (p.productionState.timeLeft < 0) {
+            const producedUnitPosition = findPositionForProducedUnit(g, unit, p.productionState.unitType, presence, buildings);
+
+            if (!producedUnitPosition){
+                p.productionState = undefined;
+                throw new GenericLogicError("Cannot produce unit because of insufficient space");
+            }
+
+            // TODO - automatic counter
+            g.lastUnitId += 1;
+            g.units.push(createUnit(
+                g.lastUnitId,
+                unit.owner,
+                p.productionState.unitType,
+                producedUnitPosition,
+            ));
+
+            // TODO - build queue
+            clearCurrentCommand();
+            p.productionState = undefined;
+        }
+    }
+
+    const buildCommand = (cmd: CommandBuild) => {
+        const bc = getBuilderComponent(unit);
+        if (!bc)
+            throw new ComponentMissingError("Builder");
+
+        const buildCapability = bc.buildingsProduced.find((bp: BuildCapability) => bp.buildingType === cmd.building);
+        if (!buildCapability)
+            throw new InvalidCommandError("Unit ordered to build something it can't");
+
+        if (buildCapability.buildCost > owner.resources)
+            throw new InvalidCommandError("Unit ordered to build but player doesn't have enough resources");
+
+        const buildingData = getUnitDataByName(cmd.building);
+        if (!buildingData)
+            throw new InvalidCommandError("Unit ordered to build unknown unit" +  cmd.building);
+
+        const getBuildingComponentFromUnitData = (ud: UnitData) => {
+            return ud.find(c => c.type === 'Building') as Building;
+        };
+
+        const buildingComponent = getBuildingComponentFromUnitData(buildingData);
+        if (!buildingComponent)
+            throw new InvalidCommandError("Unit ordered to build something that's not a building: " + cmd.building);
+
+        if (!isBuildPlacementOk(g.board.map, g.units, buildingComponent, cmd.position))
+            throw new InvalidCommandError("Unit ordered to build but some tiles are obscured");
+
+        // the buildings are pretty large, so the worker should go towards the center
+        // TODO is there a way to use getUnitReferencePosition here for consistency?
+        const buildingSize = buildingComponent.size;
+        const middleOfTheBuilding = V.sumScalar(cmd.position, buildingSize/2);
+        // and is able to build once they reach the perimeter
+        const buildingDistance = buildingComponent.size / 2 + 1;
+
+        // TODO this would technically allow building over water etc.
+        switch(moveTowardsPoint(middleOfTheBuilding, buildingDistance)) {
+            case 'Unreachable':
+                throw new InvalidCommandError("Unit ordered to build but location is unreachable.");
+
+            case 'ReachedTarget': {
+                owner.resources -= buildCapability.buildCost;
+                // TODO - this should take time
+                // already specified in bp.buildTime
+
+                // now depending on the building archetype different things might happen
+                // 1. summon - the building starts constructing but the unit is free to move
+                // 2. orc-style build - the unit disappears inside of the building while it's being built
+                // 3. human-style build - the unit stays on the perimeter while it's building
+
+                // for now, I'll make the building appear instantly, and teleport the unit out of it
+                g.lastUnitId += 1;
+                g.units.push(createUnit(
+                    g.lastUnitId,
+                    unit.owner,
+                    cmd.building,
+                    { x: cmd.position.x, y: cmd.position.y },
+                ));
+
+                // update the buildings map so that the unit is actually pushed out of the
+                // newly constructed building
+                // TODO - game interface should cover that
+                const [presenceNew, buildingsNew] = buildPresenceAndBuildingMaps(g.units, g.board);
+                presence = presenceNew;
+                buildings = buildingsNew;
+
+                const teleportPosition = findClosestEmptyTile(g, unit.position, presence, buildings);
+                if (teleportPosition) {
+                    teleportPosition.x += 0.5;
+                    teleportPosition.y += 0.5;
+                    V.vecSet(unit.position, teleportPosition);
+                } else {
+                    throw new Error("Cannot find a good place to teleport a unit after building")
+                }
+
+                clearCurrentCommand();
+                return;
+            }
+        }
+    }
+
+
     // Update passive cooldowns
     {
         const ac = getAttackerComponent(unit);
@@ -655,278 +841,67 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     const cmd = unit.state.current;
     const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
-    switch (cmd.typ) {
-        case 'Move': {
-            if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-                clearCurrentCommand();
-            }
-            break;
-        }
-
-        case 'AttackMove': {
-            const ac = getAttackerComponent(unit);
-            // TODO just execute move to go together with formation
-            if (!ac) {
-                return;
-            }
-
-            const closestTarget = detectNearbyEnemy();
-            if (closestTarget) {
-                const MAX_PATH_DEVIATION = 5;
-
-                // TODO compute
-                const pathDeviation = 0; //computePathDeviation(unit);
-                if (pathDeviation > MAX_PATH_DEVIATION) {
-                    // lose aggro
-                    // TODO: aggro hysteresis?
-                    // just move
-                    if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-                        clearCurrentCommand();
-                    }
-                } else {
-                    aggro(ac, closestTarget);
-                }
-            } else {
-                // just move
-                if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-                    clearCurrentCommand();
-                }
-            }
-
-            break;
-        }
-
-        case 'Stop': {
-            stopMoving();
-            // TODO dedicated cancel command
-            cancelProduction();
-            becomeIdleAtCurrentPosition();
-            break;
-        }
-
-        case 'Follow': {
-            const moveResult = moveTowardsUnitById(cmd.target, UNIT_FOLLOW_DISTANCE);
-            if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
-                clearCurrentCommand();
-                break;
-            }
-            break;
-        }
-
-        case 'Attack': {
-            const ac = getAttackerComponent(unit);
-            if (!ac) {
-                console.info('[game] A unit without an Attacker component received an Attack command');
-                clearCurrentCommand();
+    try {
+        switch (cmd.typ) {
+            case 'Move': {
+                moveCommand(cmd);
                 break;
             }
 
-            // target not existing is a common situation if the target got destroyed
-            // after the command was made
-            const target = g.units.find(u => u.id === cmd.target);
-            if (!target) {
-                clearCurrentCommand();
+            case 'AttackMove': {
+                attackMoveCommand(cmd);
                 break;
             }
 
-            aggro(ac, target);
-            break;
+            case 'Stop': {
+                stopCommand(cmd);
+                break;
+            }
+
+            case 'Follow': {
+                followCommand(cmd);
+                break;
+            }
+
+            case 'Attack': {
+                attackCommand(cmd);
+                break;
+            }
+
+            case 'Harvest': {
+                harvestCommand(cmd);
+                break;
+            }
+
+            case 'Produce': {
+                produceCommand(cmd);
+                break;
+            }
+
+            case 'Build': {
+                buildCommand(cmd);
+                break;
+            }
+        }
+    }
+    catch (e) {
+        if (e instanceof ComponentMissingError) {
+            console.info("[game] Command missing component " + e.message);
+            clearCurrentCommand();
+        } else if (e instanceof InvalidCommandError) {
+            console.info("[game] " + e.message);
+            clearCurrentCommand();
+        } else if (e instanceof GenericLogicError) {
+            console.error("[game] Logic error during command processing: " + e.message);
+            clearCurrentCommand();
+        } else if (e instanceof Error) {
+            console.error("[game] Significant error during command processing: " + e.message);
+            throw e;
+        } else {
+            console.error("[game] Unknown error during command processing");
+            throw e;
         }
 
-        case 'Harvest': {
-            const hc = getHarvesterComponent(unit);
-            if (!hc) {
-                clearCurrentCommand();
-                break;
-            }
-
-            const target = g.units.find(u => u.id === cmd.target);
-            if (!target) {
-                // TODO find other nearby resource
-                clearCurrentCommand();
-                break;
-            }
-
-            if (!hc.resourcesCarried) {
-                const HARVESTING_DISTANCE = 2;
-                const HARVESTING_RESOURCE_COUNT = 8;
-
-                // TODO - should resources use perimeter?
-                switch(moveTowardsUnit(target, HARVESTING_DISTANCE)) {
-                case 'Unreachable':
-                    clearCurrentCommand();
-                    break;
-                case 'ReachedTarget':
-                    if (hc.harvestingProgress >= hc.harvestingTime) {
-                        hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
-                        // TODO - reset harvesting at any other action
-                        // maybe i could use some "exit state function"?
-                        hc.harvestingProgress = 0;
-                    } else {
-                        unit.state.action = 'Harvesting';
-                        hc.harvestingProgress += dt;
-                    }
-                    break;
-                }
-            } else {
-                // TODO include building&unit size in this distance
-                const DROPOFF_DISTANCE = 1;
-                // TODO cache the dropoff base
-                // TODO - resource dropoff component
-                const target = findClosestUnitBy(u => 
-                    u.owner === unit.owner &&
-                    u.kind === 'Base'
-                );
-
-                if (!target) {
-                    // no bases to carry resources to; unlikely but possible
-                    break;
-                }
-
-                switch(moveTowardsUnit(target, DROPOFF_DISTANCE)) {
-                case 'Unreachable':
-                    // TODO if closest base is unreachable maybe try next one?
-                    clearCurrentCommand();
-                    break;
-                case 'ReachedTarget':
-                    owner.resources += hc.resourcesCarried;
-                    hc.resourcesCarried = undefined;
-                    break;
-                }
-            }
-
-            break;
-        }
-
-        case 'Produce': {
-            // TODO should this happen regardless of the command if i keep the state
-            // in the component anyway?
-            const p = getProducerComponent(unit);
-            if (!p) {
-                clearCurrentCommand();
-                break;
-            }
-
-            if (!p.productionState) {
-                const numberOfPlayerUnits = g.units.filter(u => u.owner === unit.owner).length;
-                if (numberOfPlayerUnits >= MAX_PLAYER_UNITS) {
-                    console.info("[game] Unit orderded to produce but maximum unit count reached");
-                    clearCurrentCommand();
-                    break;
-                }
-
-                const utp = p.unitsProduced.find(up => up.unitType == cmd.unitToProduce);
-                if (!utp) {
-                    console.info("[game] Unit orderded to produce but it can't produce this unit type");
-                    clearCurrentCommand();
-                    break;
-                }
-
-                const cost = utp.productionCost;
-
-                if (cost > owner.resources) {
-                    console.info("[game] Unit ordered to produce but player doesn't have enough resources");
-                    clearCurrentCommand();
-                    break;
-                }
-
-                owner.resources -= cost;
-
-                const time = utp.productionTime;
-                p.productionState = {
-                    unitType: cmd.unitToProduce,
-                    timeLeft: time,
-                    originalCost: cost,
-                    originalTimeToProduce: time,
-                };
-            }
-
-            p.productionState.timeLeft -= dt;
-
-            const refPos = getUnitReferencePosition(unit);
-            const producedUnitPosition = { x: refPos.x, y: refPos.y+4 };
-
-            if (p.productionState.timeLeft < 0) {
-                // TODO - automatic counter
-                g.lastUnitId += 1;
-                g.units.push(createUnit(
-                    g.lastUnitId,
-                    unit.owner,
-                    p.productionState.unitType,
-                    producedUnitPosition,
-                ));
-
-                // TODO - build queue
-                clearCurrentCommand();
-                p.productionState = undefined;
-            }
-
-            break;
-        }
-
-        case 'Build': {
-            try {
-                const bc = getBuilderComponent(unit);
-                if (!bc)
-                    throw "[game] Unit without a builder component ordered to build";
-
-                const buildCapability = bc.buildingsProduced.find(bp => bp.buildingType === cmd.building);
-                if (!buildCapability)
-                    throw "[game] Unit ordered to build something it can't";
-
-                if (buildCapability.buildCost > owner.resources)
-                    throw "[game] Unit ordered to build but player doesn't have enough resources";
-
-                const buildingData = getUnitDataByName(cmd.building);
-                if (!buildingData)
-                    throw "[game] Unit ordered to build unknown unit" +  cmd.building;
-
-                const getBuildingComponentFromUnitData = (ud: UnitData) => {
-                    return ud.find(c => c.type === 'Building') as Building;
-                };
-
-                const buildingComponent = getBuildingComponentFromUnitData(buildingData);
-                if (!buildingComponent)
-                    throw "[game] Unit ordered to build something that's not a building: " + cmd.building;
-
-                if (!isBuildPlacementOk(g.board.map, g.units, buildingComponent, cmd.position))
-                    throw "[game] Unit ordered to build but some tiles are obscured";
-
-                // the buildings are pretty large, so the worker should go towards the center
-                // TODO is there a way to use getUnitReferencePosition here for consistency?
-                const buildingSize = buildingComponent.size;
-                const middleOfTheBuilding = V.sumScalar(cmd.position, buildingSize/2);
-                // and is able to build once they reach the perimeter
-                const buildingDistance = buildingComponent.size / 2 + 1;
-
-                switch(moveTowardsPoint(middleOfTheBuilding, buildingDistance)) {
-                case 'Unreachable':
-                    throw "[game] Unit ordered to build but location is unreachable.";
-
-                case 'ReachedTarget':
-                    owner.resources -= buildCapability.buildCost;
-                    // TODO - this should take time
-                    // already specified in bp.buildTime
-
-                    g.lastUnitId += 1;
-                    g.units.push(createUnit(
-                        g.lastUnitId,
-                        unit.owner,
-                        cmd.building,
-                        { x: cmd.position.x, y: cmd.position.y },
-                    ));
-                    clearCurrentCommand();
-                    break;
-                }
-                break;
-            }
-            catch(e) {
-                console.info(e);
-                clearCurrentCommand();
-                break;
-            }
-            break;
-        }
     }
 }
 

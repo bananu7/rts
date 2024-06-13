@@ -1,6 +1,6 @@
 ################################
 # first stage - build
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install (and cache) full deps
@@ -18,7 +18,7 @@ RUN yarn build
 
 ################################
 # second stage - run
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install run deps

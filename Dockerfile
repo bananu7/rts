@@ -2,7 +2,7 @@
 
 ################################
 # first stage - build
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install deps for both packages
@@ -31,8 +31,9 @@ WORKDIR /var/lib/app/packages/server
 COPY ./packages/server/tsconfig.json ./
 
 RUN mkdir -p ./src
-COPY ./packages/server/src/*.ts ./src/
+COPY ./packages/server/src ./src
 
+RUN yarn tsc --version
 RUN yarn build
 
 # build client
@@ -56,7 +57,7 @@ RUN yarn build
 
 ################################
 # second stage - run
-FROM node:18
+FROM node:20
 WORKDIR /var/lib/app
 
 # install run deps
