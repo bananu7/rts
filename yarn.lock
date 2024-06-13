@@ -381,28 +381,28 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
   integrity sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==
 
-"@geckos.io/client@^2.2.3":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@geckos.io/client/-/client-2.3.0.tgz#2f728d7ee2af4b305e3b3caf4c0cd141c10cc690"
-  integrity sha512-FpSSaRqvLaszUr73C2XQ9K/6ffQW6x8kdKHNrwHn8fMWB1ST3UrcS4izJZ5WMCmpysSwUFhXa8BIUzrESk9aCw==
+"@geckos.io/client@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@geckos.io/client/-/client-3.0.0.tgz#5aa7d809085e6dfd44dac0972cd652c3352de92c"
+  integrity sha512-v01k5Ilo8MkrPpVUxnJ7XvevrFWEpzp7WiMfz9iWUHclukZAR+0KvjYLMrAWdbZR6BBM4LMcTbmr5ez2KJwfpg==
   dependencies:
-    "@geckos.io/common" "^2.3.0"
+    "@geckos.io/common" "^3.0.0"
 
-"@geckos.io/common@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@geckos.io/common/-/common-2.3.0.tgz#423221cf42ca303f766483338e93942c4bfa3499"
-  integrity sha512-si9IYj1ZDlYZCtgynmeqqp9bQzvjFpSmzVj36AszcFiHp4Nz4J+gYfeo6MiKWjEJyCgxz6riOFZ0PCcPmMj6DA==
+"@geckos.io/common@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@geckos.io/common/-/common-3.0.0.tgz#8710165f4ebaaa4c51ad8387f88d779ef9519861"
+  integrity sha512-par4UePqom8dohWpiny/UWtFHs00F1HYmLj5qWupmYp4l4za48I1d0AGXG2S9yOc6Dm1e2xRrysoFaYr6QXfxQ==
   dependencies:
     "@yandeu/events" "0.0.6"
 
-"@geckos.io/server@^2.2.3":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@geckos.io/server/-/server-2.3.0.tgz#f687d9bf641d234f07fad84b69fb94c68bb13516"
-  integrity sha512-0ezdx9Cclg9xWo70cuE0n/mmpTVwKxH0suaJmAlaUHDxxqZlvEb+hl/tvt02QRSZPoIeCDyE+nAkg1F1p91J4w==
+"@geckos.io/server@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@geckos.io/server/-/server-3.0.0.tgz#5bcded0d0659cfcd670fe2779c857b9482727549"
+  integrity sha512-KbAf8T31pYRMOs8UPUFA9xWPxeJ4E57dWU4KPe7nr+N8GW+HpLBj8a0cvynjT/gTzlaoGmYt9D/SFZ2rnJW/fw==
   dependencies:
-    "@geckos.io/common" "^2.3.0"
+    "@geckos.io/common" "^3.0.0"
     "@yandeu/events" "0.0.6"
-    node-datachannel "0.4.0"
+    node-datachannel "0.5.2"
 
 "@hutson/parse-repository-url@^3.0.0":
   version "3.0.2"
@@ -4387,12 +4387,18 @@ node-abi@^3.3.0:
   dependencies:
     semver "^7.3.5"
 
-node-datachannel@0.4.0:
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.4.0.tgz#cd237cbc121221f5f6342cbf2226120dda6dc52f"
-  integrity sha512-4ljypzRaWfM7bLtd4fpQaE4u+bAg5d8wPADycY60RfaZLoxVjcHk+Hsg+gtyyxNIeG6Cdtp3iDN+DUGAAjeVuw==
+node-datachannel@0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/node-datachannel/-/node-datachannel-0.5.2.tgz#57bbca48414e875098f0ef52e63953b5778a0bc3"
+  integrity sha512-COuQtVSZc80jt7TV2/BlksOiqZyNFbitDENy8MensezoA7pEGB+lmd9Qk3dnmSZ1nr1vyhF44FL7IkKsQ52Mvw==
   dependencies:
+    node-domexception "^2.0.1"
     prebuild-install "^7.0.1"
+
+node-domexception@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/node-domexception/-/node-domexception-2.0.1.tgz#83b0d101123b5bbf91018fd569a58b88ae985e5b"
+  integrity sha512-M85rnSC7WQ7wnfQTARPT4LrK7nwCHLdDFOCcItZMhTQjyCebJH8GciKqYJNgaOFZs9nFmTmd/VMyi3OW5jA47w==
 
 node-fetch@^2.6.1, node-fetch@^2.6.7:
   version "2.6.9"
@@ -6140,10 +6146,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
 
-typescript@^4.6.4, typescript@^4.8.2:
-  version "4.9.5"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
-  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
+typescript@^5.4.5:
+  version "5.4.5"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.4.5.tgz#42ccef2c571fdbd0f6718b1d1f5e6e5ef006f611"
+  integrity sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==
 
 ufo@^1.1.2:
   version "1.2.0"
