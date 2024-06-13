@@ -481,6 +481,25 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return units[0];
     }
 
+    const findClosestEmptySpot = (position: Position): Position | undefined => {
+        const MAX_SPIRAL_POSITIONS_TO_CHECK = 24;
+
+        // TODO - duplicated logic
+        const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
+
+        for (let i = 0; i < MAX_SPIRAL_POSITIONS_TO_CHECK; i++) {
+            const p = spiral(position, i, 1);
+            const noBuilding = ! buildings.has(explode(p));
+            const noUnit = ! presence.has(explode(p));
+
+            if (noBuilding && noUnit) {
+                return p;
+            }
+        }
+
+        return undefined;
+    }
+
     const detectNearbyEnemy = () => {
         const vision = getVisionComponent(unit);
         if (!vision) {
@@ -747,6 +766,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         // and is able to build once they reach the perimeter
         const buildingDistance = buildingComponent.size / 2 + 1;
 
+        // TODO this would technically allow building over water etc.
         switch(moveTowardsPoint(middleOfTheBuilding, buildingDistance)) {
             case 'Unreachable':
                 throw new InvalidCommandError("Unit ordered to build but location is unreachable.");
@@ -756,6 +776,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 // TODO - this should take time
                 // already specified in bp.buildTime
 
+                // now depending on the building archetype different things might happen
+                // 1. summon - the building starts constructing but the unit is free to move
+                // 2. orc-style build - the unit disappears inside of the building while it's being built
+                // 3. human-style build - the unit stays on the perimeter while it's building
+
+                // for now, I'll make the building appear instantly, and teleport the unit out of it
                 g.lastUnitId += 1;
                 g.units.push(createUnit(
                     g.lastUnitId,
@@ -763,6 +789,20 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                     cmd.building,
                     { x: cmd.position.x, y: cmd.position.y },
                 ));
+
+                // update the buildings map so that the unit is actually pushed out of the
+                // newly constructed building
+                const [presenceNew, buildingsNew] = buildPresenceAndBuildingMaps(g.units, g.board);
+                presence = presenceNew;
+                buildings = buildingsNew;
+
+                const teleportPosition = findClosestEmptySpot(unit.position);
+                if (teleportPosition) {
+                    V.vecSet(unit.position, teleportPosition);
+                } else {
+                    throw new Error("Cannot find a good name to teleport a unit after building")
+                }
+
                 clearCurrentCommand();
                 return;
             }
