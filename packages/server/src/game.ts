@@ -40,6 +40,7 @@ export function newGame(matchId: string, map: GameMap): Game {
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
+        // TODO handle disconnect separately from elimination
         players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
         board: {
             map: map,
@@ -171,36 +172,59 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
 // Returns a list of update packets, one for each player
 export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     switch (g.state.id) {
-    case 'Precount':
-        g.state.count -= dt;
-        if (g.state.count <= 1000) {
-            g.state = {id: 'Play'};
-        }
-        break;
-    case 'Play':
-        // TODO figure out who won
-        switch (g.winCondition) {
-        case 'BuildingElimination':
-            const e = eliminated(g);
-            // TODO more than 2 players
-            if (e.length > 0) {
-                console.log('[game] Game ended by building elimination');
-                g.state = {id: 'GameEnded'};
+        case 'Precount':
+            g.state.count -= dt;
+            if (g.state.count <= 1000) {
+                g.state = {id: 'Play'};
             }
             break;
+        case 'Play': {
+            const getPlayerIndexesStillInGame = () => {
+                const playersIdxLeft = [];
+                for (let i = 0; i < g.players.length; i += 1) {
+                    if (g.players[i].stillInGame)
+                        playersIdxLeft.push(i + 1);
+                }
 
-        case 'OneLeft':
-            const playersLeft = g.players.filter(ps => ps.stillInGame).length;
-            if (playersLeft <= 1) {
+                return playersIdxLeft;
+            };
+
+            // perform checks against every win condition
+            // TODO this model isn't detailed enough to note why
+            // a player was eliminated or considered winning, but
+            // that can be improved later
+            switch (g.winCondition) {
+                // if building elimination is selected the game will automatically
+                // stop a player with no buildings from playing.
+                case 'BuildingElimination': {
+                    const eliminatedIndexes = eliminated(g);
+                    for (let idx of eliminatedIndexes) {
+                        console.info(`[game] Player ${idx} eliminated because of no buildings`);
+                        g.players[idx-1].stillInGame = false;
+                    }
+                    break;
+                }
+
+                // nothing to be done to compute as it's checked by default
+                case 'OneLeft': {
+                    break;
+                }
+            }
+
+            // Check if there's just one player
+            const playersIdxLeft = getPlayerIndexesStillInGame();
+            if (playersIdxLeft.length <= 1) {
                 console.log('[game] Game ended - only one player left');
-                g.state = {id: 'GameEnded'};
+                g.state = {
+                    id: 'GameEnded',
+                    winnerIndices: playersIdxLeft,
+                };
             }
+
+            g.tickNumber += 1;
+            updateUnits(dt, g);
             break;
         }
-
-        g.tickNumber += 1;
-
-        updateUnits(dt, g);
     }
 
     const unitUpdates: Unit[] = g.units
