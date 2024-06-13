@@ -16,7 +16,7 @@ import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from '.
 
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
 import { findPositionForProducedUnit } from './game/produce.js'
-import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance, findClosestEmptySpot } from './game/util.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance, findClosestEmptyTile } from './game/util.js'
 
 // TODO include building&unit size in this distance
 const UNIT_FOLLOW_DISTANCE = 0.5;
@@ -698,6 +698,11 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         if (p.productionState.timeLeft < 0) {
             const producedUnitPosition = findPositionForProducedUnit(g, unit, p.productionState.unitType, presence, buildings);
 
+            if (!producedUnitPosition){
+                p.productionState = undefined;
+                throw new Error("Cannot produce unit because of insufficient space");
+            }
+
             // TODO - automatic counter
             g.lastUnitId += 1;
             g.units.push(createUnit(
@@ -778,8 +783,10 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 presence = presenceNew;
                 buildings = buildingsNew;
 
-                const teleportPosition = findClosestEmptySpot(g, unit.position, presence, buildings);
+                const teleportPosition = findClosestEmptyTile(g, unit.position, presence, buildings);
                 if (teleportPosition) {
+                    teleportPosition.x += 0.5;
+                    teleportPosition.y += 0.5;
                     V.vecSet(unit.position, teleportPosition);
                 } else {
                     throw new Error("Cannot find a good place to teleport a unit after building")

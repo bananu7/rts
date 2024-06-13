@@ -181,7 +181,6 @@ export function findClosestEmptyTile(
     for (let i = 0; i < MAX_POSITIONS_TO_CHECK; i++) {
         const p = concentric(pos, i);
         if (!p) {
-            console.log("Spot not found")
             return undefined;
         }
 
@@ -189,7 +188,6 @@ export function findClosestEmptyTile(
         const noUnit = ! presence.has(explode(p));
 
         if (noBuilding && noUnit) {
-            console.log("Found empty spot ", p)
             return p;
         }
     }

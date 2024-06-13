@@ -205,8 +205,7 @@ describe('build action', () => {
         expect(game.units[0].state.state).toBe('idle');
     });
 
-    // TODO - currently the game allows placing the building on top of the harvester
-    // once this is fixed, the test will succeed!
+    // Checks if the unit can move after placing a building on top of itself
     test('build on top', () => {
         const game = createBasicGame({});
 
@@ -228,8 +227,21 @@ describe('build action', () => {
         for (let i = 0; i < 20 * 10; i++)
             tick(TICK_MS, game);
 
-        console.log(game.units)
+        expect(game.units.length).toBe(2);
 
-        expect(game.units.length).toBe(1);
+        console.log("[test] telling the unit to move")
+        command({
+                command: { typ: 'Move', target: { x: 15, y: 15 }},
+                unitIds: [1],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        tick(TICK_MS, game);
+
+        expect(game.units[0].state.state).toBe('active');
+        expect(game.units[0].state.action).toBe('Moving');
     });
 });
