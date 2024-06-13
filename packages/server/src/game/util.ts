@@ -1,4 +1,4 @@
-import { Position, Unit, Command, Component } from '../types'
+import { Position, Unit, Command, Component, Game, BuildingMap, PresenceMap } from '../types'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
 
@@ -92,4 +92,29 @@ export function unitDistance(a: Unit, b: Unit): number {
     const aPos = getUnitReferencePosition(a);
     const bPos = getUnitReferencePosition(b);
     return V.distance(aPos, bPos);
+}
+
+
+export function findClosestEmptySpot(
+    g: Game,
+    position: Position,
+    presence: PresenceMap,
+    buildings: BuildingMap
+): Position | undefined {
+    const MAX_SPIRAL_POSITIONS_TO_CHECK = 24;
+
+    // TODO - duplicated logic
+    const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
+
+    for (let i = 0; i < MAX_SPIRAL_POSITIONS_TO_CHECK; i++) {
+        const p = spiral(position, i, 1);
+        const noBuilding = ! buildings.has(explode(p));
+        const noUnit = ! presence.has(explode(p));
+
+        if (noBuilding && noUnit) {
+            return p;
+        }
+    }
+
+    return undefined;
 }

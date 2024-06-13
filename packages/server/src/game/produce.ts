@@ -1,5 +1,5 @@
 import { Position, Unit } from '../types'
-import { getUnitReferencePosition } from './util.js'
+import { getUnitReferencePosition, findClosestEmptySpot } from './util.js'
 
 export function findPositionForProducedUnit(unit: Unit, type: string): Position {
 

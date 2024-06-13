@@ -16,7 +16,7 @@ import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from '.
 
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
 import { findPositionForProducedUnit } from './game/produce.js'
-import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance } from './game/util.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance, findClosestEmptySpot } from './game/util.js'
 
 // TODO include building&unit size in this distance
 const UNIT_FOLLOW_DISTANCE = 0.5;
@@ -481,25 +481,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
         return units[0];
     }
 
-    const findClosestEmptySpot = (position: Position): Position | undefined => {
-        const MAX_SPIRAL_POSITIONS_TO_CHECK = 24;
-
-        // TODO - duplicated logic
-        const explode = (p: Position) => Math.floor(p.x)+Math.floor(p.y)*g.board.map.w;
-
-        for (let i = 0; i < MAX_SPIRAL_POSITIONS_TO_CHECK; i++) {
-            const p = spiral(position, i, 1);
-            const noBuilding = ! buildings.has(explode(p));
-            const noUnit = ! presence.has(explode(p));
-
-            if (noBuilding && noUnit) {
-                return p;
-            }
-        }
-
-        return undefined;
-    }
-
     const detectNearbyEnemy = () => {
         const vision = getVisionComponent(unit);
         if (!vision) {
@@ -796,7 +777,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
                 presence = presenceNew;
                 buildings = buildingsNew;
 
-                const teleportPosition = findClosestEmptySpot(unit.position);
+                const teleportPosition = findClosestEmptySpot(g, unit.position, presence, buildings);
                 if (teleportPosition) {
                     V.vecSet(unit.position, teleportPosition);
                 } else {

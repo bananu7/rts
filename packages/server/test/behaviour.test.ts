@@ -207,7 +207,7 @@ describe('build action', () => {
 
     // TODO - currently the game allows placing the building on top of the harvester
     // once this is fixed, the test will succeed!
-    test.skip('build on top', () => {
+    test('build on top', () => {
         const game = createBasicGame({});
 
         game.players[0].resources += 1000;
