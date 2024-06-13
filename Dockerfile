@@ -31,8 +31,9 @@ WORKDIR /var/lib/app/packages/server
 COPY ./packages/server/tsconfig.json ./
 
 RUN mkdir -p ./src
-COPY ./packages/server/src/*.ts ./src/
+COPY ./packages/server/src ./src
 
+RUN yarn tsc --version
 RUN yarn build
 
 # build client
