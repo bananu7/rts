@@ -79,6 +79,7 @@ function FileModel_(props: FileModelProps) {
                 o.material = accentMaterial;
             o.castShadow = true;
             o.receiveShadow = true;
+            o.frustumCulled = false;
         }
     });
 
