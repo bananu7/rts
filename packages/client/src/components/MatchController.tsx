@@ -19,6 +19,31 @@ import { MatchControl } from '../Multiplayer';
 import { MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
 import { mapEmptyForBuilding } from '@bananu7-rts/server/src/shared'
 
+type GameOverCardProps = {
+  playerIndex: number,
+  lastUpdatePacket: UpdatePacket | null,
+  leaveMatch: () => void,
+}
+function GameOverCard(props: GameOverCardProps) {
+  const lastUpdatePacket = props.lastUpdatePacket;
+
+  if (!lastUpdatePacket)
+    return false;
+
+  if (lastUpdatePacket.state.id !== "GameEnded")
+    return false;
+
+  const victory = lastUpdatePacket.state.winnerIndices.indexOf(props.playerIndex) !== -1;
+  const text = victory ? "Victory!" : "Defeat!";
+
+  return (
+    <div className="card">
+      <h2>{text}</h2>
+      <button onClick={props.leaveMatch}>Return to main menu</button>
+    </div>
+  );
+}
+
 type MatchControllerProps = {
   ctrl: MatchControl,
 }
@@ -337,12 +362,10 @@ export function MatchController(props: MatchControllerProps) {
         </>
       }
 
-      { lastUpdatePacket &&
-        lastUpdatePacket.state.id === "GameEnded" &&
-        <div className="card">
-          <h2>Game Over</h2>
-          <button onClick={leaveMatch}>Return to main menu</button>
-        </div>
-      }
+      <GameOverCard
+        playerIndex={props.ctrl.getPlayerIndex()}
+        lastUpdatePacket={lastUpdatePacket}
+        leaveMatch={leaveMatch}
+      />
   </div>);
 }
