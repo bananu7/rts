@@ -28,10 +28,10 @@ function GameOverCard(props: GameOverCardProps) {
   const lastUpdatePacket = props.lastUpdatePacket;
 
   if (!lastUpdatePacket)
-    return false;
+    return null;
 
   if (lastUpdatePacket.state.id !== "GameEnded")
-    return false;
+    return null;
 
   const victory = lastUpdatePacket.state.winnerIndices.indexOf(props.playerIndex) !== -1;
   const text = victory ? "Victory!" : "Defeat!";
