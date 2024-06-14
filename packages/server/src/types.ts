@@ -244,6 +244,7 @@ export type GameState = {
     id: 'Paused',
 } | {
     id: 'GameEnded',
+    winnerIndices: PlayerIndex[],
 }
 
 export type PresenceMap = Map<number, Unit[]>;
