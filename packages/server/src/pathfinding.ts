@@ -199,8 +199,8 @@ export function pathFind(a: Position, destination: Destination, tolerance: numbe
         }
     }
 
-    newPath.pop(); // remove last grid tile to avoid backtracking
     if (destination.type === 'MapDestination') {
+        newPath.pop(); // remove last grid tile to avoid backtracking
         newPath.push(destination.position); // add the precise destination as the last step
     }
 

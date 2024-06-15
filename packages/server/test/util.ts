@@ -1,5 +1,5 @@
 import { Game, PlayerState, Unit, GameMap, Position, TilePos } from '../src/types'
-import { createUnit } from '../src/units.js'
+import { createUnit } from '../src/game/units.js'
 
 export function createOnePlayerState(): PlayerState {
     return { resources: 0, stillInGame: true };
