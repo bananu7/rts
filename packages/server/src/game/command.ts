@@ -32,7 +32,7 @@ type CommandContext = {
 // Commands
 export const moveCommand = (ctx: CommandContext, cmd: CommandMove) => {
     const unit = ctx.unit;
-    moveToPointOrCancelCommand(unit, cmd.target);
+    moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
 };
 
 export const attackMoveCommand = (ctx: CommandContext, cmd: CommandAttackMove) => {
@@ -52,12 +52,12 @@ export const attackMoveCommand = (ctx: CommandContext, cmd: CommandAttackMove) =
         if (pathDeviation > MAX_PATH_DEVIATION) {
             // lose aggro and move directly to target
             // TODO: aggro hysteresis?
-            moveToPointOrCancelCommand(unit, cmd.target);
+            moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
         } else {
-            aggro(unit, ac, closestTarget);
+            aggro(unit, ac, closestTarget, ctx.dt);
         }
     } else {
-        moveToPointOrCancelCommand(unit, cmd.target);
+        moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
     }
 }
 
@@ -77,7 +77,7 @@ export const attackCommand = (ctx: CommandContext, cmd: CommandAttack) =>  {
         return;
     }
 
-    aggro(unit, ac, target);
+    aggro(unit, ac, target, ctx.dt);
 };
 
 export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
@@ -91,7 +91,7 @@ export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
 
 export const followCommand = (ctx: CommandContext, cmd: CommandFollow) => {
     const unit = ctx.unit;
-    const moveResult = moveTowardsUnitById(unit, cmd.target, UNIT_FOLLOW_DISTANCE);
+    const moveResult = moveTowardsUnitById(unit, cmd.target, UNIT_FOLLOW_DISTANCE, ctx.dt);
     if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
         clearCurrentCommand(unit);
     }

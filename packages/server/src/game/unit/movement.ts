@@ -52,7 +52,7 @@ function moveTowards(unit: Unit, destination: Destination, tolerance: number, dt
     }
 
     // At this point we certainly have a path
-    if (moveApply(unit, mc)) {
+    if (moveApply(unit, mc, dt)) {
         // TODO
         delete unit.pathToNext;
         return 'ReachedTarget';
