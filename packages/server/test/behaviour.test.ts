@@ -1,65 +1,10 @@
 import { tick, command } from '../src/game.js'
-import { createUnit } from '../src/units.js'
 import { Game, PlayerState, Unit, GameMap, Position, TilePos } from '../src/types'
 import { expect, test, describe } from 'vitest'
 
+import { createBasicGame, createOnePlayerState, spawnUnit, markRectangle } from './util.js'
+
 const TICK_MS = 50;
-
-function createOnePlayerState(): PlayerState {
-    return { resources: 0, stillInGame: true };
-}
-
-function createTestMap(): GameMap {
-    const size = 20;
-
-    const tiles = new Array(size*size).fill(0);
-
-    return {
-        w: size,
-        h: size,
-        tiles
-    }
-}
-
-function createBasicGame(override: Partial<Game>): Game {
-    const units: Unit[] = [];
-
-    const board = {
-        map: createTestMap(),
-    };
-
-    const defaultGame: Game = {
-        matchId: "test",
-        state: { id: 'Play' },
-        tickNumber: 1,
-        players: [createOnePlayerState(), createOnePlayerState()],
-        board,
-        units,
-        lastUnitId: units.length,
-        winCondition: 'OneLeft',
-    };
-
-    return {...defaultGame, ...override};
-}
-
-function spawnUnit(g: Game, owner: number, kind: string, position: Position) {
-    g.lastUnitId += 1;
-    g.units.push(createUnit(
-        g.lastUnitId,
-        owner,
-        kind,
-        position,
-    ));
-}
-
-function markRectangle(m: GameMap, a: TilePos, b: TilePos) {
-    for (let x = a.x; x <= b.x; x += 1) {
-        for (let y = a.y; y <= b.y; y += 1) {
-            m.tiles[y * m.w + x] = 1;
-        }
-    }
-
-}
 
 describe('win condition', () => {
     test('BuildingElimination', () => {
