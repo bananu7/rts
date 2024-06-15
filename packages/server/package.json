@@ -7,7 +7,7 @@
     "test": "tsc && vitest",
     "build": "tsc -p .",
     "dev": "node dist/src/index.js",
-    "debug": "node --inspect dist/index.js"
+    "debug": "node --inspect dist/src/index.js"
   },
   "author": "",
   "license": "MIT",
