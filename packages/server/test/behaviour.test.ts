@@ -56,6 +56,30 @@ describe('movement', () => {
 
         expect(game.state.id).toBe('Play');
     });
+
+    test('move to building', () => {
+        const game = createBasicGame({}, 30);
+        spawnUnit(game, 1, "Harvester", {x: 2, y: 2});
+        spawnUnit(game, 1, "Base", {x: 20, y: 5});
+
+        tick(TICK_MS, game);
+
+        command({
+                command: { typ: 'Follow', target: 2 },
+                unitIds: [1],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        for (let i = 0; i < 20 * 10; i++)
+            tick(TICK_MS, game);
+
+        console.log(game.units);
+
+        expect(game.units[0].position.x).toBeGreaterThan(15);
+    });
 });
 
 describe('produce action', () => {

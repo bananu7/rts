@@ -5,8 +5,8 @@ export function createOnePlayerState(): PlayerState {
     return { resources: 0, stillInGame: true };
 }
 
-export function createTestMap(): GameMap {
-    const size = 20;
+export function createTestMap(size?: number): GameMap {
+    size ??= 20;
 
     const tiles = new Array(size*size).fill(0);
 
@@ -17,11 +17,11 @@ export function createTestMap(): GameMap {
     }
 }
 
-export function createBasicGame(override: Partial<Game>): Game {
+export function createBasicGame(override: Partial<Game>, mapSize?: number): Game {
     const units: Unit[] = [];
 
     const board = {
-        map: createTestMap(),
+        map: createTestMap(mapSize),
     };
 
     const defaultGame: Game = {
