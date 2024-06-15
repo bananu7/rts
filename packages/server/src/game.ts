@@ -424,9 +424,6 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
     type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
     const moveTowards = (destination: Destination, tolerance: number): MoveResult => {
-        // assume idle unless we can guarantee movement
-        unit.state.action = 'Idle';
-
         if (destinationDistance(unit.position, destination) < tolerance) {
             return 'ReachedTarget'; // nothing to do
         }
@@ -448,7 +445,9 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             if (pathEmpty) {
                 if (!computePathTo(destination, tolerance))
                     return 'Unreachable';
-            } else {
+            } else if (destination.type === 'MapDestination') {
+                // paths to buildings don't have the center as last step; as such
+                // this logic erroneously assumes the path needs recomputing.
                 const distanceFromPathEndToTarget = destinationDistance(unit.pathToNext[unit.pathToNext.length-1], destination);
                 if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD + tolerance){
                     if (!computePathTo(destination, tolerance))
@@ -460,11 +459,12 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
         // At this point we certainly have a path
         if (moveApply(mc)) {
+            // TODO
+            delete unit.pathToNext;
             return 'ReachedTarget';
         }
 
         unit.state.action = 'Moving';
-
         return 'Moving';
     }
 
@@ -491,6 +491,20 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             return moveTowardsUnit(target, extraTolerance);
         } else {
             return 'TargetNonexistent';
+        }
+    }
+
+    // attempts direct move to a point; if the point is either
+    // reached or unable to be reached, the command is concluded over.
+    const moveToPointOrCancelCommand = (p: Position) => {
+        switch (moveTowardsPoint(p, MAP_MOVEMENT_TOLERANCE)) {
+            case 'Moving':
+                unit.state.action = 'Moving';
+                break;
+            case 'ReachedTarget':
+            case 'Unreachable':
+                clearCurrentCommand();
+                break;
         }
     }
 
@@ -554,9 +568,7 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
 
     // Commands
     const moveCommand = (cmd: CommandMove) => {
-        if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-            clearCurrentCommand();
-        }
+        moveToPointOrCancelCommand(cmd.target);
     };
 
     const attackMoveCommand = (cmd: CommandAttackMove) => {
@@ -573,20 +585,14 @@ function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap
             // TODO compute
             const pathDeviation = 0; //computePathDeviation(unit);
             if (pathDeviation > MAX_PATH_DEVIATION) {
-                // lose aggro
+                // lose aggro and move directly to target
                 // TODO: aggro hysteresis?
-                // just move
-                if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-                    clearCurrentCommand();
-                }
+                moveToPointOrCancelCommand(cmd.target);
             } else {
                 aggro(ac, closestTarget);
             }
         } else {
-            // just move
-            if (moveTowardsPoint(cmd.target, MAP_MOVEMENT_TOLERANCE) !== 'Moving') {
-                clearCurrentCommand();
-            }
+            moveToPointOrCancelCommand(cmd.target);
         }
     }
 
