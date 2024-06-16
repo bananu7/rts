@@ -1,5 +1,5 @@
 import { 
-    Unit, Game, Milliseconds, PresenceMap, BuildingMap
+    Unit, Game, Milliseconds, GameWithPresenceCache,
 } from '../types'
 
 import { 
@@ -22,18 +22,23 @@ import { MAXIMUM_IDLE_AGGRO_RANGE, MAP_MOVEMENT_TOLERANCE } from './constants.js
 
 import { clearCurrentCommand } from './unit/clear.js'
 
-export function updateUnit(dt: Milliseconds, g: Game, unit: Unit, presence: PresenceMap, buildings: BuildingMap) {
+export function updateUnit(dt: Milliseconds, gm: GameWithPresenceCache, unit: Unit) {
     updatePassiveCooldowns(unit, dt);
 
-    if (idle(unit, dt))
+    if (idle(unit, gm, dt))
         return;
 
+    // TODO - idle doesn't propagate state check and type narrowing
+    if (unit.state.state === 'idle') {
+        return false;
+    }
+
     const cmd = unit.state.current;
-    const owner = g.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
+    const owner = gm.game.players[unit.owner - 1]; // TODO players 0-indexed is a bad idea
 
     try {
         const commandContext = {
-            unit, owner, dt, g
+            unit, owner, dt, gm,
         };
 
         switch (cmd.typ) {

@@ -1,5 +1,5 @@
 import { 
-    Unit, UnitId, Milliseconds, PlayerState,
+    Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component
 } from '../../types'
 
@@ -9,7 +9,7 @@ import { checkMovePossibility } from '../../movement.js'
 
 import { clearCurrentCommand, stopMoving } from './clear.js'
 import { moveTowardsUnit, moveTowardsPoint } from './movement.js'
-import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './game/components.js'
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from '../components.js'
 import { getUnitReferencePosition, unitDistance } from '../util.js'
 
 
@@ -23,34 +23,35 @@ export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     }
 }
 
-const getUnitReferencePositionById = (unit: Unit, targetId: UnitId) => {
-    const target = g.units.find(u => u.id === targetId); // TODO Map
+const getUnitReferencePositionById = (unit: Unit, units: Unit[], targetId: UnitId) => {
+    const target = units.find(u => u.id === targetId); // TODO Map
     if (target)
         return getUnitReferencePosition(target);
     else
         return;
 }
 
-export const findClosestUnitBy = (unit: Unit, p: (u: Unit) => boolean) => {
-    const units = g.units.filter(p);
+// TODO - presence cache
+export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boolean) => {
+    const unitsFiltered = units.filter(p);
 
-    if (units.length === 0) {
+    if (unitsFiltered.length === 0) {
         return;
     }
 
-    units.sort((a: Unit, b: Unit) => unitDistance(unit, a) - unitDistance(unit, b));
+    unitsFiltered.sort((a: Unit, b: Unit) => unitDistance(unit, a) - unitDistance(unit, b));
     
-    return units[0];
+    return unitsFiltered[0];
 }
 
-export const detectNearbyEnemy = (unit: Unit) => {
+export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     const vision = getVisionComponent(unit);
     if (!vision) {
         return;
     }
 
     // TODO query range for optimizations
-    const target = findClosestUnitBy(unit, u => 
+    const target = findClosestUnitBy(unit, units, u => 
         u.owner !== unit.owner &&
         u.owner !== 0
     );
@@ -75,12 +76,12 @@ const attemptDamage = (ac: Attacker, target: Unit) => {
     }
 }
 
-export const aggro = (unit: Unit, ac: Attacker, target: Unit, dt: Milliseconds) => {
+export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, target: Unit, dt: Milliseconds) => {
     // if out of range, just move to target
     if (unitDistance(unit, target) > ac.range) {
         // Right now the attack command is upheld even if the unit can't move
         // SC in that case just cancels the attack command - TODO decide
-        moveTowardsUnit(unit, target, ac.range, dt);
+        moveTowardsUnit(unit, gm, target, ac.range, dt);
     } else {
         unit.state.action = 'Attacking';
         const targetPos = getUnitReferencePosition(target);
@@ -98,7 +99,7 @@ export const updatePassiveCooldowns = (unit: Unit, dt: Milliseconds) => {
     }
 }
 
-export const idle = (unit: Unit, dt: Milliseconds): boolean => {
+export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): boolean => {
     if (unit.state.state !== 'idle') {
         return false;
     }
@@ -110,20 +111,20 @@ export const idle = (unit: Unit, dt: Milliseconds): boolean => {
         return true;
     }
 
-    const target = detectNearbyEnemy(unit); 
+    const target = detectNearbyEnemy(unit, gm.game.units); 
     if (!target) {
         // try to return to the idle position;
         // if it's close enough, it shouldn't start moving at all
-        moveTowardsPoint(unit, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
+        moveTowardsPoint(unit, gm, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
         return true;
     }
 
     // TODO: hysteresis
     const distanceFromIdle = V.distance(unit.position, unit.state.idlePosition);
     if (distanceFromIdle < MAXIMUM_IDLE_AGGRO_RANGE){
-        aggro(unit, ac, target, dt);
+        aggro(unit, gm, ac, target, dt);
     } else {
-        moveTowardsPoint(unit, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
+        moveTowardsPoint(unit, gm, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
     }
 
     return true;

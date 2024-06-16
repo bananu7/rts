@@ -1,11 +1,13 @@
 import {
     Milliseconds, Position,
-    Board,
+    Board, GameWithPresenceCache,
     GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Command, CommandFollow, CommandAttack, CommandMove, CommandAttackMove, CommandStop, CommandHarvest, CommandProduce, CommandBuild,
     PlayerState, UnitProductionCapability, BuildCapability
 } from '../types';
+
+import { isBuildPlacementOk } from '../shared.js'
 
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
@@ -17,6 +19,7 @@ import { HARVESTING_DISTANCE, HARVESTING_RESOURCE_COUNT, MAX_PLAYER_UNITS, UNIT_
 import { createUnit, UnitData, getUnitDataByName } from './units.js'
 import { findClosestEmptyTile } from './util.js'
 import { findPositionForProducedUnit } from './produce.js'
+import { buildPresenceAndBuildingMaps } from './presence.js'
 
 export class GenericLogicError extends Error {}
 export class InvalidCommandError extends Error {}
@@ -26,13 +29,13 @@ type CommandContext = {
     unit: Unit,
     owner: PlayerState,
     dt: Milliseconds,
-    g: Game,
+    gm: GameWithPresenceCache,
 }
 
 // Commands
 export const moveCommand = (ctx: CommandContext, cmd: CommandMove) => {
     const unit = ctx.unit;
-    moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
+    moveToPointOrCancelCommand(unit, ctx.gm, cmd.target, ctx.dt);
 };
 
 export const attackMoveCommand = (ctx: CommandContext, cmd: CommandAttackMove) => {
@@ -43,7 +46,7 @@ export const attackMoveCommand = (ctx: CommandContext, cmd: CommandAttackMove) =
         return;
     }
 
-    const closestTarget = detectNearbyEnemy(unit);
+    const closestTarget = detectNearbyEnemy(unit, ctx.gm.game.units);
     if (closestTarget) {
         const MAX_PATH_DEVIATION = 5;
 
@@ -52,18 +55,18 @@ export const attackMoveCommand = (ctx: CommandContext, cmd: CommandAttackMove) =
         if (pathDeviation > MAX_PATH_DEVIATION) {
             // lose aggro and move directly to target
             // TODO: aggro hysteresis?
-            moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
+            moveToPointOrCancelCommand(unit, ctx.gm, cmd.target, ctx.dt);
         } else {
-            aggro(unit, ac, closestTarget, ctx.dt);
+            aggro(unit, ctx.gm, ac, closestTarget, ctx.dt);
         }
     } else {
-        moveToPointOrCancelCommand(unit, cmd.target, ctx.dt);
+        moveToPointOrCancelCommand(unit, ctx.gm, cmd.target, ctx.dt);
     }
 }
 
 export const attackCommand = (ctx: CommandContext, cmd: CommandAttack) =>  {
     const unit = ctx.unit;
-    const g = ctx.g;
+    const g = ctx.gm.game;
     const ac = getAttackerComponent(unit);
     if (!ac) {
         throw new ComponentMissingError("Attacker");
@@ -77,7 +80,7 @@ export const attackCommand = (ctx: CommandContext, cmd: CommandAttack) =>  {
         return;
     }
 
-    aggro(unit, ac, target, ctx.dt);
+    aggro(unit, ctx.gm, ac, target, ctx.dt);
 };
 
 export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
@@ -91,7 +94,7 @@ export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
 
 export const followCommand = (ctx: CommandContext, cmd: CommandFollow) => {
     const unit = ctx.unit;
-    const moveResult = moveTowardsUnitById(unit, cmd.target, UNIT_FOLLOW_DISTANCE, ctx.dt);
+    const moveResult = moveTowardsUnitById(unit, ctx.gm, cmd.target, UNIT_FOLLOW_DISTANCE, ctx.dt);
     if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
         clearCurrentCommand(unit);
     }
@@ -100,7 +103,7 @@ export const followCommand = (ctx: CommandContext, cmd: CommandFollow) => {
 export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
     const unit = ctx.unit;
     const owner = ctx.owner;
-    const g = ctx.g;
+    const g = ctx.gm.game;
     const dt = ctx.dt;
     const hc = getHarvesterComponent(unit);
     if (!hc) {
@@ -116,7 +119,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
 
     if (!hc.resourcesCarried) {
         // TODO - should resources use perimeter?
-        switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, dt)) {
+        switch(moveTowardsUnit(unit, ctx.gm, target, HARVESTING_DISTANCE, dt)) {
         case 'Unreachable':
             clearCurrentCommand(unit);
             break;
@@ -141,7 +144,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
         const DROPOFF_DISTANCE = 1;
         // TODO cache the dropoff base
         // TODO - resource dropoff component
-        const target = findClosestUnitBy(unit, u => 
+        const target = findClosestUnitBy(unit, ctx.gm.game.units, u => 
             u.owner === unit.owner &&
             u.kind === 'Base'
         );
@@ -151,7 +154,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         }
 
-        switch(moveTowardsUnit(unit, target, DROPOFF_DISTANCE, dt)) {
+        switch(moveTowardsUnit(unit, ctx.gm, target, DROPOFF_DISTANCE, dt)) {
         case 'Unreachable':
             // TODO if closest base is unreachable maybe try next one?
             clearCurrentCommand(unit);
@@ -168,7 +171,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
 export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
     const unit = ctx.unit;
     const owner = ctx.owner;
-    const g = ctx.g;
+    const g = ctx.gm.game;
     // TODO should this happen regardless of the command if i keep the state
     // in the component anyway?
     const p = getProducerComponent(unit);
@@ -206,7 +209,7 @@ export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
 
     p.productionState.timeLeft -= ctx.dt;
     if (p.productionState.timeLeft < 0) {
-        const producedUnitPosition = findPositionForProducedUnit(g, unit, p.productionState.unitType, presence, buildings);
+        const producedUnitPosition = findPositionForProducedUnit(g, unit, p.productionState.unitType, ctx.gm.presence, ctx.gm.buildings);
 
         if (!producedUnitPosition){
             p.productionState = undefined;
@@ -231,7 +234,7 @@ export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
 export const buildCommand = (ctx: CommandContext, cmd: CommandBuild) => {
     const unit = ctx.unit;
     const owner = ctx.owner;
-    const g = ctx.g;
+    const g = ctx.gm.game;
     const bc = getBuilderComponent(unit);
     if (!bc)
         throw new ComponentMissingError("Builder");
@@ -266,7 +269,7 @@ export const buildCommand = (ctx: CommandContext, cmd: CommandBuild) => {
     const buildingDistance = buildingComponent.size / 2 + 1;
 
     // TODO this would technically allow building over water etc.
-    switch(moveTowardsPoint(unit, middleOfTheBuilding, buildingDistance, ctx.dt)) {
+    switch(moveTowardsPoint(unit, ctx.gm, middleOfTheBuilding, buildingDistance, ctx.dt)) {
         case 'Unreachable':
             throw new InvalidCommandError("Unit ordered to build but location is unreachable.");
 
@@ -293,10 +296,10 @@ export const buildCommand = (ctx: CommandContext, cmd: CommandBuild) => {
             // newly constructed building
             // TODO - game interface should cover that
             const [presenceNew, buildingsNew] = buildPresenceAndBuildingMaps(g.units, g.board);
-            presence = presenceNew;
-            buildings = buildingsNew;
+            ctx.gm.presence = presenceNew;
+            ctx.gm.buildings = buildingsNew;
 
-            const teleportPosition = findClosestEmptyTile(g, unit.position, presence, buildings);
+            const teleportPosition = findClosestEmptyTile(g, unit.position, ctx.gm.presence, ctx.gm.buildings);
             if (teleportPosition) {
                 teleportPosition.x += 0.5;
                 teleportPosition.y += 0.5;
