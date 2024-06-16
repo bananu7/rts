@@ -6,7 +6,7 @@ import {
    CommandBuild,
    Building,
 } from '@bananu7-rts/server/src/types'
-import { getUnitDataByName } from '@bananu7-rts/server/src/units'
+import { getUnitDataByName } from '@bananu7-rts/server/src/game/units'
 
 import { SelectedCommand } from './SelectedCommand'
 

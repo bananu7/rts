@@ -1,65 +1,10 @@
 import { tick, command } from '../src/game.js'
-import { createUnit } from '../src/units.js'
-import { Game, PlayerState, Unit, GameMap, Position, TilePos } from '../src/types'
+import { Game, PlayerState, Unit, GameMap, Position, TilePos, Harvester } from '../src/types'
 import { expect, test, describe } from 'vitest'
 
+import { createBasicGame, createOnePlayerState, spawnUnit, markRectangle } from './util.js'
+
 const TICK_MS = 50;
-
-function createOnePlayerState(): PlayerState {
-    return { resources: 0, stillInGame: true };
-}
-
-function createTestMap(): GameMap {
-    const size = 20;
-
-    const tiles = new Array(size*size).fill(0);
-
-    return {
-        w: size,
-        h: size,
-        tiles
-    }
-}
-
-function createBasicGame(override: Partial<Game>): Game {
-    const units: Unit[] = [];
-
-    const board = {
-        map: createTestMap(),
-    };
-
-    const defaultGame: Game = {
-        matchId: "test",
-        state: { id: 'Play' },
-        tickNumber: 1,
-        players: [createOnePlayerState(), createOnePlayerState()],
-        board,
-        units,
-        lastUnitId: units.length,
-        winCondition: 'OneLeft',
-    };
-
-    return {...defaultGame, ...override};
-}
-
-function spawnUnit(g: Game, owner: number, kind: string, position: Position) {
-    g.lastUnitId += 1;
-    g.units.push(createUnit(
-        g.lastUnitId,
-        owner,
-        kind,
-        position,
-    ));
-}
-
-function markRectangle(m: GameMap, a: TilePos, b: TilePos) {
-    for (let x = a.x; x <= b.x; x += 1) {
-        for (let y = a.y; y <= b.y; y += 1) {
-            m.tiles[y * m.w + x] = 1;
-        }
-    }
-
-}
 
 describe('win condition', () => {
     test('BuildingElimination', () => {
@@ -106,10 +51,33 @@ describe('movement', () => {
             tick(TICK_MS, game);
 
         expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].pathToNext).toBeUndefined();
         expect(game.units[0].position.x).toBeCloseTo(15, 0);
         expect(game.units[0].position.y).toBeCloseTo(15, 0);
 
         expect(game.state.id).toBe('Play');
+    });
+
+    test('move to building', () => {
+        const game = createBasicGame({}, 30);
+        spawnUnit(game, 1, "Harvester", {x: 2, y: 2});
+        spawnUnit(game, 1, "Base", {x: 20, y: 5});
+
+        tick(TICK_MS, game);
+
+        command({
+                command: { typ: 'Follow', target: 2 },
+                unitIds: [1],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        for (let i = 0; i < 20 * 10; i++)
+            tick(TICK_MS, game);
+
+        expect(game.units[0].position.x).toBeGreaterThan(15);
     });
 });
 
@@ -160,8 +128,6 @@ describe('produce action', () => {
             for (let i = 0; i < 15 * 10; i++)
                 tick(TICK_MS, game);
 
-            console.log(game.units);
-
             expect(game.units.length).toBe(2);
 
             // after the unit has been produced, it's hard to tell what a "valid"
@@ -179,11 +145,53 @@ describe('produce action', () => {
 
             tick(TICK_MS, game);
 
-            console.log(game.units);
-
             expect(game.units[1].state.state).toBe('active');
             expect(game.units[1].state.action).toBe('Moving');
         });
+    });
+});
+
+describe('harvest action', () => {
+    test('all harvest phases', () => {
+        const game = createBasicGame({}, 50);
+
+        spawnUnit(game, 0, "ResourceNode", {x: 6, y: 6});
+        spawnUnit(game, 1, "Harvester", {x: 10, y: 8 });
+        spawnUnit(game, 1, "Base", {x: 30, y: 10 });
+
+        command({
+                command: { typ: 'Harvest', target: 1 },
+                unitIds: [2],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        console.log("[test] phase 1 - move to resource");
+        tick(TICK_MS, game);
+        expect(game.units[1].state.state).toBe('active');
+        expect(game.units[1].state.action).toBe('Moving');
+
+        console.log("[test] phase 2 - harvesting");
+        for (let i = 0; i < 10; i++)
+            tick(TICK_MS, game);
+        expect(game.units[1].state.action).toBe('Harvesting');
+
+        console.log("[test] phase 3 - pickup and move");
+        for (let i = 0; i < 5 * 10; i++)
+            tick(TICK_MS, game);
+        const hc = game.units[1].components.filter(c => c.type == "Harvester")[0] as Harvester;
+        expect(hc.resourcesCarried).toBeTruthy();        
+        expect(game.units[1].state.action).toBe('Moving');
+
+        console.log("[test] phase 4 - dropoff");
+        for (let i = 0; i < 4.5 * 10; i++)
+            tick(TICK_MS, game);
+        
+        expect(hc.resourcesCarried).toBeUndefined();
+        expect(game.units[1].state.action).toBe('Moving');
+        expect(game.players[0].resources).toBe(8);
     });
 });
 

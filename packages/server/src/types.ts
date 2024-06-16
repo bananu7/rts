@@ -249,3 +249,9 @@ export type GameState = {
 
 export type PresenceMap = Map<number, Unit[]>;
 export type BuildingMap = Map<number, UnitId>;
+
+export type GameWithPresenceCache = {
+    game: Game;
+    presence: PresenceMap;
+    buildings: BuildingMap;
+}
