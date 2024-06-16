@@ -7,7 +7,8 @@
     "test": "tsc && vitest",
     "build": "tsc -p .",
     "dev": "node dist/src/index.js",
-    "debug": "node --inspect dist/src/index.js"
+    "debug": "node --inspect dist/src/index.js",
+    "debugtest": "tsc && vitest -t \"harvest action\" --inspect-brk --threads false"
   },
   "author": "",
   "license": "MIT",
