@@ -124,11 +124,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             clearCurrentCommand(unit);
             break;
         case 'ReachedTarget':
-            if (unit.state.action !== 'Harvesting')
-                console.log("Unit has reached resources, starting harvesting");
-
             if (hc.harvestingProgress >= hc.harvestingTime) {
-                console.log("picking up resources on unit ", unit.id)
                 hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
                 // TODO - reset harvesting at any other action
                 // maybe i could use some "exit state function"?
@@ -161,7 +157,6 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         case 'ReachedTarget':
             owner.resources += hc.resourcesCarried
-            console.log("clearing unit resource", unit.id, unit.position.x, unit.position.y)
             hc.resourcesCarried = undefined;
             return;
         }

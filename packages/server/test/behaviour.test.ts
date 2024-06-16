@@ -77,8 +77,6 @@ describe('movement', () => {
         for (let i = 0; i < 20 * 10; i++)
             tick(TICK_MS, game);
 
-        console.log(game.units);
-
         expect(game.units[0].position.x).toBeGreaterThan(15);
     });
 });
@@ -130,8 +128,6 @@ describe('produce action', () => {
             for (let i = 0; i < 15 * 10; i++)
                 tick(TICK_MS, game);
 
-            console.log(game.units);
-
             expect(game.units.length).toBe(2);
 
             // after the unit has been produced, it's hard to tell what a "valid"
@@ -148,8 +144,6 @@ describe('produce action', () => {
             debugger;
 
             tick(TICK_MS, game);
-
-            console.log(game.units);
 
             expect(game.units[1].state.state).toBe('active');
             expect(game.units[1].state.action).toBe('Moving');
@@ -194,7 +188,7 @@ describe('harvest action', () => {
         console.log("[test] phase 4 - dropoff");
         for (let i = 0; i < 4.5 * 10; i++)
             tick(TICK_MS, game);
-        console.log(game.units);
+        
         expect(hc.resourcesCarried).toBeUndefined();
         expect(game.units[1].state.action).toBe('Moving');
         expect(game.players[0].resources).toBe(8);

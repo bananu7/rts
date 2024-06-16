@@ -127,8 +127,6 @@ const moveApply = (unit: Unit, gm: GameWithPresenceCache, mc: Mover, dt: Millise
     if (targetDist < distancePerTick) {
         // if that node is the last, move to it ending navigation
         if (unit.pathToNext.length === 1) {
-            console.log("Ending navigation by skipping to last node", unit.pathToNext)
-
             V.vecSet(unit.velocity, V.difference(target, unit.position));
             delete unit.pathToNext;
             return true;

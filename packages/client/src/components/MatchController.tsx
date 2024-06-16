@@ -262,7 +262,7 @@ export function MatchController(props: MatchControllerProps) {
       setSelectedCommand(undefined);
     }
     else {
-     console.log(e.keyCode);
+      console.log("[MatchController] registered keycode", e.keyCode);
     }
   }, [selectedCommand, selectedUnits]);
 
