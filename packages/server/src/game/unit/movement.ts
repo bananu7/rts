@@ -22,6 +22,8 @@ type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
 function moveTowards(unit: Unit, gm: GameWithPresenceCache, destination: Destination, tolerance: number, dt: Milliseconds): MoveResult {
     if (destinationDistance(unit.position, destination) < tolerance) {
+        // TODO this abstraction should ensure pathToNext is always cleared on reached
+        delete unit.pathToNext;
         return 'ReachedTarget'; // nothing to do
     }
 
@@ -53,8 +55,6 @@ function moveTowards(unit: Unit, gm: GameWithPresenceCache, destination: Destina
 
     // At this point we certainly have a path
     if (moveApply(unit, gm, mc, dt)) {
-        // TODO
-        delete unit.pathToNext;
         return 'ReachedTarget';
     }
 
@@ -116,6 +116,7 @@ const moveApply = (unit: Unit, gm: GameWithPresenceCache, mc: Mover, dt: Millise
     if (unit.pathToNext.length === 0) {
         // TODO - that will cause stutter at shift-clicked moves
         stopMoving(unit);
+        delete unit.pathToNext;
         return true;
     }
 
@@ -129,6 +130,7 @@ const moveApply = (unit: Unit, gm: GameWithPresenceCache, mc: Mover, dt: Millise
             console.log("Ending navigation by skipping to last node", unit.pathToNext)
 
             V.vecSet(unit.velocity, V.difference(target, unit.position));
+            delete unit.pathToNext;
             return true;
         }
 

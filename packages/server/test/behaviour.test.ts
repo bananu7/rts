@@ -51,6 +51,7 @@ describe('movement', () => {
             tick(TICK_MS, game);
 
         expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].pathToNext).toBeUndefined();
         expect(game.units[0].position.x).toBeCloseTo(15, 0);
         expect(game.units[0].position.y).toBeCloseTo(15, 0);
 
