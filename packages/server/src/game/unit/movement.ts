@@ -1,4 +1,4 @@
-import { Unit, UnitId, Position, Milliseconds, Mover, GameWithPresenceCache } from '../../types'
+import { Unit, UnitId, Position, Milliseconds, Mover, GameWithPresenceCache } from '@bananu7-rts/server/src/types'
 import * as V from '../../vector.js'
 import { checkMovePossibility } from '../../movement.js'
 import { tilesTakenByBuilding } from '../../shared.js'
