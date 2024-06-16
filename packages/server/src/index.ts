@@ -14,6 +14,13 @@ const version = getVersion();
 console.log(`[index] Starting RTS server - ${version}`);
 
 const config = getConfig();
+// TODO commandline config override
+// TODO make this a proper parser
+if (process.argv.length >= 3 && process.argv[2] == "--dry") {
+    console.log("[index] CI dry run, exiting");
+    process.exit();
+}
+
 printConfig(config);
 
 type PlayerEntry = {

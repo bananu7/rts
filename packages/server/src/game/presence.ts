@@ -6,7 +6,7 @@ import { tilesTakenByBuilding } from '../shared.js'
 
 import {
     getBuildingComponent
-} from './components'
+} from './components.js'
 
 // The purpose of presence map is easy finding of nearby enemies
 // The purpose of building map is to pass it to pathfinding to prevent pathing

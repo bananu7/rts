@@ -34,6 +34,14 @@ jobs:
       working-directory: ./packages/server
       run: yarn build
 
+    - name: Run server tests
+      working-directory: ./packages/server
+      run: yarn test
+
+    - name: Do a server dry run
+      working-directory: ./packages/server
+      run: yarn dev --dry
+
     - name: Upload server artifact
       if: github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3.1.0
