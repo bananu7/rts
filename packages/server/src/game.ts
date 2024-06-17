@@ -159,7 +159,7 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
 export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     switch (g.state.id) {
         case 'Lobby':
-            throw new Error("game in lobby :)")
+            break;
         case 'Precount':
             g.state.count -= dt;
             if (g.state.count <= 1000) {
