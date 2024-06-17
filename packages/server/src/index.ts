@@ -4,7 +4,7 @@ import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 
-import {newGame, startGame, tick, command} from './game.js';
+import { newGame, startGame, tick, command, endGame } from './game.js';
 import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
@@ -124,26 +124,53 @@ rts.post('/create', async (req, res) => {
     const game = newGame(matchId, map);
     matches.push({ game, matchId, players: [], spectators: [] });
 
-    setInterval(() => {
-        const updatePackets = tick(config.tickMs, game);
-        const match = matches.find(m => m.matchId === matchId);
+    const gameTickInterval = setInterval(() => {
+        let match;
+        try {
+            const updatePackets = tick(config.tickMs, game);
+            match = matches.find(m => m.matchId === matchId);
 
-        if (!match)
-            throw new Error("[index] Match scheduled for update doesn't exist");
+            if (!match)
+                throw new Error("[index] Match scheduled for update doesn't exist");
 
-        match.players.forEach((p, i) => {
-            // TODO: handle players without channels better?
-            if (!p.channel)
-                return;
+            match.players.forEach((p, i) => {
+                // TODO: handle players without channels better?
+                if (!p.channel)
+                    return;
 
-            p.channel.emit('tick', updatePackets[i]);
-        });
+                p.channel.emit('tick', updatePackets[i]);
+            });
 
-        match.spectators.forEach((s, i) =>
-            // TODO spectators should get a separate packet
-            s.channel.emit('tick', updatePackets[0])
-        );
-        // io.room(matchId).emit('tick', updatePackets[0]);
+            match.spectators.forEach((s, i) =>
+                // TODO spectators should get a separate packet
+                s.channel.emit('tick', updatePackets[0])
+            );
+            // io.room(matchId).emit('tick', updatePackets[0]);
+        }
+        catch(e) {
+            if (e instanceof Error) {
+                console.error("[game] Game crashed: ", e.message);
+            } else {
+                console.error("[game] Game crashed for an unknown reason");
+            }
+
+            clearInterval(gameTickInterval);
+            const updatePackets = endGame(game);
+
+            if (match) {
+                match.players.forEach((p, i) => {
+                    // TODO: handle players without channels better?
+                    if (!p.channel)
+                        return;
+                    p.channel.emit('tick', updatePackets[i], { reliable: true });
+                });
+                match.spectators.forEach((s, i) => {
+                    s.channel.emit('tick', updatePackets[0], { reliable: true });
+                });
+
+                matches = matches.splice(matches.indexOf(match));
+            }
+        }
     }, config.tickMs);
 
     console.log(`[index] Match ${matchId} created`);

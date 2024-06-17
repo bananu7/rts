@@ -158,6 +158,8 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
 // Returns a list of update packets, one for each player
 export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
     switch (g.state.id) {
+        case 'Lobby':
+            throw new Error("game in lobby :)")
         case 'Precount':
             g.state.count -= dt;
             if (g.state.count <= 1000) {
@@ -233,6 +235,18 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
         return {
             tickNumber: g.tickNumber,
             units: unitUpdates,
+            player: p,
+            state: g.state,
+        }
+    });
+}
+
+export function endGame(g: Game) {
+    g.state = { id: "GameForcefullyEnded" };
+    return g.players.map((p, i) => {
+        return {
+            tickNumber: g.tickNumber,
+            units: [],
             player: p,
             state: g.state,
         }
