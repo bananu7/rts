@@ -64,7 +64,7 @@ const io = geckos({
   iceServers: config.serverIceServers
 })
 
-const matches : Match[] = [];
+const matches : Map<MatchId, Match> = new Map();
 
 io.addServer(server)
 
@@ -72,7 +72,7 @@ io.addServer(server)
 const rts = express.Router()
 
 rts.get('/listMatches', (req, res) => {
-    const matchInfos : MatchInfo[] = matches.map(m => { return {
+    const matchInfos : MatchInfo[] = Array.from(matches.values()).map(m => { return {
         matchId: m.matchId,
         playerCount: m.players.length,
         status: m.game.state,
@@ -90,7 +90,14 @@ rts.get('/iceServers', (req, res) => {
 });
 
 rts.get('/getMatchMetadata', (req, res) => {
-    const match = matches.find(m => m.matchId === req.query.matchId);
+    const matchId = req.query.matchId;
+    if (typeof matchId !== "string") {
+        res.status(400);
+        res.send("matchId is not a string");
+        return;
+    }
+    const match = matches.get(matchId);
+
     if (match) {
         res.send(JSON.stringify(getMatchMetadata(match)));
     }
@@ -106,7 +113,15 @@ rts.get('/debugGetPath', (req, res) => {
 });
 
 rts.get('/debugGetMatchState', (req, res) => {
-    const match = matches.find(m => m.matchId === req.query.matchId);
+    // TODO duplication for getting matchId
+    const matchId = req.query.matchId;
+    if (typeof matchId !== "string") {
+        res.status(400);
+        res.send("matchId is not a string");
+        return;
+    }
+    const match = matches.get(matchId);
+
     if (match) {
         res.send(JSON.stringify(match.game));
     }
@@ -122,13 +137,16 @@ rts.post('/create', async (req, res) => {
     const map = await getMap('assets/map.png');
     const matchId = String(++lastMatchId); // TODO
     const game = newGame(matchId, map);
-    matches.push({ game, matchId, players: [], spectators: [] });
+
+    if (matches.has(matchId))
+        throw new Error("Newly created matchId already exists");
+
+    const match: Match = { game, matchId, players: [], spectators: [] };
+    matches.set(matchId, match);
 
     const gameTickInterval = setInterval(() => {
-        let match;
         try {
             const updatePackets = tick(config.tickMs, game);
-            match = matches.find(m => m.matchId === matchId);
 
             if (!match)
                 throw new Error("[index] Match scheduled for update doesn't exist");
@@ -149,27 +167,27 @@ rts.post('/create', async (req, res) => {
         }
         catch(e) {
             if (e instanceof Error) {
-                console.error("[game] Game crashed: ", e.message);
+                console.error("[game] Game crashed:", e.message);
             } else {
                 console.error("[game] Game crashed for an unknown reason");
             }
 
-            clearInterval(gameTickInterval);
             const updatePackets = endGame(game);
 
-            if (match) {
-                match.players.forEach((p, i) => {
-                    // TODO: handle players without channels better?
-                    if (!p.channel)
-                        return;
-                    p.channel.emit('tick', updatePackets[i], { reliable: true });
-                });
-                match.spectators.forEach((s, i) => {
-                    s.channel.emit('tick', updatePackets[0], { reliable: true });
-                });
+            match.players.forEach((p, i) => {
+                // TODO: handle players without channels better?
+                if (!p.channel)
+                    return;
+                p.channel.emit('tick', updatePackets[i], { reliable: true });
+            });
+            match.spectators.forEach((s, i) => {
+                s.channel.emit('tick', updatePackets[0], { reliable: true });
+            });
 
-                matches = matches.splice(matches.indexOf(match));
-            }
+            console.log("[game] Deleting match", matchId)
+            matches.delete(matchId);
+
+            clearInterval(gameTickInterval);
         }
     }, config.tickMs);
 
@@ -181,8 +199,13 @@ rts.post('/join', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
+        if (typeof matchId !== "string") {
+            res.status(400);
+            res.send("matchId is not a string");
+            return;
+        }
 
-        const match = matches.find(m => m.matchId === matchId);
+        const match = matches.get(matchId);
         if (!match) {
             res.status(400);
             res.send("Match doesn't exist");
@@ -235,8 +258,13 @@ rts.post('/leave', async (req, res) => {
     try {
         const userId = req.body.userId as string;
         const matchId = req.body.matchId;
+        if (typeof matchId !== "string") {
+            res.status(400);
+            res.send("matchId is not a string");
+            return;
+        }
 
-        const match = matches.find(m => m.matchId === matchId);
+        const match = matches.get(matchId);
         if (!match) {
             res.send('OK');
             return;
@@ -264,7 +292,7 @@ io.onConnection(channel => {
     channel.on('spectate', (data: Data) => {
         const packet = data as IdentificationPacket;
 
-        const m = matches.find(m => m.matchId === packet.matchId);
+        const m = matches.get(packet.matchId);
         if (!m) {
             console.warn("[index] Received a spectate request to a match that doesn't exist");
             channel.emit('spectate failure', packet.matchId, {reliable: true});
@@ -292,7 +320,7 @@ io.onConnection(channel => {
         // TODO properly validate data format
         const packet = data as IdentificationPacket;
 
-        const m = matches.find(m => m.matchId === packet.matchId);
+        const m = matches.get(packet.matchId);
         if (!m) {
             console.warn("[index] Received a connect request to a match that doesn't exist");
             channel.emit('connection failure', packet.matchId, {reliable: true});
@@ -339,7 +367,7 @@ io.onConnection(channel => {
                 throw "Received a command from a channel that's not in a match";
             }
 
-            let m = matches.find(m => m.matchId === channel.userData.matchId)
+            let m = matches.get(channel.userData.matchId)
             if (!m) {
                 throw "Match associated with this channel doesn't exist";
             }
