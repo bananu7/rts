@@ -133,6 +133,12 @@ rts.get('/debugGetMatchState', (req, res) => {
 let lastMatchId = 0;
 
 rts.post('/create', async (req, res) => {
+    if (matches.size >= 10) {
+        res.status(409);
+        res.send("Too many current games - try again later.");
+        return
+    }
+
     // TODO - load or w/e
     const map = await getMap('assets/map.png');
     const matchId = String(++lastMatchId); // TODO
