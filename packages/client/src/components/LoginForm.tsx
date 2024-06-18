@@ -14,7 +14,7 @@ export const LoginForm = (props: LoginFormProps) => {
         onChange={(e) => setName(e.target.value)}
         placeholder="enter your name"
         aria-label="username"
-        maxLength="20"
+        maxLength={20}
       />
       <button onClick={() => { props.saveName(name); } }>Save</button>
     </div>
