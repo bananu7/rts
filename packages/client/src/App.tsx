@@ -99,7 +99,7 @@ function App() {
         <p>The game is designed to be able to be refreshed at any time. If you experience any
         weird behavior or crashes, refreshing the page should help and will reconnect you
         back to your game.</p>
-        <p><strong>GLHF!</strong></p>
+        <p><strong>GLHF, {username}!</strong></p>
         <br />
         <MatchList
           joinMatch={joinMatch}
