@@ -81,7 +81,7 @@ describe('movement', () => {
     });
 });
 
-test('attack-move', () => {
+test('attack-move action', () => {
     const game = createBasicGame({}, 30);
 
     // spawn two troopers, one to the left, one in the middle
@@ -111,9 +111,8 @@ test('attack-move', () => {
     expect(game.units[0].state.action).toBe('Moving');
 
     console.log("[test] Checking if the unit aggroes on opponent");
-    for (let i = 0; i < 5 * 10; i++) {
+    for (let i = 0; i < 2 * 10; i++) {
         tick(TICK_MS, game);
-        console.log(game.units[0].position)
     }
 
     expect(game.units[0].state.state).toBe('active');
