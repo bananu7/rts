@@ -25,7 +25,7 @@ export function checkMovePossibility(unit: Unit, gm: GameMap, presence: Presence
         return velocity;
     }
 
-    const allTilesInfluenced = createTilesInfluenced(currentPos, 1);
+    const allTilesInfluenced = createTilesInfluenced(currentPos, 1, gm);
     const otherUnitsNearby =
         allTilesInfluenced
         .map(t => presence.get(explode(t)))
@@ -209,14 +209,14 @@ function partition<T> (a: T[], f: (t: T) => boolean): [T[], T[]] {
 
 
 // TODO duplication with pathfinding
-function getSurroundingPos(p: TilePos): TilePos[] {
+function getSurroundingPos(p: TilePos, gm: GameMap): TilePos[] {
     const SCAN_SIZE = 5;
 
     const tiles = [];
     for (let x = p.x - SCAN_SIZE; x < p.x + SCAN_SIZE; x ++) {
         for (let y = p.y - SCAN_SIZE; y < p.y + SCAN_SIZE; y ++) {
             // TODO map size
-            if (x < 0 || y < 0 || x > 99 || y > 99)
+            if (x < 0 || y < 0 || x >= gm.w || y >= gm.h)
                 continue;
 
             tiles.push({x,y});
@@ -227,13 +227,13 @@ function getSurroundingPos(p: TilePos): TilePos[] {
 }
 
 // TODO use size
-function createTilesInfluenced(pos: Position, size: number) {
+function createTilesInfluenced(pos: Position, size: number, gm: GameMap) {
     const result = [];
     const tile = { x: Math.floor(pos.x), y: Math.floor(pos.y) };
 
     // TODO - incorrect, should actually find all affected tiles
     // depending on the size
-    const surrounding = getSurroundingPos(tile);
+    const surrounding = getSurroundingPos(tile, gm);
     surrounding.push(tile);
     return surrounding;
 }
