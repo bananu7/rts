@@ -9,21 +9,22 @@ import { LoginForm } from './components/LoginForm'
 import { Multiplayer, MatchControl, SpectatorControl } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 
-function useLocalStorage<T>(key: string, defaultValue: T): [T, (v: T) => void] {
+function useLocalStorage(key: string, defaultValue: string | null): [string | null, (v: string) => void] {
   const [value, setValue] = useState(() => {
     const saved = localStorage.getItem(key);
     return saved || defaultValue;
   });
 
   useEffect(() => {
-    localStorage.setItem(key, value);
+    if (value)
+      localStorage.setItem(key, value);
   }, [key, value]);
 
   return [value, setValue];
 };
 
 function App() {
-  const [username, setUsername] = useLocalStorage<string>("userId", null);
+  const [username, setUsername] = useLocalStorage("userId", null);
 
   const [multiplayer, setMultiplayer] = useState<Multiplayer | null>(null);
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);

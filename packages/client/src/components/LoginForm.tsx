@@ -14,7 +14,7 @@ export const LoginForm = (props: LoginFormProps) => {
         placeholder="Username"
         aria-label="username"
       />
-      <button onClick={props.saveName}>Save</button>
+      <button onClick={() => { props.saveName(name); } }>Save</button>
     </div>
   );
 };
