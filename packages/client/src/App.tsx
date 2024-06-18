@@ -23,7 +23,7 @@ function useLocalStorage<T>(key: string, defaultValue: T): [T, (v: T) => void] {
 };
 
 function App() {
-  const [username, setUsername] = useLocalStorage("userId", null);
+  const [username, setUsername] = useLocalStorage<string>("userId", null);
 
   const [multiplayer, setMultiplayer] = useState<Multiplayer | null>(null);
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
