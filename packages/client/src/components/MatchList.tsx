@@ -28,17 +28,19 @@ export function MatchList(props: Props) {
 
     const matchRows = matches.map(m => {
         const joinable = m.status.id === "Lobby";
+        const joinbutton = (
+            <button disabled={!joinable} onClick={() => props.joinMatch(m.matchId)}>Join</button>
+        );
+        const spectateButton = (
+            <button onClick={() => props.spectateMatch(m.matchId)}>Spectate</button>
+        );
 
         return (<tr key={m.matchId}>
             <td>{m.matchId}</td>
             <td>{m.playerCount}</td>
             <td>{m.status.id}</td>
-            <td>
-                <button disabled={!joinable} onClick={() => props.joinMatch(m.matchId)}>Join</button>
-            </td>
-            <td>
-                <button onClick={() => props.spectateMatch(m.matchId)}>Spectate</button>
-            </td>
+            <td>{m.status.id !== "GameEnded" ? joinbutton : ""}</td>
+            <td>{m.status.id !== "GameEnded" ? spectateButton : ""}</td>
         </tr>);
     });
 
@@ -49,6 +51,8 @@ export function MatchList(props: Props) {
                     <th>Match id</th>
                     <th>Players</th>
                     <th>Status</th>
+                    <th></th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
