@@ -5,10 +5,27 @@ import { MatchList } from './components/MatchList';
 
 import { MatchController } from './components/MatchController';
 import { SpectateController } from './components/SpectateController';
+import { LoginForm } from './components/LoginForm'
 import { Multiplayer, MatchControl, SpectatorControl } from './Multiplayer';
 import { HTTP_API_URL } from './config';
 
+function useLocalStorage(key: string, defaultValue: string | null): [string | null, (v: string) => void] {
+  const [value, setValue] = useState(() => {
+    const saved = localStorage.getItem(key);
+    return saved || defaultValue;
+  });
+
+  useEffect(() => {
+    if (value)
+      localStorage.setItem(key, value);
+  }, [key, value]);
+
+  return [value, setValue];
+};
+
 function App() {
+  const [username, setUsername] = useLocalStorage("userId", null);
+
   const [multiplayer, setMultiplayer] = useState<Multiplayer | null>(null);
   const [controller, setController] = useState<MatchControl | SpectatorControl | null>(null);
 
@@ -18,18 +35,11 @@ function App() {
   };
 
   useEffect(() => {
-    const setupMultiplayer = async () => {
-      // TODO
-      let userId = localStorage.getItem("userId");
-      if (!userId) {
-        userId = window.prompt("Please provide your user id");
-        if (userId)
-          localStorage.setItem('userId', userId);
-        else
-          throw "No user id present; set item 'userId' in localStorage to play";
-      }
+    if (!username)
+      return;
 
-      const multiplayer = await Multiplayer.new(userId);
+    const setupMultiplayer = async () => {
+      const multiplayer = await Multiplayer.new(username);
       setMultiplayer(multiplayer);
       const rejoinedCtrl = await multiplayer.setup({});
      
@@ -89,7 +99,7 @@ function App() {
         <p>The game is designed to be able to be refreshed at any time. If you experience any
         weird behavior or crashes, refreshing the page should help and will reconnect you
         back to your game.</p>
-        <p><strong>GLHF!</strong></p>
+        <p><strong>GLHF, {username}!</strong></p>
         <br />
         <MatchList
           joinMatch={joinMatch}
@@ -103,6 +113,10 @@ function App() {
   );
 
   const screen = (() => {    
+    if (!username) {
+      return <LoginForm saveName={setUsername} />;
+    }
+
     if (controller instanceof MatchControl) {
       return <MatchController ctrl={controller} />
     } if (controller instanceof SpectatorControl) {
