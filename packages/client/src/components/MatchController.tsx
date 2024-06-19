@@ -111,6 +111,7 @@ export function MatchController(props: MatchControllerProps) {
     });
   }, []);
 
+  // TODO - this should happen on match join?
   const downloadMatchMetadata = useCallback(() => {
     props.ctrl.getMatchMetadata().then(s => setMatchMetadata(s));
   }, []);
@@ -286,6 +287,7 @@ export function MatchController(props: MatchControllerProps) {
         />
       }
 
+      { /* TODO move to Lobby */ }
       { lastUpdatePacket && 
         lastUpdatePacket.state.id === 'Precount' &&
         <PrecountCounter count={lastUpdatePacket.state.count} />
@@ -293,6 +295,7 @@ export function MatchController(props: MatchControllerProps) {
 
       { lastUpdatePacket && 
         lastUpdatePacket.state.id === 'Lobby' &&
+        matchMetadata &&
         <Lobby
           matchMetadata={matchMetadata}
         />
