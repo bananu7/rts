@@ -1,6 +1,7 @@
 import { Position, Unit, Command, Component, Game, BuildingMap, PresenceMap } from '../types'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
+import { tilesTakenByBuilding } from '@bananu7-rts/server/src/shared.js'
 
 // This code generates an offset position for a given spiral index
 export function spiral(p: Position, i: number, scale: number) {
@@ -164,6 +165,17 @@ export function unitDistance(a: Unit, b: Unit): number {
     return V.distance(aPos, bPos);
 }
 
+export function attackerToTargetDistance(attacker: Unit, target: Unit): number {
+    const aPos = getUnitReferencePosition(attacker);
+    const bc = getBuildingComponent(target);
+    if (!bc) {
+        return V.distance(aPos, getUnitReferencePosition(target));
+    } else {
+        const tiles = tilesTakenByBuilding(bc, target.position);
+        const tileDistances = tiles.map(t => V.distance(t as Position, aPos));
+        return Math.min(...tileDistances);
+    }
+}
 
 export function findClosestEmptyTile(
     g: Game,
