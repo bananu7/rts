@@ -82,10 +82,19 @@ function App() {
     ctrl.setOnLeaveMatch(cleanupOnLeave);
     setController(ctrl);
   };
+
+  const createMatch = async () => {
+    if (!multiplayer) {
+      console.warn("[App] Ignoring createMatch because multiplayer isn't initialized yet")
+      return;
+    }
+    const response = await multiplayer.createMatch();
+    return await joinMatch(response.matchId);
+  }
   
   const createMatchButton = 
     multiplayer
-      ? <button onClick={() => multiplayer.createMatch()}>Create</button>
+      ? <button onClick={createMatch}>Create</button>
       : <button disabled={true}>Create</button>;
 
   const matchList = (

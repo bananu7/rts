@@ -52,13 +52,14 @@ export function MatchController(props: MatchControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
  
-  const [matchMetadata, setMatchMetadata] = useState<MatchMetadata | null>(null);
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
 
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
   const [selectedCommand, setSelectedCommand] = useState<SelectedCommand | undefined>(undefined);
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
+
+  const matchMetadata = props.ctrl.getMatchMetadata();
 
   const leaveMatch = useCallback(async () => {
     await props.ctrl.leaveMatch();
@@ -111,16 +112,9 @@ export function MatchController(props: MatchControllerProps) {
     });
   }, []);
 
-  // TODO - this should happen on match join?
-  const downloadMatchMetadata = useCallback(() => {
-    props.ctrl.getMatchMetadata().then(s => setMatchMetadata(s));
-  }, []);
-
-  // previously onMatchConnected
   useEffect(() => {
     console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
-    downloadMatchMetadata();
   }, []);
 
   const lines = useMemo(() =>
@@ -129,10 +123,6 @@ export function MatchController(props: MatchControllerProps) {
 
   const mapClick = useCallback((originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => {
     if (selectedUnits.size === 0)
-      return;
-
-    // TODO that's kinda annoying that server state is nullable here
-    if (!matchMetadata)
       return;
 
     // TODO key being pressed and then RMB is attack move

@@ -1,5 +1,5 @@
 import geckos, { Data, ClientChannel } from '@geckos.io/client'
-import { Game, MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position } from '@bananu7-rts/server/src/types'
+import { Game, MatchMetadata, CommandPacket, IdentificationPacket, UpdatePacket, UnitId, Position, MatchCreateResponse, MatchJoinResponse } from '@bananu7-rts/server/src/types'
 import { HTTP_API_URL, GECKOS_URL } from './config'
 
 export type OnChatMessage = (msg: string) => void;
@@ -100,6 +100,7 @@ export class Multiplayer {
         }
 
         console.log(`[Multiplayer] Reconnecting to match ${matchId}`)
+        const matchMetadata = await Multiplayer._fetchMatchMetadata(matchId);
 
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
@@ -107,17 +108,24 @@ export class Multiplayer {
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, this.channel, matchId, playerIndex));
+                resolve(new MatchControl(this.userId, this.channel, playerIndex, matchMetadata));
             };
             this.channel.emit('connect', { matchId: matchId, userId: this.userId }, { reliable: true });
         });
     }
 
-    // TODO - make this async, make backend return id
-    createMatch() {
-        fetch(HTTP_API_URL+'/create', {
+    async createMatch(): Promise<MatchCreateResponse> {
+        const response = await fetch(HTTP_API_URL+'/create', {
             method: 'POST',
         });
+
+        if (response.status !== 200)
+            throw new Error("Create match failed");
+
+        const resj = await response.json();
+        console.log(`[Multiplayer] server confirmed match create, matchId: ${resj.matchId}`);
+
+        return resj.matchId;
     }
 
     async joinMatch(matchId: string): Promise<MatchControl> {
@@ -140,7 +148,7 @@ export class Multiplayer {
             throw new Error("Match join failed")
         }
 
-        const resj = await res.json();
+        const resj = await res.json() as MatchJoinResponse;
         console.log(`[Multiplayer] server confirmed match join`);
 
         localStorage.setItem('matchId', matchId);
@@ -150,21 +158,24 @@ export class Multiplayer {
             matchId
         };
 
+        // TODO: maybe rtc connect should be separate to show match info earlier
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")
                 const playerIndex = data as number;
                 console.log(`[Multiplayer] Client is player ${playerIndex}`)
 
-                resolve(new MatchControl(this.userId, this.channel, matchId, resj.playerIndex));
+                resolve(new MatchControl(this.userId, this.channel, resj.playerIndex, resj.matchMetadata));
             };
             this.channel.emit('connect', data);
         });
     }
 
 
-    spectateMatch(matchId: string): Promise<SpectatorControl> {
+    async spectateMatch(matchId: string): Promise<SpectatorControl> {
         console.log(`[Multiplayer] spectating match ${matchId}`)
+        const matchMetadata = await Multiplayer._fetchMatchMetadata(matchId);
+
         const data : IdentificationPacket = {
             userId: this.userId,
             matchId
@@ -177,27 +188,34 @@ export class Multiplayer {
                 localStorage.setItem('matchId', matchId);
                 localStorage.setItem('spectate', 'true');
 
-                resolve(new SpectatorControl(matchId, this.channel));
+                resolve(new SpectatorControl(matchMetadata, this.channel));
             };
             this.channel.emit('spectate', data);
         });
     }
+
+    private static async _fetchMatchMetadata(matchId: string): Promise<MatchMetadata> {
+        const getMMres = await fetch(`${HTTP_API_URL}/getMatchMetadata?` + new URLSearchParams({ matchId }));
+        if (getMMres.status !== 200)
+            throw new Error(`Couldn't get match metadata for match ${matchId}`);
+        const matchMetadata = await getMMres.json();
+        return matchMetadata;
+    }
 }
 
 class AbstractControl {
-    protected matchId: string;
+    protected matchMetadata: MatchMetadata;
     protected channel?: ClientChannel;
     protected leaveMatchHandler?: () => void;
 
-    async debugGetMatchState() {
-        console.log("[multiplayer] Getting debug match state");
-        return fetch(`${HTTP_API_URL}/debugGetMatchState?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    protected constructor(channel: ClientChannel, matchMetadata: MatchMetadata) {
+        this.channel = channel;
+        this.matchMetadata = matchMetadata;
     }
 
-    async getMatchMetadata(): Promise<MatchMetadata> {
-        console.log("[multiplayer] Getting match metadata");
-        // TODO - API urls should be in shared constants
-        return fetch(`${HTTP_API_URL}/getMatchMetadata?` + new URLSearchParams({ matchId: this.matchId })).then(r => r.json());
+    async debugGetMatchState() {
+        console.log("[multiplayer] Getting debug match state");
+        return fetch(`${HTTP_API_URL}/debugGetMatchState?` + new URLSearchParams({ matchId: this.matchMetadata.matchId })).then(r => r.json());
     }
 
     protected _getChannel(): ClientChannel {
@@ -206,9 +224,8 @@ class AbstractControl {
         return this.channel;
     }
 
-    protected constructor(channel: ClientChannel, matchId: string) {
-        this.channel = channel;
-        this.matchId = matchId;
+    public getMatchMetadata(): MatchMetadata {
+        return this.matchMetadata;
     }
 
     setOnLeaveMatch(handler: () => void) {
@@ -228,18 +245,15 @@ export class MatchControl extends AbstractControl {
     userId: string;
     playerIndex: number;
 
-    constructor(userId: string, channel: ClientChannel, matchId: string, playerIndex: number) {
-        super(channel, matchId);
+    constructor(userId: string, channel: ClientChannel, playerIndex: number, matchMetadata: MatchMetadata) {
+        super(channel, matchMetadata);
         this.userId = userId;
         this.playerIndex = playerIndex;
     }
 
     async leaveMatch() {
-        if (!this.matchId)
-            return;
-
         const body = JSON.stringify({
-            matchId: this.matchId,
+            matchId: this.matchMetadata.matchId,
             userId: this.userId,
         });
 
@@ -364,13 +378,12 @@ export class MatchControl extends AbstractControl {
 }
 
 export class SpectatorControl extends AbstractControl {
-    constructor(matchId: string, channel: ClientChannel) {
-        super(channel, matchId);
-        this.matchId = matchId;
+    constructor(matchMetadata: MatchMetadata, channel: ClientChannel) {
+        super(channel, matchMetadata);
     }
 
     getMatchId() {
-        return this.matchId;
+        return this.matchMetadata.matchId;
     }
 
     async stopSpectating() {
