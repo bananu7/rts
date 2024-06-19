@@ -298,6 +298,7 @@ export function MatchController(props: MatchControllerProps) {
         matchMetadata &&
         <Lobby
           matchMetadata={matchMetadata}
+          leaveMatch={leaveMatch}
         />
       }
 

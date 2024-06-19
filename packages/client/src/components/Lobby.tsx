@@ -8,7 +8,8 @@ function playerMetadataToDisplay(pm: PlayerMetadata | null) {
 }
 
 type LobbyProps = {
-  matchMetadata: MatchMetadata
+  matchMetadata: MatchMetadata,
+  leaveMatch: () => void,
 }
 export function Lobby(props: LobbyProps) {
   const p1meta = props.matchMetadata.players.length > 0 ? props.matchMetadata.players[0] : null;
@@ -35,7 +36,7 @@ export function Lobby(props: LobbyProps) {
           </tr>
         </tbody>
       </table>
-      <button>Leave match</button>
+      <button onClick={props.leaveMatch}>Leave match</button>
     </div>
   );
 }
