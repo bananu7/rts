@@ -1,15 +1,16 @@
+import { MatchMetadata, PlayerMetadata } from '@bananu7-rts/server/src/types'
 import './Lobby.css'
+
+function playerMetadataToDisplay(pm: PlayerMetadata | null) {
+  if (!pm)
+    return "empty slot";
+  return `${pm.index}: ${pm.userId}(${pm.color})`;
+}
 
 type LobbyProps = {
   matchMetadata: MatchMetadata
 }
 export function Lobby(props: LobbyProps) {
-  function playerMetadataToDisplay(pm: PlayerMetadata | null) {
-    if (!pm)
-      return "empty slot";
-    return `${pm.index}: ${pm.userId}(${pm.color})`;
-  }
-
   const p1meta = props.matchMetadata.players.length > 0 ? props.matchMetadata.players[0] : null;
   const p2meta = props.matchMetadata.players.length > 1 ? props.matchMetadata.players[1] : null;
 
