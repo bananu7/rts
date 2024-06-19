@@ -10,6 +10,7 @@ import { BottomUnitView } from './BottomUnitView';
 import { ResourceView } from './ResourceView';
 import { PrecountCounter } from './PrecountCounter'
 import { Chat } from './Chat';
+import { Lobby } from './Lobby';
 
 import { View3D } from '../gfx/View3D';
 import { Board3D } from '../gfx/Board3D';
@@ -292,9 +293,9 @@ export function MatchController(props: MatchControllerProps) {
 
       { lastUpdatePacket && 
         lastUpdatePacket.state.id === 'Lobby' &&
-        <div className="card">
-          <span>Waiting for the other player to join</span>
-        </div>
+        <Lobby
+          matchMetadata={matchMetadata}
+        />
       }
 
       { lastUpdatePacket && 

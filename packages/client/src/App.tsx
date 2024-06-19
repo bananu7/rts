@@ -94,7 +94,7 @@ function App() {
         <h1>Welcome to (for the lack of a better name) BartekRTS</h1>
         <p>To play, either join an existing match, or create a new one. You will
         need two people to play; the game won't start until two people join. You can
-        only join matches in the "lobby" state, you can't join matches that have already started
+        only join matches in the "lobby" state, you can't join matches that have already started.
         </p>
         <p>The game is designed to be able to be refreshed at any time. If you experience any
         weird behavior or crashes, refreshing the page should help and will reconnect you
