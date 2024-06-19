@@ -45,19 +45,22 @@ export function MatchList(props: Props) {
     });
 
     return (
-        <table className="MatchTable">
-            <thead>
-                <tr>
-                    <th>Match id</th>
-                    <th>Players</th>
-                    <th>Status</th>
-                    <th></th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {matchRows}
-            </tbody>
-        </table>
+        <div>
+            <table className="MatchTable">
+                <thead>
+                    <tr>
+                        <th>Match id</th>
+                        <th>Players</th>
+                        <th>Status</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {matchRows}
+                </tbody>
+            </table>
+            {matchRows.length === 0 && <p className="center">No games currently present.</p>}
+        </div>
     );
 }
