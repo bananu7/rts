@@ -81,6 +81,41 @@ describe('movement', () => {
     });
 });
 
+test('attack action on building', () => {
+    const game = createBasicGame({}, 30);
+
+    // belonging to the other player
+    spawnUnit(game, 1, "Trooper", {x: 4, y: 10});
+    spawnUnit(game, 2, "Base", {x: 18, y: 10});
+
+    tick(TICK_MS, game);
+    expect(game.units[0].state.state).toBe('idle');
+    expect(game.units[0].state.action).toBe('Idle');
+
+    command({
+            command: { typ: 'Attack', target: 2 },
+            unitIds: [1],
+            shift: false,
+        },
+        game,
+        1
+    );
+
+    tick(TICK_MS, game);
+
+    expect(game.units[0].state.state).toBe('active');
+    expect(game.units[0].state.action).toBe('Moving');
+
+    for (let i = 0; i < 3 * 10; i++) {
+        tick(TICK_MS, game);
+    }
+
+    console.log(game.units)
+
+    expect(game.units[0].state.state).toBe('active');
+    expect(game.units[0].state.action).toBe('Attacking');
+});
+
 test('attack-move action', () => {
     const game = createBasicGame({}, 30);
 
