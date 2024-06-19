@@ -82,10 +82,19 @@ function App() {
     ctrl.setOnLeaveMatch(cleanupOnLeave);
     setController(ctrl);
   };
+
+  const createMatch = async () => {
+    if (!multiplayer) {
+      console.warn("[App] Ignoring createMatch because multiplayer isn't initialized yet")
+      return;
+    }
+    const response = await multiplayer.createMatch();
+    return await joinMatch(response.matchId);
+  }
   
   const createMatchButton = 
     multiplayer
-      ? <button onClick={() => multiplayer.createMatch()}>Create</button>
+      ? <button onClick={createMatch}>Create</button>
       : <button disabled={true}>Create</button>;
 
   const matchList = (
@@ -94,7 +103,7 @@ function App() {
         <h1>Welcome to (for the lack of a better name) BartekRTS</h1>
         <p>To play, either join an existing match, or create a new one. You will
         need two people to play; the game won't start until two people join. You can
-        only join matches in the "lobby" state, you can't join matches that have already started
+        only join matches in the "lobby" state, you can't join matches that have already started.
         </p>
         <p>The game is designed to be able to be refreshed at any time. If you experience any
         weird behavior or crashes, refreshing the page should help and will reconnect you

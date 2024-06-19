@@ -36,6 +36,16 @@ export type IdentificationPacket = {
     matchId: MatchId, 
 }
 
+// for http API
+export type MatchJoinResponse = {
+    playerIndex: PlayerIndex,
+    matchMetadata: MatchMetadata,
+}
+
+export type MatchCreateResponse = {
+    matchId: MatchId,
+}
+
 export type Command = CommandMove | CommandStop | CommandFollow | CommandAttackMove | CommandAttack | CommandHarvest | CommandProduce | CommandBuild;
 export type CommandMove = {
     typ: 'Move',

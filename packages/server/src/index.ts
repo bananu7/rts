@@ -5,7 +5,7 @@ import cors from 'cors'
 import bodyParser from 'body-parser'
 
 import { newGame, startGame, tick, command, endGame } from './game.js';
-import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata } from './types.js';
+import {Game, MatchInfo, IdentificationPacket, CommandPacket, UpdatePacket, UserId, MatchId, MatchMetadata, MatchCreateResponse, MatchJoinResponse } from './types.js';
 import {getMap} from './map.js';
 import {readFileSync} from 'fs';
 import { getVersion, getConfig, printConfig } from './config.js'
@@ -198,6 +198,12 @@ rts.post('/create', async (req, res) => {
     }, config.tickMs);
 
     console.log(`[index] Match ${matchId} created`);
+
+    const response: MatchCreateResponse = {
+        matchId
+    };
+    res.status(200);
+    res.send(JSON.stringify(response));
 })
 
 // register a particular user as a player in a match
@@ -250,9 +256,11 @@ rts.post('/join', async (req, res) => {
         // TODO - assign colors
         match.players.push({ user: userId, index, color: 0 });
 
-        res.send(JSON.stringify({
-            playerIndex: index
-        }));
+        const response: MatchJoinResponse = {
+            playerIndex: index,
+            matchMetadata: getMatchMetadata(match),
+        };
+        res.send(JSON.stringify(response));
     }
     catch(e) {
         res.sendStatus(500);
