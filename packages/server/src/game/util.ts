@@ -1,7 +1,7 @@
 import { Position, Unit, Command, Component, Game, BuildingMap, PresenceMap } from '../types'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
-import { tilesTakenByBuilding } from '@bananu7-rts/server/src/shared.js'
+import { tilesTakenByBuilding } from '../shared.js'
 
 // This code generates an offset position for a given spiral index
 export function spiral(p: Position, i: number, scale: number) {
