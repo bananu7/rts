@@ -198,6 +198,8 @@ rts.post('/create', async (req, res) => {
     }, config.tickMs);
 
     console.log(`[index] Match ${matchId} created`);
+    res.status(200);
+    res.send(JSON.stringify({ matchId }));
 })
 
 // register a particular user as a player in a match
