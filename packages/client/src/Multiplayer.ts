@@ -158,7 +158,6 @@ export class Multiplayer {
             matchId
         };
 
-        // TODO: maybe rtc connect should be separate to show match info earlier
         return new Promise((resolve) => {
             this._onConnected = (data: Data) => {
                 console.log("[Multiplayer] RTC connected to match")

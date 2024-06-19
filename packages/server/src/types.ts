@@ -37,6 +37,11 @@ export type IdentificationPacket = {
 }
 
 // for http API
+export type MatchJoinResponse = {
+    playerIndex: PlayerIndex,
+    matchMetadata: MatchMetadata,
+}
+
 export type MatchCreateResponse = {
     matchId: MatchId,
 }
