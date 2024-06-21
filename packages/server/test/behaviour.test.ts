@@ -84,8 +84,8 @@ describe('movement', () => {
 test('attack action on building', () => {
     const game = createBasicGame({}, 30);
 
-    // belonging to the other player
-    spawnUnit(game, 1, "Trooper", {x: 4, y: 10});
+    // It can't be exact like {x: 4, y: 10} because then it barely caught in range
+    spawnUnit(game, 1, "Trooper", {x: 3.5, y: 9});
     spawnUnit(game, 2, "Base", {x: 18, y: 10});
 
     tick(TICK_MS, game);
