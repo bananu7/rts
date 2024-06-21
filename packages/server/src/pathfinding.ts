@@ -2,74 +2,44 @@ import { GameMap, TilePos, Position, Unit, BuildingMap } from './types'
 import FastPriorityQueue from 'fastpriorityqueue'
 import { distance } from './vector.js'
 
-export type MapDestination = {
-    type: 'MapDestination',
-    position: Position,
-}
-export type BuildingDestination = {
-    type: 'BuildingDestination',
-    tiles: TilePos[],
-}
-export type Destination = MapDestination | BuildingDestination;
+type TilePosPath = TilePos[];
+type Path = Position[];
 
-export function destinationDistance(a: Position, destination: Destination) {
-    if (destination.type === 'MapDestination')
-        return distance(destination.position as Position, a as Position);
-    else {
-        const tileDistances = destination.tiles.map(t => distance(t as Position, a as Position));
-        return Math.min(...tileDistances);
-    }
-}
+export function pathFind(
+    start: Position,
+    target: Position,
+    closeEnoughToTarget: (p: Position) => boolean,
+    m: GameMap,
+    buildings: BuildingMap
+): Path | undefined {
+    const startTilePos = { x: Math.floor(start.x), y: Math.floor(start.y) };
+    const targetTilePos = { x: Math.floor(target.x), y: Math.floor(target.y) };
+    const path = gridPathFind(startTilePos, targetTilePos, closeEnoughToTarget, m, buildings);
 
-function octileDistance(a: TilePos, b: TilePos) {
-    const dx = Math.abs(a.x - b.x);
-    const dy = Math.abs(a.y - b.y);
-    return dx + dy - 0.58 * Math.min(dx, dy);
-}
-
-function destinationOctileDistance(a: TilePos, destination: Destination) {
-    // TODO duplication with destinationDistance?
-    if (destination.type === 'MapDestination')
-        return octileDistance(destination.position, a);
-    else {
-        const tileDistances = destination.tiles.map(t => octileDistance(t, a));
-        return Math.min(...tileDistances);
-    }
-}
-
-function getSurroundingPos(p: TilePos): TilePos[] {
-    return [
-        {x: p.x+1, y: p.y},
-        {x: p.x+1, y: p.y+1},
-        {x: p.x, y: p.y+1},
-        {x: p.x-1, y: p.y+1},
-        {x: p.x-1, y: p.y},
-        {x: p.x-1, y: p.y-1},
-        {x: p.x, y: p.y-1},
-        {x: p.x+1, y: p.y-1}
-    ]
-}
-
-class HashMap<K,V> {
-    map: Map<number, V>;
-    hash: (key: K) => number;
-
-    constructor(f: (key: K) => number) {
-        this.map = new Map();
-        this.hash = f;
+    if (!path) {
+        console.log("[pathfinding] Path not found")
+        return;
     }
 
-    get(key: K): V | undefined {
-        return this.map.get(this.hash(key));
-    }
+    const cleanedPath = cleanupPath(path);  // remove redundant nodes
+    cleanedPath.pop();                      // remove last grid tile to avoid backtracking
+    cleanedPath.push(target);               // add the precise destination as the last step
+    return cleanedPath;
+};
 
-    set(key: K, value: V) {
-        return this.map.set(this.hash(key), value);
-    }
-}
 
 // A*
-function gridPathFind(start: TilePos, destination: Destination, tolerance: number, m: GameMap, buildings: BuildingMap) {
+
+// the issue with this function is that the center of the building is
+// inside of the building, so i can't path inside of it
+
+function gridPathFind(
+    start: TilePos,
+    target: TilePos,
+    closeEnoughToTarget: (tp: TilePos) => boolean,
+    m: GameMap,
+    buildings: BuildingMap
+): TilePosPath | undefined  {
     // explode converts to linear index for the purposes of map storage
     // 1-dimensional indexing and comparisons.
     const explode = (p: TilePos) => p.x+p.y*m.w; 
@@ -77,7 +47,7 @@ function gridPathFind(start: TilePos, destination: Destination, tolerance: numbe
     const comp = ([a, av]: [TilePos, number], [b,bv]: [TilePos, number]) => av < bv;
     const q = new FastPriorityQueue(comp);
 
-    const heuristic = destinationOctileDistance;
+    const heuristic = octileDistance;
 
     q.add([start, 0]);
 
@@ -86,10 +56,6 @@ function gridPathFind(start: TilePos, destination: Destination, tolerance: numbe
 
     cameFrom.set(start, undefined);
     costSoFar.set(start, 0);
-
-    const closeEnoughToTarget = (current: TilePos) => {
-       return destinationDistance(current as Position, destination) <= tolerance;
-    };
 
     const isTileWithinBounds = (t: TilePos) => t.x > 0 && t.y > 0 && t.x < m.w && t.y < m.h;
 
@@ -135,7 +101,7 @@ function gridPathFind(start: TilePos, destination: Destination, tolerance: numbe
 
             if (!costOfNext || newCost < costOfNext) {
                 costSoFar.set(next, newCost);
-                const priority = newCost + heuristic(next, destination);
+                const priority = newCost + heuristic(next, target);
                 q.add([next, priority]);
 
                 cameFrom.set(next, current);
@@ -163,16 +129,46 @@ function gridPathFind(start: TilePos, destination: Destination, tolerance: numbe
     return path;
 }
 
-export function pathFind(a: Position, destination: Destination, tolerance: number, m: GameMap, buildings: BuildingMap): Position[] | undefined {
-    const unitTilePos = { x: Math.floor(a.x), y: Math.floor(a.y) };
-    const path = gridPathFind(unitTilePos, destination, tolerance, m, buildings);
 
-    // improve the resulting path slightly, if found
-    if (!path) {
-        console.log("[pathfinding] Path not found")
-        return;
+function octileDistance(a: TilePos, b: TilePos) {
+    const dx = Math.abs(a.x - b.x);
+    const dy = Math.abs(a.y - b.y);
+    return dx + dy - 0.58 * Math.min(dx, dy);
+}
+
+function getSurroundingPos(p: TilePos): TilePos[] {
+    return [
+        {x: p.x+1, y: p.y},
+        {x: p.x+1, y: p.y+1},
+        {x: p.x, y: p.y+1},
+        {x: p.x-1, y: p.y+1},
+        {x: p.x-1, y: p.y},
+        {x: p.x-1, y: p.y-1},
+        {x: p.x, y: p.y-1},
+        {x: p.x+1, y: p.y-1}
+    ]
+}
+
+class HashMap<K,V> {
+    map: Map<number, V>;
+    hash: (key: K) => number;
+
+    constructor(f: (key: K) => number) {
+        this.map = new Map();
+        this.hash = f;
     }
 
+    get(key: K): V | undefined {
+        return this.map.get(this.hash(key));
+    }
+
+    set(key: K, value: V) {
+        return this.map.set(this.hash(key), value);
+    }
+}
+
+
+function cleanupPath(path: TilePosPath): Path {
     // remove redundant nodes on straight lines
     const newPath = [];
     if (path.length > 0)
@@ -198,11 +194,5 @@ export function pathFind(a: Position, destination: Destination, tolerance: numbe
             newPath.push(path[i]);
         }
     }
-
-    if (destination.type === 'MapDestination') {
-        newPath.pop(); // remove last grid tile to avoid backtracking
-        newPath.push(destination.position); // add the precise destination as the last step
-    }
-
-    return newPath;
-};
+    return newPath
+}
