@@ -4,7 +4,7 @@ import { checkMovePossibility } from '../../movement.js'
 import { tilesTakenByBuilding } from '../../shared.js'
 import { pathFind, destinationDistance, Destination } from '../../pathfinding.js'
 
-import { getUnitReferencePosition, findClosestEmptyTile } from '../util.js'
+import { getUnitReferencePosition, findClosestEmptyTile, unitInteractionDistance } from '../util.js'
 import { PATH_RECOMPUTE_DISTANCE_THRESHOLD, UNIT_FOLLOW_DISTANCE, MAP_MOVEMENT_TOLERANCE } from '../constants.js'
 
 import { clearCurrentCommand, stopMoving } from './clear.js'
@@ -21,11 +21,14 @@ type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
 type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
 function moveTowards(unit: Unit, gm: GameWithPresenceCache, destination: Destination, tolerance: number, dt: Milliseconds): MoveResult {
-    if (destinationDistance(unit.position, destination) < tolerance) {
+    if (unitInteractionDistance(unit, destination) < tolerance) {
         // TODO this abstraction should ensure pathToNext is always cleared on reached
         delete unit.pathToNext;
         return 'ReachedTarget'; // nothing to do
     }
+
+    const tiles = tilesTakenByBuilding(bc, target.position);
+    const destination = { type: 'BuildingDestination', tiles };
 
     const mc = getMoveComponent(unit);
     if (!mc)
@@ -72,8 +75,7 @@ export function moveTowardsUnit(unit: Unit, gm: GameWithPresenceCache, target: U
     if (!bc) {
         return moveTowardsPoint(unit, gm, getUnitReferencePosition(target), tolerance, dt);
     } else {
-        const tiles = tilesTakenByBuilding(bc, target.position);
-        return moveTowards(unit, gm, { type: 'BuildingDestination', tiles }, tolerance, dt);
+        return moveTowards(unit, gm, target, tolerance, dt);
     }
 }
 

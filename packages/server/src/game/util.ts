@@ -158,22 +158,31 @@ export function getUnitReferencePosition(target: Unit): Position {
     }
 }
 
-export function unitDistance(a: Unit, b: Unit): number {
-     // TODO for buildings it should use perimeter instead of reference?
-    const aPos = getUnitReferencePosition(a);
-    const bPos = getUnitReferencePosition(b);
-    return V.distance(aPos, bPos);
-}
+// Uses perimeters for buildings and sizes for units
+// In other words - amount of empty space between units
+export function unitInteractionDistance(a: Unit, b: Unit): number {
+    // TODO - doesn't support building-to-building distances
+    if (getBuildingComponent(a)) {
+        throw new Error("Building-to-unit distance not supported yet and will give inconsistent results");
+    }
 
-export function attackerToTargetDistance(attacker: Unit, target: Unit): number {
-    const aPos = getUnitReferencePosition(attacker);
-    const bc = getBuildingComponent(target);
+    // TODO - every unit should have a size
+    const aSize = 1.0;
+    const aRadius = aSize * 0.5;
+    const aPos = getUnitReferencePosition(a);
+
+    const bc = getBuildingComponent(b);
     if (!bc) {
-        return V.distance(aPos, getUnitReferencePosition(target));
+        // regular unit, not a building
+        const bSize = 1.0;
+        const bRadius = bSize * 0.5;
+        const centerDistance = V.distance(aPos, getUnitReferencePosition(target));
+        // subtract radius of each unit
+        return centerDistance - (aRadius + bRadius);
     } else {
         const tiles = tilesTakenByBuilding(bc, target.position);
         const tileDistances = tiles.map(t => V.distance(t as Position, aPos));
-        return Math.min(...tileDistances);
+        return Math.min(...tileDistances) - aRadius;
     }
 }
 

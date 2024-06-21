@@ -10,7 +10,7 @@ import { checkMovePossibility } from '../../movement.js'
 import { clearCurrentCommand, stopMoving } from './clear.js'
 import { moveTowardsUnit, moveTowardsPoint } from './movement.js'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from '../components.js'
-import { getUnitReferencePosition, unitDistance, attackerToTargetDistance } from '../util.js'
+import { getUnitReferencePosition, unitInteractionDistance } from '../util.js'
 
 export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
@@ -38,7 +38,7 @@ export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boo
         return;
     }
 
-    unitsFiltered.sort((a: Unit, b: Unit) => unitDistance(unit, a) - unitDistance(unit, b));
+    unitsFiltered.sort((a: Unit, b: Unit) => unitInteractionDistance(unit, a) - unitInteractionDistance(unit, b));
     
     return unitsFiltered[0];
 }
@@ -77,7 +77,7 @@ const attemptDamage = (ac: Attacker, target: Unit) => {
 
 export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, target: Unit, dt: Milliseconds) => {
     // if out of range, just move to target
-    if (attackerToTargetDistance(unit, target) > ac.range) {
+    if (unitInteractionDistance(unit, target) > ac.range) {
         // Right now the attack command is upheld even if the unit can't move
         // SC in that case just cancels the attack command - TODO decide
         moveTowardsUnit(unit, gm, target, ac.range - ATTACK_RANGE_COMPENSATION, dt);
