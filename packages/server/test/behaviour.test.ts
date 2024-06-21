@@ -58,7 +58,7 @@ describe('movement', () => {
         expect(game.state.id).toBe('Play');
     });
 
-    test('move to building', () => {
+    test('follow-move to building', () => {
         const game = createBasicGame({}, 30);
         spawnUnit(game, 1, "Harvester", {x: 2, y: 2});
         spawnUnit(game, 1, "Base", {x: 20, y: 5});
@@ -109,8 +109,6 @@ test('attack action on building', () => {
     for (let i = 0; i < 3 * 10; i++) {
         tick(TICK_MS, game);
     }
-
-    console.log(game.units)
 
     expect(game.units[0].state.state).toBe('active');
     expect(game.units[0].state.action).toBe('Attacking');

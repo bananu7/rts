@@ -66,10 +66,9 @@ export function moveTowardsPoint(unit: Unit, gm: GameWithPresenceCache, targetPo
     return moveTowards(unit, gm, {type: 'MapDestination', position: {x: targetPos.x, y: targetPos.y}}, MAP_MOVEMENT_TOLERANCE, dt);
 }
 
-export function moveTowardsUnit(unit: Unit, gm: GameWithPresenceCache, target: Unit, extraTolerance: number, dt: Milliseconds): MoveResult {
+export function moveTowardsUnit(unit: Unit, gm: GameWithPresenceCache, target: Unit, tolerance: number, dt: Milliseconds): MoveResult {
     const bc = getBuildingComponent(target);
 
-    const tolerance = extraTolerance + UNIT_FOLLOW_DISTANCE;
     if (!bc) {
         return moveTowardsPoint(unit, gm, getUnitReferencePosition(target), tolerance, dt);
     } else {
@@ -78,10 +77,10 @@ export function moveTowardsUnit(unit: Unit, gm: GameWithPresenceCache, target: U
     }
 }
 
-export const moveTowardsUnitById = (unit: Unit, gm: GameWithPresenceCache, targetId: UnitId, extraTolerance: number, dt: Milliseconds): MoveToUnitResult => {
+export const moveTowardsUnitById = (unit: Unit, gm: GameWithPresenceCache, targetId: UnitId, tolerance: number, dt: Milliseconds): MoveToUnitResult => {
     const target = gm.game.units.find(u => u.id === targetId);
     if (target) {
-        return moveTowardsUnit(unit, gm, target, extraTolerance, dt);
+        return moveTowardsUnit(unit, gm, target, tolerance, dt);
     } else {
         return 'TargetNonexistent';
     }

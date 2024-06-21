@@ -4,14 +4,13 @@ import {
 } from '../../types'
 
 import * as V from '../../vector.js'
-import { MAP_MOVEMENT_TOLERANCE, MAXIMUM_IDLE_AGGRO_RANGE } from '../constants.js'
+import { MAP_MOVEMENT_TOLERANCE, MAXIMUM_IDLE_AGGRO_RANGE, ATTACK_RANGE_COMPENSATION } from '../constants.js'
 import { checkMovePossibility } from '../../movement.js'
 
 import { clearCurrentCommand, stopMoving } from './clear.js'
 import { moveTowardsUnit, moveTowardsPoint } from './movement.js'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from '../components.js'
 import { getUnitReferencePosition, unitDistance, attackerToTargetDistance } from '../util.js'
-
 
 export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
@@ -81,7 +80,7 @@ export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, targe
     if (attackerToTargetDistance(unit, target) > ac.range) {
         // Right now the attack command is upheld even if the unit can't move
         // SC in that case just cancels the attack command - TODO decide
-        moveTowardsUnit(unit, gm, target, ac.range, dt);
+        moveTowardsUnit(unit, gm, target, ac.range - ATTACK_RANGE_COMPENSATION, dt);
     } else {
         unit.state.action = 'Attacking';
         const targetPos = getUnitReferencePosition(target);
