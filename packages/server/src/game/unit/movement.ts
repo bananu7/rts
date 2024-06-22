@@ -31,6 +31,11 @@ function moveTowardsPoint(
     if (!mc)
         return 'Unreachable';
 
+    if (closeEnough(unit.position)) {
+        delete unit.pathToNext;
+        return 'ReachedTarget';
+    }
+
     // If no path is computed, compute it
     if (!unit.pathToNext) {
         if (!computePathTo(unit, gm, target, closeEnough))
