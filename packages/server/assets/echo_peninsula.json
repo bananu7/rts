@@ -1,0 +1,7 @@
+{
+    "name": "Echo Peninsula",
+    "w": 300,
+    "h": 150,
+    "symmetry": "mirror_x",
+    "imagePath": "echo.png"
+}

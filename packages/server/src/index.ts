@@ -139,8 +139,8 @@ rts.post('/create', async (req, res) => {
         return
     }
 
-    // TODO - load or w/e
-    const map = await getMap('assets/map.png');
+    const mapPath = "echo_peninsula.json"    
+    const map = await getMap("assets/" + mapPath);
     const matchId = String(++lastMatchId); // TODO
     const game = newGame(matchId, map);
 
