@@ -7,14 +7,19 @@ import * as THREE from 'three';
 import { MapControls } from './MapControls'
 import { Stats } from './Stats'
 
-function CameraControls() {
+
+type CameraControlsProps = {
+    minPan: THREE.Vector3,
+    maxPan: THREE.Vector3,
+}
+function CameraControls(props: CameraControlsProps) {
     const { camera, gl: { domElement }, scene } = useThree();
 
     const vert = Math.PI * 0.2;
     const horiz = Math.PI * 1.0;
 
     useLayoutEffect (() => {
-        const c = new MapControls( camera, domElement );
+        const c = new MapControls( camera, props.minPan, props.maxPan, domElement);
 
         c.minDistance = 30;
         c.maxDistance = 300;
@@ -110,6 +115,10 @@ export interface Props {
     onPointerMissed?: () => void;
 
     enablePan?: boolean;
+
+    // map size
+    viewX: number;
+    viewY: number;
 }
 
 export function View3D(props: Props) {
@@ -122,6 +131,9 @@ export function View3D(props: Props) {
         left:0,
         //zIndex: -1
     }
+
+    const minPan = new THREE.Vector3(15, 0, 15);
+    const maxPan = new THREE.Vector3(85, 10, 85);
 
     return (
         <Suspense fallback={null}>
@@ -139,7 +151,7 @@ export function View3D(props: Props) {
                     dpr={1}
                 >
                     <color attach="background" args={[0x11aa11]} />
-                    <CameraControls />
+                    <CameraControls minPan={minPan} maxPan={maxPan} />
                     <ambientLight args={[0xffffff, 2]} />
                     <MapSpotlight />
                     {props.children}

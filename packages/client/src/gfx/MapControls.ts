@@ -2,7 +2,7 @@ import { OrbitControls } from "./OrbitControls";
 import * as THREE from 'three';
 
 export class MapControls extends OrbitControls {
-    constructor(camera : THREE.Camera, domElement?: HTMLElement) {
+    constructor(camera : THREE.Camera, minPan: THREE.Vector3, maxPan: THREE.Vector3, domElement?: HTMLElement) {
         super(camera, domElement);
 
         this.mouseButtons.RIGHT = undefined;
@@ -11,8 +11,7 @@ export class MapControls extends OrbitControls {
         this.touches.ONE = THREE.TOUCH.PAN;
         this.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
 
-        // TODO - real map size
-        this.minPan.set(15, 0, 15);
-        this.maxPan.set(85, 10, 85);
+        this.minPan.copy(minPan);
+        this.maxPan.copy(maxPan);
     }
 }

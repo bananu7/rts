@@ -182,7 +182,7 @@ export function SpectateController(props: SpectateControllerProps) {
             resources={lastUpdatePacket.player.resources}
             units={0} // TODO -spectator doesn't receive data about both players
           />
-          <View3D>
+          <View3D viewX={300} viewY={150} >
             <Board3D
               board={matchMetadata.board}
               playerIndex={0} // TODO - spectator has no player index

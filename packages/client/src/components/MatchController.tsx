@@ -341,7 +341,7 @@ export function MatchController(props: MatchControllerProps) {
             resources={lastUpdatePacket.player.resources}
             units={lastUpdatePacket.units.filter(u => u.owner === props.ctrl.getPlayerIndex()).length}
           />
-          <View3D>
+          <View3D viewX={300} viewY={150} >
             <Board3D
               board={matchMetadata.board}
               playerIndex={props.ctrl.getPlayerIndex()}
