@@ -132,8 +132,9 @@ export function View3D(props: Props) {
         //zIndex: -1
     }
 
-    const minPan = new THREE.Vector3(15, 0, 15);
-    const maxPan = new THREE.Vector3(85, 10, 85);
+    const border = 15.0;
+    const minPan = new THREE.Vector3(border, 0, border);
+    const maxPan = new THREE.Vector3(props.viewX - border, 10, props.viewY - border);
 
     return (
         <Suspense fallback={null}>
