@@ -1,9 +1,9 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties } from 'react'
-import { debugFlags } from '../debug/flags'
 
 import * as THREE from 'three';
 
+import { MapSpotlight } from './MapSpotlight'
 import { MapControls } from './MapControls'
 import { Stats } from './Stats'
 import { Position} from '@bananu7-rts/server/src/types'
@@ -41,75 +41,6 @@ function CameraControls(props: CameraControlsProps) {
     return null;
 };
 
-export default function useShadowHelper(
-  ref: React.RefObject<THREE.Light | undefined>
-) {
-  const helper = useRef<THREE.CameraHelper>();
-  const scene = useThree((state) => state.scene);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    helper.current = new THREE.CameraHelper(ref.current?.shadow.camera);
-    if (helper.current) {
-      scene.add(helper.current);
-    }
-
-    return () => {
-      if (helper.current) {
-        scene.remove(helper.current);
-      }
-    };
-  }, [helper.current?.uuid, ref.current]);
-
-  useFrame(() => {
-    if (helper.current?.update) {
-      helper.current.update();
-    }
-  });
-}
-
-function MapSpotlight() {
-    const lightRef = useRef<THREE.SpotLight>(null);
-    // uncomment to enable
-    if (debugFlags.showLightConeHelper)
-        useShadowHelper(lightRef);
-
-    const { scene } = useThree();
-
-    useEffect(() => {
-        if (!lightRef.current) return;
-
-        const target = new THREE.Object3D();
-        target.position.set(100, 0, 50);
-        scene.add(target);
-
-        lightRef.current.target = target;
-    }, [lightRef]);
-
-    // TODO spotlight setting to allow time of day
-    return (
-        <group>
-            <spotLight 
-                ref={lightRef}
-                position={[400, 180, 90]}
-                angle={0.16}
-                distance={0}
-                decay={0}
-                intensity={4}
-                color={0xffffff}
-
-                castShadow
-                shadow-camera-near={300}
-                shadow-camera-far={500}
-                shadow-mapSize-height={1024}
-                shadow-mapSize-width={1024}
-                shadow-bias={-0.002}
-            />
-        </group>
-     )   
-}
-
 
 export type Props = {
     children: JSX.Element | JSX.Element[],
@@ -143,6 +74,7 @@ export function View3D(props: Props) {
     startCameraPosition.copy(startTarget);
     startCameraPosition.y += 60;
     startCameraPosition.z += 40;
+    const middleOfTheMap = new THREE.Vector3(props.viewX/2, 0, props.viewY/2);
 
     return (
         <Suspense fallback={null}>
@@ -169,7 +101,7 @@ export function View3D(props: Props) {
                     <color attach="background" args={[0x11aa11]} />
                     <CameraControls minPan={minPan} maxPan={maxPan} startTarget={startTarget} />
                     <ambientLight args={[0xffffff, 2]} />
-                    <MapSpotlight />
+                    <MapSpotlight target={middleOfTheMap}/>
                     {props.children}
                     <Stats />
                 </Canvas>
