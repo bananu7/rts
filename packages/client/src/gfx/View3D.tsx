@@ -6,11 +6,12 @@ import * as THREE from 'three';
 
 import { MapControls } from './MapControls'
 import { Stats } from './Stats'
-
+import { Position} from '@bananu7-rts/server/src/types'
 
 type CameraControlsProps = {
     minPan: THREE.Vector3,
     maxPan: THREE.Vector3,
+    startTarget: THREE.Vector3,
 }
 function CameraControls(props: CameraControlsProps) {
     const { camera, gl: { domElement }, scene } = useThree();
@@ -29,7 +30,7 @@ function CameraControls(props: CameraControlsProps) {
 
         c.enableRotate = false;
 
-        c.target = new THREE.Vector3(50, 0, 50);
+        c.target = props.startTarget;
         c.update();
 
         return () => {
@@ -80,8 +81,8 @@ function MapSpotlight() {
         if (!lightRef.current) return;
 
         const target = new THREE.Object3D();
-        target.position.set(50, 0, 50);
-        scene.add(target);lightRef
+        target.position.set(100, 0, 50);
+        scene.add(target);
 
         lightRef.current.target = target;
     }, [lightRef]);
@@ -110,15 +111,16 @@ function MapSpotlight() {
 }
 
 
-export interface Props {
-    children: JSX.Element | JSX.Element[];
-    onPointerMissed?: () => void;
+export type Props = {
+    children: JSX.Element | JSX.Element[],
+    onPointerMissed?: () => void,
 
-    enablePan?: boolean;
+    enablePan?: boolean,
 
+    startPosition: Position,
     // map size
-    viewX: number;
-    viewY: number;
+    viewX: number,
+    viewY: number,
 }
 
 export function View3D(props: Props) {
@@ -135,12 +137,25 @@ export function View3D(props: Props) {
     const border = 15.0;
     const minPan = new THREE.Vector3(border, 0, border);
     const maxPan = new THREE.Vector3(props.viewX - border, 10, props.viewY - border);
+    const startTarget = new THREE.Vector3(props.startPosition.x, 0, props.startPosition.y);
+    // TODO specify that as angles
+    const startCameraPosition = new THREE.Vector3();
+    startCameraPosition.copy(startTarget);
+    startCameraPosition.y += 60;
+    startCameraPosition.z += 40;
 
     return (
         <Suspense fallback={null}>
             <div style={style} >
                 <Canvas
-                    camera={{ fov: 27.8, near: 10, far: 500, up:[0,1,0], position: [50, 60, 90] }}
+                    camera={{
+                        fov: 27.8,
+                        near: 10,
+                        far: 500,
+                        up:[0,1,0],
+
+                        position: startCameraPosition,
+                    }}
                     gl={{
                         physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,
@@ -152,7 +167,7 @@ export function View3D(props: Props) {
                     dpr={1}
                 >
                     <color attach="background" args={[0x11aa11]} />
-                    <CameraControls minPan={minPan} maxPan={maxPan} />
+                    <CameraControls minPan={minPan} maxPan={maxPan} startTarget={startTarget} />
                     <ambientLight args={[0xffffff, 2]} />
                     <MapSpotlight />
                     {props.children}
