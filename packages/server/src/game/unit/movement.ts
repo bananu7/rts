@@ -2,17 +2,17 @@ import { Unit, UnitId, Position, Milliseconds, Mover, GameWithPresenceCache } fr
 import * as V from '../../vector.js'
 import { checkMovePossibility } from '../../movement.js'
 import { tilesTakenByBuilding } from '../../shared.js'
-import { pathFind, destinationDistance, Destination } from '../../pathfinding.js'
+import { pathFind } from '../../pathfinding.js'
 
-import { getUnitReferencePosition, findClosestEmptyTile } from '../util.js'
+import { getUnitReferencePosition, findClosestEmptyTile, unitInteractionDistance } from '../util.js'
 import { PATH_RECOMPUTE_DISTANCE_THRESHOLD, UNIT_FOLLOW_DISTANCE, MAP_MOVEMENT_TOLERANCE } from '../constants.js'
 
 import { clearCurrentCommand, stopMoving } from './clear.js'
 import { getMoveComponent, getBuildingComponent } from '../components.js'
 
 
-const computePathTo = (unit: Unit, gm: GameWithPresenceCache, destination: Destination, tolerance: number): boolean => {
-    unit.pathToNext = pathFind(unit.position, destination, tolerance, gm.game.board.map, gm.buildings);
+const computePathTo = (unit: Unit, gm: GameWithPresenceCache, target: Position, closeEnough:(p: Position) => boolean): boolean => {
+    unit.pathToNext = pathFind(unit.position, target, closeEnough, gm.game.board.map, gm.buildings);
     return Boolean(unit.pathToNext);
 }
 
@@ -20,33 +20,36 @@ const computePathTo = (unit: Unit, gm: GameWithPresenceCache, destination: Desti
 type MoveResult = 'ReachedTarget' | 'Moving' | 'Unreachable';
 type MoveToUnitResult = MoveResult | 'TargetNonexistent';
 
-function moveTowards(unit: Unit, gm: GameWithPresenceCache, destination: Destination, tolerance: number, dt: Milliseconds): MoveResult {
-    if (destinationDistance(unit.position, destination) < tolerance) {
-        // TODO this abstraction should ensure pathToNext is always cleared on reached
-        delete unit.pathToNext;
-        return 'ReachedTarget'; // nothing to do
-    }
-
+function moveTowardsPoint(
+    unit: Unit,
+    target: Position,
+    closeEnough:(p: Position) => boolean,
+    gm: GameWithPresenceCache,
+    dt: Milliseconds
+): MoveResult {
     const mc = getMoveComponent(unit);
     if (!mc)
         return 'Unreachable';
 
+    if (closeEnough(unit.position)) {
+        delete unit.pathToNext;
+        return 'ReachedTarget';
+    }
+
     // If no path is computed, compute it
     if (!unit.pathToNext) {
-        if (!computePathTo(unit, gm, destination, tolerance))
+        if (!computePathTo(unit, gm, target, closeEnough))
             return 'Unreachable';
     } else {
         // TODO this logic is a bit wonky
         const pathEmpty = unit.pathToNext.length === 0;
         if (pathEmpty) {
-            if (!computePathTo(unit, gm, destination, tolerance))
+            if (!computePathTo(unit, gm, target, closeEnough))
                 return 'Unreachable';
-        } else if (destination.type === 'MapDestination') {
-            // paths to buildings don't have the center as last step; as such
-            // this logic erroneously assumes the path needs recomputing.
-            const distanceFromPathEndToTarget = destinationDistance(unit.pathToNext[unit.pathToNext.length-1], destination);
-            if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD + tolerance){
-                if (!computePathTo(unit, gm, destination, tolerance))
+        } else {
+            const distanceFromPathEndToTarget = V.distance(unit.pathToNext[unit.pathToNext.length-1], target);
+            if (distanceFromPathEndToTarget > PATH_RECOMPUTE_DISTANCE_THRESHOLD){
+                if (!computePathTo(unit, gm, target, closeEnough))
                     return 'Unreachable';
             }
         }
@@ -62,26 +65,38 @@ function moveTowards(unit: Unit, gm: GameWithPresenceCache, destination: Destina
     return 'Moving';
 }
 
-export function moveTowardsPoint(unit: Unit, gm: GameWithPresenceCache, targetPos: Position, tolerance: number, dt: Milliseconds): MoveResult {
-    return moveTowards(unit, gm, {type: 'MapDestination', position: {x: targetPos.x, y: targetPos.y}}, MAP_MOVEMENT_TOLERANCE, dt);
+export function moveTowardsUnit(
+    unit: Unit,
+    target: Unit,
+    tolerance: number,
+    gm: GameWithPresenceCache,
+    dt: Milliseconds
+): MoveResult {
+    const closeEnough = (p: Position) => {
+        return unitInteractionDistance(unit, target, p) <= tolerance;
+    };
+
+    return moveTowardsPoint(unit, getUnitReferencePosition(target), closeEnough, gm, dt);
 }
 
-export function moveTowardsUnit(unit: Unit, gm: GameWithPresenceCache, target: Unit, extraTolerance: number, dt: Milliseconds): MoveResult {
-    const bc = getBuildingComponent(target);
+export function moveTowardsMapPosition(
+    unit: Unit,
+    target: Position,
+    tolerance: number,
+    gm: GameWithPresenceCache,
+    dt: Milliseconds
+): MoveResult {
+    const closeEnough = (p: Position) => {
+        return V.distance(target, p) < tolerance;
+    };
 
-    const tolerance = extraTolerance + UNIT_FOLLOW_DISTANCE;
-    if (!bc) {
-        return moveTowardsPoint(unit, gm, getUnitReferencePosition(target), tolerance, dt);
-    } else {
-        const tiles = tilesTakenByBuilding(bc, target.position);
-        return moveTowards(unit, gm, { type: 'BuildingDestination', tiles }, tolerance, dt);
-    }
+    return moveTowardsPoint(unit, target, closeEnough, gm, dt);
 }
 
-export const moveTowardsUnitById = (unit: Unit, gm: GameWithPresenceCache, targetId: UnitId, extraTolerance: number, dt: Milliseconds): MoveToUnitResult => {
+export const moveTowardsUnitById = (unit: Unit, gm: GameWithPresenceCache, targetId: UnitId, tolerance: number, dt: Milliseconds): MoveToUnitResult => {
     const target = gm.game.units.find(u => u.id === targetId);
     if (target) {
-        return moveTowardsUnit(unit, gm, target, extraTolerance, dt);
+        return moveTowardsUnit(unit, target, tolerance, gm, dt);
     } else {
         return 'TargetNonexistent';
     }
@@ -90,7 +105,7 @@ export const moveTowardsUnitById = (unit: Unit, gm: GameWithPresenceCache, targe
 // attempts direct move to a point; if the point is either
 // reached or unable to be reached, the command is concluded over.
 export function moveToPointOrCancelCommand(unit: Unit, gm: GameWithPresenceCache, p: Position, dt: Milliseconds) {
-    switch (moveTowardsPoint(unit, gm, p, MAP_MOVEMENT_TOLERANCE, dt)) {
+    switch (moveTowardsMapPosition(unit, p, MAP_MOVEMENT_TOLERANCE, gm, dt)) {
         case 'Moving':
             unit.state.action = 'Moving';
             break;

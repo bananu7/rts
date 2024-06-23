@@ -4,14 +4,13 @@ import {
 } from '../../types'
 
 import * as V from '../../vector.js'
-import { MAP_MOVEMENT_TOLERANCE, MAXIMUM_IDLE_AGGRO_RANGE } from '../constants.js'
+import { MAP_MOVEMENT_TOLERANCE, MAXIMUM_IDLE_AGGRO_RANGE, ATTACK_RANGE_COMPENSATION } from '../constants.js'
 import { checkMovePossibility } from '../../movement.js'
 
 import { clearCurrentCommand, stopMoving } from './clear.js'
-import { moveTowardsUnit, moveTowardsPoint } from './movement.js'
+import { moveTowardsUnit, moveTowardsMapPosition } from './movement.js'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from '../components.js'
-import { getUnitReferencePosition, unitDistance } from '../util.js'
-
+import { getUnitReferencePosition, unitInteractionDistance } from '../util.js'
 
 export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     const p = unit.components.find(c => c.type === "ProductionFacility") as ProductionFacility | undefined;
@@ -39,7 +38,7 @@ export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boo
         return;
     }
 
-    unitsFiltered.sort((a: Unit, b: Unit) => unitDistance(unit, a) - unitDistance(unit, b));
+    unitsFiltered.sort((a: Unit, b: Unit) => unitInteractionDistance(unit, a) - unitInteractionDistance(unit, b));
     
     return unitsFiltered[0];
 }
@@ -77,17 +76,16 @@ const attemptDamage = (ac: Attacker, target: Unit) => {
 }
 
 export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, target: Unit, dt: Milliseconds) => {
-    // if out of range, just move to target
-    if (unitDistance(unit, target) > ac.range) {
-        // Right now the attack command is upheld even if the unit can't move
-        // SC in that case just cancels the attack command - TODO decide
-        moveTowardsUnit(unit, gm, target, ac.range, dt);
-    } else {
+    // first let the movement system do its thing
+    const movementTolerance = ac.range - ATTACK_RANGE_COMPENSATION;
+    if (moveTowardsUnit(unit, target, movementTolerance, gm, dt) === 'ReachedTarget') {
+        // if it gives us a proper position, we can attack
         unit.state.action = 'Attacking';
         const targetPos = getUnitReferencePosition(target);
         unit.direction = V.angleFromTo(unit.position, targetPos);
         attemptDamage(ac, target);
     }
+    // in any other case we can't do much else
 }
 
 export const updatePassiveCooldowns = (unit: Unit, dt: Milliseconds) => {
@@ -115,7 +113,7 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
     if (!target) {
         // try to return to the idle position;
         // if it's close enough, it shouldn't start moving at all
-        moveTowardsPoint(unit, gm, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
+        moveTowardsMapPosition(unit, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, gm, dt);
         return true;
     }
 
@@ -124,7 +122,7 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
     if (distanceFromIdle < MAXIMUM_IDLE_AGGRO_RANGE){
         aggro(unit, gm, ac, target, dt);
     } else {
-        moveTowardsPoint(unit, gm, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, dt);
+        moveTowardsMapPosition(unit, unit.state.idlePosition, MAP_MOVEMENT_TOLERANCE, gm, dt);
     }
 
     return true;

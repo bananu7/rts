@@ -58,7 +58,7 @@ describe('movement', () => {
         expect(game.state.id).toBe('Play');
     });
 
-    test('move to building', () => {
+    test('follow-move to building', () => {
         const game = createBasicGame({}, 30);
         spawnUnit(game, 1, "Harvester", {x: 2, y: 2});
         spawnUnit(game, 1, "Base", {x: 20, y: 5});
@@ -74,11 +74,47 @@ describe('movement', () => {
             1
         );
 
-        for (let i = 0; i < 20 * 10; i++)
+        for (let i = 0; i < 10 * 10; i++) {
             tick(TICK_MS, game);
+        }
 
         expect(game.units[0].position.x).toBeGreaterThan(15);
+        expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].state.action).toBe('Idle');
     });
+});
+
+test('attack action on building', () => {
+    const game = createBasicGame({}, 30);
+
+    // It can't be exact like {x: 4, y: 10} because then it barely caught in range
+    spawnUnit(game, 1, "Trooper", {x: 3.5, y: 9});
+    spawnUnit(game, 2, "Base", {x: 18, y: 10});
+
+    tick(TICK_MS, game);
+    expect(game.units[0].state.state).toBe('idle');
+    expect(game.units[0].state.action).toBe('Idle');
+
+    command({
+            command: { typ: 'Attack', target: 2 },
+            unitIds: [1],
+            shift: false,
+        },
+        game,
+        1
+    );
+
+    tick(TICK_MS, game);
+
+    expect(game.units[0].state.state).toBe('active');
+    expect(game.units[0].state.action).toBe('Moving');
+
+    for (let i = 0; i < 3 * 10; i++) {
+        tick(TICK_MS, game);
+    }
+
+    expect(game.units[0].state.state).toBe('active');
+    expect(game.units[0].state.action).toBe('Attacking');
 });
 
 test('attack-move action', () => {

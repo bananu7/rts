@@ -12,7 +12,7 @@ import { isBuildPlacementOk } from '../shared.js'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
 
-import { moveTowardsUnit, moveToPointOrCancelCommand, moveTowardsUnitById, moveTowardsPoint } from './unit/movement.js'
+import { moveTowardsUnit, moveToPointOrCancelCommand, moveTowardsUnitById, moveTowardsMapPosition } from './unit/movement.js'
 import { clearCurrentCommand, stopMoving, becomeIdleAtCurrentPosition } from './unit/clear.js'
 import { detectNearbyEnemy, findClosestUnitBy, cancelProduction, aggro } from './unit/unit.js'
 import { HARVESTING_DISTANCE, HARVESTING_RESOURCE_COUNT, MAX_PLAYER_UNITS, UNIT_FOLLOW_DISTANCE } from './constants.js'
@@ -95,7 +95,7 @@ export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
 export const followCommand = (ctx: CommandContext, cmd: CommandFollow) => {
     const unit = ctx.unit;
     const moveResult = moveTowardsUnitById(unit, ctx.gm, cmd.target, UNIT_FOLLOW_DISTANCE, ctx.dt);
-    if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
+    if (moveResult !== 'Moving') {
         clearCurrentCommand(unit);
     }
 }
@@ -119,7 +119,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
 
     if (!hc.resourcesCarried) {
         // TODO - should resources use perimeter?
-        switch(moveTowardsUnit(unit, ctx.gm, target, HARVESTING_DISTANCE, dt)) {
+        switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
         case 'Unreachable':
             clearCurrentCommand(unit);
             break;
@@ -150,7 +150,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         }
 
-        switch(moveTowardsUnit(unit, ctx.gm, target, DROPOFF_DISTANCE, dt)) {
+        switch(moveTowardsUnit(unit, target, DROPOFF_DISTANCE, ctx.gm, dt)) {
         case 'Unreachable':
             // TODO if closest base is unreachable maybe try next one?
             clearCurrentCommand(unit);
@@ -264,7 +264,7 @@ export const buildCommand = (ctx: CommandContext, cmd: CommandBuild) => {
     const buildingDistance = buildingComponent.size / 2 + 1;
 
     // TODO this would technically allow building over water etc.
-    switch(moveTowardsPoint(unit, ctx.gm, middleOfTheBuilding, buildingDistance, ctx.dt)) {
+    switch(moveTowardsMapPosition(unit, middleOfTheBuilding, buildingDistance, ctx.gm, ctx.dt)) {
         case 'Unreachable':
             throw new InvalidCommandError("Unit ordered to build but location is unreachable.");
 

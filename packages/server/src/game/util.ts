@@ -1,6 +1,7 @@
 import { Position, Unit, Command, Component, Game, BuildingMap, PresenceMap } from '../types'
 import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
 import * as V from '../vector.js'
+import { tilesTakenByBuilding } from '../shared.js'
 
 // This code generates an offset position for a given spiral index
 export function spiral(p: Position, i: number, scale: number) {
@@ -157,13 +158,34 @@ export function getUnitReferencePosition(target: Unit): Position {
     }
 }
 
-export function unitDistance(a: Unit, b: Unit): number {
-     // TODO for buildings it should use perimeter instead of reference?
-    const aPos = getUnitReferencePosition(a);
-    const bPos = getUnitReferencePosition(b);
-    return V.distance(aPos, bPos);
-}
+// Uses perimeters for buildings and sizes for units
+// In other words - amount of empty space between units
+// aReferencePos is the hypothetical position to use for the unit
+export function unitInteractionDistance(a: Unit, b: Unit, aReferencePos?: Position): number {
+    // TODO - doesn't support building-to-building distances
+    if (getBuildingComponent(a)) {
+        throw new Error("Building-to-unit distance not supported yet and will give inconsistent results");
+    }
 
+    // TODO - every unit should have a size
+    const aSize = 1.0;
+    const aRadius = aSize * 0.5;
+    const aPos = aReferencePos ? aReferencePos : getUnitReferencePosition(a);
+
+    const bc = getBuildingComponent(b);
+    if (!bc) {
+        // regular unit, not a building
+        const bSize = 1.0;
+        const bRadius = bSize * 0.5;
+        const centerDistance = V.distance(aPos, getUnitReferencePosition(b));
+        // subtract radius of each unit
+        return centerDistance - (aRadius + bRadius);
+    } else {
+        const tiles = tilesTakenByBuilding(bc, b.position);
+        const tileDistances = tiles.map(t => V.distance(t as Position, aPos));
+        return Math.min(...tileDistances) - aRadius;
+    }
+}
 
 export function findClosestEmptyTile(
     g: Game,

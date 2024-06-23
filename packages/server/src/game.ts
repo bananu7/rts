@@ -8,14 +8,14 @@ import {
 } from './types';
 
 import * as V from './vector.js'
-import { pathFind, destinationDistance, Destination } from './pathfinding.js'
+import { pathFind } from './pathfinding.js'
 import { createUnit, createStartingUnits, getUnitDataByName, UnitData } from './game/units.js'
 import { notEmpty } from './tsutil.js'
 import { isBuildPlacementOk, mapEmptyForBuilding, tilesTakenByBuilding } from './shared.js'
 
 import { getHpComponent, getAttackerComponent, getBuildingComponent } from './game/components.js'
 import { findPositionForProducedUnit } from './game/produce.js'
-import { spiral, willAcceptCommand, getUnitReferencePosition, unitDistance } from './game/util.js'
+import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util.js'
 import { updateUnit } from './game/unit_update.js'
 import { buildPresenceAndBuildingMaps } from './game/presence.js'
 
