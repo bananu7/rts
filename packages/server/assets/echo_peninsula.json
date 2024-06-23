@@ -6,12 +6,12 @@
     "imagePath": "echo.png",
     "playerStartLocations": [
         {
-            "x": 30,
+            "x": 20,
             "y": 10
         },
         {
-            "x": 80,
-            "y": 85
+            "x": 280,
+            "y": 10
         }
     ]
 }

@@ -85,12 +85,10 @@ export function createStartingUnits(numberOfPlayers: number, playerStartLocation
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
-
     // bottom right
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:88}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:84}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
-
 
     // left expo
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));
@@ -107,9 +105,9 @@ export function createStartingUnits(numberOfPlayers: number, playerStartLocation
         const baseLocation = playerStartLocations[playerIndex-1];
         startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Base', baseLocation));
 
-        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x - 1, y:baseLocation.y + 15}));
-        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 1, y:baseLocation.y + 15}));
-        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 3, y:baseLocation.y + 15}));
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 1, y:baseLocation.y + 10}));
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 3, y:baseLocation.y + 10}));
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 5, y:baseLocation.y + 10}));
     }
 
     return startingUnits;
