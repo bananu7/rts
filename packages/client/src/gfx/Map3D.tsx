@@ -24,6 +24,58 @@ type Map3DProps = {
     pointerMove: (p: {x: number, y: number}) => void;
 }
 
+function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
+    const isPassable = tileType === 0;    
+
+    switch (tileType) {
+        case 0: {
+            const color = 0x11aa11;
+            vec3Color.set(color);
+            const f = 0.06;
+            vec3Color.r += (Math.random() - 0.5) * f;
+            vec3Color.g += (Math.random() - 0.5) * f;
+            vec3Color.b += (Math.random() - 0.5) * f;
+            break;
+        }
+
+        case 2: {
+            const color = 0x3377cc;
+            vec3Color.set(color);
+            const f = 0.06;
+            vec3Color.r += (Math.random() - 0.5) * f;
+            vec3Color.g += (Math.random() - 0.5) * f;
+            vec3Color.b += (Math.random() - 0.5) * f;
+            break;
+        }
+
+        case 1:
+        default: {
+            const color = 0x888888;
+            vec3Color.set(color);
+            const d = (Math.random() - 0.5) * 0.1;
+            vec3Color.r += d;
+            vec3Color.g += d;
+            vec3Color.b += d;
+        }
+    }
+}
+
+function tileTypeToHeight(tileType: number): number {
+    const correction = 0.01;
+    switch (tileType) {
+    case 0:
+        return 0 - correction;
+
+    case 2:
+        return -0.5 - Math.random() * 0.7 - correction
+
+    case 1:
+    default:
+        return 0.8 + Math.random() * 0.7 - correction;
+    }
+}
+
+
 export function Map3D(props: Map3DProps) {
     // movement
     const rawClick = (e: ThreeEvent<MouseEvent>) => {
@@ -68,31 +120,16 @@ export function Map3D(props: Map3DProps) {
         const mat4Pos = new THREE.Matrix4();
         const vec3Color = new THREE.Color();
 
-        for (let y = 0; y < w; y++){
-            for (let x = 0; x < h; x++) {
+        for (let y = 0; y < h; y++){
+            for (let x = 0; x < w; x++) {
                 const ix = y*props.map.w+x;
 
-                const isPassable = props.map.tiles[ix] === 0;
+                const tileType = props.map.tiles[ix];
+                const color = tileTypeToColor(tileType, vec3Color);
+                const height = tileTypeToHeight(tileType);
 
-                const color = isPassable ? 0x11aa11 : 0x888888;
-                const height = (isPassable ? 0 : 0.8 + Math.random() * 0.7) - 0.01; // TODO quick hack
-                
                 // TODO - make sure that everything matches with that corrective offset
                 mat4Pos.makeTranslation(x * xSize + 0.5, height, y * ySize + 0.5); // TODO -1 to move them down because of their height
-                vec3Color.set(color);
-
-                // TODO - this is just a quick and dirty solution
-                if (isPassable) {
-                    const f = 0.06;
-                    vec3Color.r += (Math.random() - 0.5) * f;
-                    vec3Color.g += (Math.random() - 0.5) * f;
-                    vec3Color.b += (Math.random() - 0.5) * f;
-                } else {
-                    const d = (Math.random() - 0.5) * 0.1;
-                    vec3Color.r += d;
-                    vec3Color.g += d;
-                    vec3Color.b += d;
-                }
 
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);

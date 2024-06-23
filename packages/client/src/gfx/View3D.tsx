@@ -1,19 +1,25 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties } from 'react'
+import { debugFlags } from '../debug/flags'
 
 import * as THREE from 'three';
 
 import { MapControls } from './MapControls'
 import { Stats } from './Stats'
 
-function CameraControls() {
+
+type CameraControlsProps = {
+    minPan: THREE.Vector3,
+    maxPan: THREE.Vector3,
+}
+function CameraControls(props: CameraControlsProps) {
     const { camera, gl: { domElement }, scene } = useThree();
 
     const vert = Math.PI * 0.2;
     const horiz = Math.PI * 1.0;
 
     useLayoutEffect (() => {
-        const c = new MapControls( camera, domElement );
+        const c = new MapControls( camera, props.minPan, props.maxPan, domElement);
 
         c.minDistance = 30;
         c.maxDistance = 300;
@@ -65,7 +71,8 @@ export default function useShadowHelper(
 function MapSpotlight() {
     const lightRef = useRef<THREE.SpotLight>(null);
     // uncomment to enable
-    //useShadowHelper(lightRef);
+    if (debugFlags.showLightConeHelper)
+        useShadowHelper(lightRef);
 
     const { scene } = useThree();
 
@@ -79,6 +86,7 @@ function MapSpotlight() {
         lightRef.current.target = target;
     }, [lightRef]);
 
+    // TODO spotlight setting to allow time of day
     return (
         <group>
             <spotLight 
@@ -107,6 +115,10 @@ export interface Props {
     onPointerMissed?: () => void;
 
     enablePan?: boolean;
+
+    // map size
+    viewX: number;
+    viewY: number;
 }
 
 export function View3D(props: Props) {
@@ -119,6 +131,10 @@ export function View3D(props: Props) {
         left:0,
         //zIndex: -1
     }
+
+    const border = 15.0;
+    const minPan = new THREE.Vector3(border, 0, border);
+    const maxPan = new THREE.Vector3(props.viewX - border, 10, props.viewY - border);
 
     return (
         <Suspense fallback={null}>
@@ -136,7 +152,7 @@ export function View3D(props: Props) {
                     dpr={1}
                 >
                     <color attach="background" args={[0x11aa11]} />
-                    <CameraControls />
+                    <CameraControls minPan={minPan} maxPan={maxPan} />
                     <ambientLight args={[0xffffff, 2]} />
                     <MapSpotlight />
                     {props.children}
