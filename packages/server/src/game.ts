@@ -27,7 +27,7 @@ export function newGame(matchId: string, map: GameMap): Game {
         tickNumber: 0,
         // TODO factor number of players in creation
         // TODO handle disconnect separately from elimination
-        players: [{resources: 50, stillInGame: true}, {resources: 500, stillInGame: true}],
+        players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
         board: {
             map: map,
         },
