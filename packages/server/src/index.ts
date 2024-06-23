@@ -139,71 +139,76 @@ rts.post('/create', async (req, res) => {
         return
     }
 
-    const mapPath = "echo_peninsula.json"    
-    const board = await getMap("assets/" + mapPath);
-    const matchId = String(++lastMatchId); // TODO
-    const game = newGame(matchId, board);
+    try {
+        const mapPath = "echo_peninsula.json"    
+        const board = await getMap("assets/" + mapPath);
+        const matchId = String(++lastMatchId); // TODO
+        const game = newGame(matchId, board);
 
-    if (matches.has(matchId))
-        throw new Error("Newly created matchId already exists");
+        if (matches.has(matchId))
+            throw new Error("Newly created matchId already exists");
 
-    const match: Match = { game, matchId, players: [], spectators: [] };
-    matches.set(matchId, match);
+        const match: Match = { game, matchId, players: [], spectators: [] };
+        matches.set(matchId, match);
 
-    const gameTickInterval = setInterval(() => {
-        try {
-            const updatePackets = tick(config.tickMs, game);
+        const gameTickInterval = setInterval(() => {
+            try {
+                const updatePackets = tick(config.tickMs, game);
 
-            if (!match)
-                throw new Error("[index] Match scheduled for update doesn't exist");
+                if (!match)
+                    throw new Error("[index] Match scheduled for update doesn't exist");
 
-            match.players.forEach((p, i) => {
-                // TODO: handle players without channels better?
-                if (!p.channel)
-                    return;
+                match.players.forEach((p, i) => {
+                    // TODO: handle players without channels better?
+                    if (!p.channel)
+                        return;
 
-                p.channel.emit('tick', updatePackets[i]);
-            });
+                    p.channel.emit('tick', updatePackets[i]);
+                });
 
-            match.spectators.forEach((s, i) =>
-                // TODO spectators should get a separate packet
-                s.channel.emit('tick', updatePackets[0])
-            );
-            // io.room(matchId).emit('tick', updatePackets[0]);
-        }
-        catch(e) {
-            if (e instanceof Error) {
-                console.error("[game] Game crashed:", e.message);
-            } else {
-                console.error("[game] Game crashed for an unknown reason");
+                match.spectators.forEach((s, i) =>
+                    // TODO spectators should get a separate packet
+                    s.channel.emit('tick', updatePackets[0])
+                );
+                // io.room(matchId).emit('tick', updatePackets[0]);
             }
+            catch(e) {
+                if (e instanceof Error) {
+                    console.error("[game] Game crashed:", e.message);
+                } else {
+                    console.error("[game] Game crashed for an unknown reason");
+                }
 
-            const updatePackets = endGame(game);
+                const updatePackets = endGame(game);
 
-            match.players.forEach((p, i) => {
-                // TODO: handle players without channels better?
-                if (!p.channel)
-                    return;
-                p.channel.emit('tick', updatePackets[i], { reliable: true });
-            });
-            match.spectators.forEach((s, i) => {
-                s.channel.emit('tick', updatePackets[0], { reliable: true });
-            });
+                match.players.forEach((p, i) => {
+                    // TODO: handle players without channels better?
+                    if (!p.channel)
+                        return;
+                    p.channel.emit('tick', updatePackets[i], { reliable: true });
+                });
+                match.spectators.forEach((s, i) => {
+                    s.channel.emit('tick', updatePackets[0], { reliable: true });
+                });
 
-            console.log("[game] Deleting match", matchId)
-            matches.delete(matchId);
+                console.log("[game] Deleting match", matchId)
+                matches.delete(matchId);
 
-            clearInterval(gameTickInterval);
-        }
-    }, config.tickMs);
+                clearInterval(gameTickInterval);
+            }
+        }, config.tickMs);
 
-    console.log(`[index] Match ${matchId} created`);
+        console.log(`[index] Match ${matchId} created`);
 
-    const response: MatchCreateResponse = {
-        matchId
-    };
-    res.status(200);
-    res.send(JSON.stringify(response));
+        const response: MatchCreateResponse = {
+            matchId
+        };
+        res.status(200);
+        res.send(JSON.stringify(response));
+    }
+    catch(e) {
+        console.error("[index] Error during match creation", e);
+    }
 })
 
 // register a particular user as a player in a match

@@ -20,7 +20,7 @@ import { updateUnit } from './game/unit_update.js'
 import { buildPresenceAndBuildingMaps } from './game/presence.js'
 
 export function newGame(matchId: string, board: Board): Game {
-    const units = createStartingUnits(2, board.playerStartLocations);
+    const units = createStartingUnits(2, board);
     return {
         matchId,
         state: {id: 'Lobby'},

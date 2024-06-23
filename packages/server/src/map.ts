@@ -21,6 +21,7 @@ export async function getMap(path: string): Promise<Board> {
     return {
         map: gm,
         playerStartLocations: mapMetadata.playerStartLocations,
+        neutralSpawns: mapMetadata.neutralSpawns,
     }
 }
 

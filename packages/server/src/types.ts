@@ -239,9 +239,15 @@ export type GameMap = {
     h: number,
 };
 
+export type NeutralSpawn = {
+    kind: string,
+    position: Position,
+}
+
 export type Board = {
     map: GameMap,
     playerStartLocations: Position[],
+    neutralSpawns: NeutralSpawn[],
 }
 
 export type GameState = {

@@ -1,5 +1,5 @@
 import {
-    Unit, UnitId, Component, Position,
+    Unit, UnitId, Component, Position, Board
 } from '../types';
 
 export type UnitData = Component[];
@@ -72,37 +72,20 @@ export const createUnit = (id: number, owner: number, kind: string, position: Po
     }
 };
 
-export function createStartingUnits(numberOfPlayers: number, playerStartLocations: Position[]): Unit[] {
-    if (numberOfPlayers > playerStartLocations.length)
+export function createStartingUnits(numberOfPlayers: number, board: Board): Unit[] {
+    if (numberOfPlayers > board.playerStartLocations.length)
         throw new Error("Not enough player locations for the given number of players");
 
     const startingUnits = [] as Unit[];
 
     let lastUnitId = 1;
 
-    // top left
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:6}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
-
-    // bottom right
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:88}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:84}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
-
-    // left expo
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:54}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:58}));
-
-    // right expo
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:40}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:44}));
-    startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:48}));
-
+    for (let spawn of board.neutralSpawns) {
+        startingUnits.push(createUnit(lastUnitId++, 0, spawn.kind, spawn.position));
+    }
 
     for (let playerIndex = 1; playerIndex <= numberOfPlayers; playerIndex += 1) {
-        const baseLocation = playerStartLocations[playerIndex-1];
+        const baseLocation = board.playerStartLocations[playerIndex-1];
         startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Base', baseLocation));
 
         startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 1, y:baseLocation.y + 10}));
