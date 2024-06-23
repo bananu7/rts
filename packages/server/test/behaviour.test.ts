@@ -119,6 +119,25 @@ test('attack-move action', () => {
     expect(game.units[0].state.action).toBe('Attacking');
 });
 
+describe('attack action', () => {
+    test("don't allow targetting self", () => {
+        const game = createBasicGame({});
+        spawnUnit(game, 1, "Trooper", {x: 4, y: 10});
+
+        command({
+                command: { typ: 'Attack', target: 1, },
+                unitIds: [1],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].state.action).toBe('Idle');
+    });
+})
+
 describe('produce action', () => {
     test('ensure resources', () => {
         const game = createBasicGame({});
