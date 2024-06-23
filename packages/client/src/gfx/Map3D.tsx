@@ -24,7 +24,7 @@ type Map3DProps = {
     pointerMove: (p: {x: number, y: number}) => void;
 }
 
-function tileTypeToColor(tileType: number, vec3Color: THREE.Vector3): number {
+function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
     const isPassable = tileType === 0;    
 
     switch (tileType) {
