@@ -65,14 +65,17 @@ export const createUnit = (id: number, owner: number, kind: string, position: Po
         id,
         kind,
         owner,
-        position,
+        position: {x:position.x, y:position.y},
         velocity: {x:0, y:0},
         direction: 0,
         components: UNIT_CATALOG[kind]()
     }
 };
 
-export function createStartingUnits(): Unit[] {
+export function createStartingUnits(numberOfPlayers: number, playerStartLocations: Position[]): Unit[] {
+    if (numberOfPlayers > playerStartLocations.length)
+        throw new Error("Not enough player locations for the given number of players");
+
     const startingUnits = [] as Unit[];
 
     let lastUnitId = 1;
@@ -82,21 +85,12 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:10}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:14}));
 
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Base', {x:30, y:10}));
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:29, y:25}));
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:31, y:25}));
-    startingUnits.push(createUnit(lastUnitId++, 1, 'Harvester', {x:33, y:25}));
 
-    // TODO proper starting location placement/orientation
     // bottom right
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:88}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:84}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:90, y:80}));
 
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Base', {x:80, y:85}));
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:62, y:90}));
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:64, y:90}));
-    startingUnits.push(createUnit(lastUnitId++, 2, 'Harvester', {x:66, y:90}));
 
     // left expo
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:6, y:50}));
@@ -107,6 +101,16 @@ export function createStartingUnits(): Unit[] {
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:40}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:44}));
     startingUnits.push(createUnit(lastUnitId++, 0, 'ResourceNode', {x:86, y:48}));
+
+
+    for (let playerIndex = 1; playerIndex <= numberOfPlayers; playerIndex += 1) {
+        const baseLocation = playerStartLocations[playerIndex-1];
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Base', baseLocation));
+
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x - 1, y:baseLocation.y + 15}));
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 1, y:baseLocation.y + 15}));
+        startingUnits.push(createUnit(lastUnitId++, playerIndex, 'Harvester', {x:baseLocation.x + 3, y:baseLocation.y + 15}));
+    }
 
     return startingUnits;
 }

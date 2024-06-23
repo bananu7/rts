@@ -241,6 +241,7 @@ export type GameMap = {
 
 export type Board = {
     map: GameMap,
+    playerStartLocations: Position[],
 }
 
 export type GameState = {

@@ -3,5 +3,15 @@
     "w": 300,
     "h": 150,
     "symmetry": "mirror_x",
-    "imagePath": "echo.png"
+    "imagePath": "echo.png",
+    "playerStartLocations": [
+        {
+            "x": 30,
+            "y": 10
+        },
+        {
+            "x": 80,
+            "y": 85
+        }
+    ]
 }

@@ -140,9 +140,9 @@ rts.post('/create', async (req, res) => {
     }
 
     const mapPath = "echo_peninsula.json"    
-    const map = await getMap("assets/" + mapPath);
+    const board = await getMap("assets/" + mapPath);
     const matchId = String(++lastMatchId); // TODO
-    const game = newGame(matchId, map);
+    const game = newGame(matchId, board);
 
     if (matches.has(matchId))
         throw new Error("Newly created matchId already exists");

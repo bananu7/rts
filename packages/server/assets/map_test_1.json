@@ -3,5 +3,15 @@
     "w": 99,
     "h": 99,
     "symmetry": "none",
-    "imagePath": "map.png"
+    "imagePath": "map.png",
+    "playerStartLocations": [
+        {
+            "x": 30,
+            "y": 10
+        },
+        {
+            "x": 80,
+            "y": 85
+        }
+    ]
 }
