@@ -1,0 +1,14 @@
+.Lobby {
+ 	padding: 2em;
+	margin: auto;
+	margin-top: 20%;
+
+	max-width: 800px;
+	background-color: #555;
+}
+
+.PlayerList {
+	width: 100%;
+	table-layout: fixed;
+	margin-bottom: 30px;
+}

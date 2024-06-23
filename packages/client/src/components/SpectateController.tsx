@@ -25,17 +25,17 @@ type SpectateControllerProps = {
 export function SpectateController(props: SpectateControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
-  const [matchMetadata, setMatchMetadata] = useState<MatchMetadata | null>(null);
 
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
       // TODO should this be part of ADT because undefined is annoying af
   const [selectedUnits, setSelectedUnits] = useState(new Set<UnitId>());
 
+  const matchMetadata = props.ctrl.getMatchMetadata();
+
   const stopSpectating = useCallback(async () => {
     await props.ctrl.stopSpectating();
     setLastUpdatePacket(null);
-    setMatchMetadata(null);
   }, [props.ctrl]);
 
   const onUpdatePacket = useCallback((p:UpdatePacket) => {
@@ -50,15 +50,9 @@ export function SpectateController(props: SpectateControllerProps) {
     });
   }, []);
 
-  const downloadMatchMetadata = useCallback(() => {
-    props.ctrl.getMatchMetadata()
-    .then(s => setMatchMetadata(s));
-  }, [setMatchMetadata]);
-
   useEffect(() => {
     console.log("[MatchController] Initializing and setting update handler")
     props.ctrl.setOnUpdatePacket(onUpdatePacket);
-    downloadMatchMetadata();
   }, []);
 
   const lines = msgs.map((m: string, i: number) => <li key={i}>{String(m)}</li>);

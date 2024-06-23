@@ -141,7 +141,7 @@ export function command(c: CommandPacket, g: Game, playerIndex: number) {
         // send the command to each unit individually
         ssimps.forEach(s => {
             const command = {
-                typ: 'Move',
+                typ: c.command.typ,
                 target: { x: s.position.x, y: s.position.y }
             } as CommandMove;
             commandOne(c.shift, command, s.unit, playerIndex);
