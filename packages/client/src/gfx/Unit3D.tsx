@@ -17,14 +17,7 @@ import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
 import { UnitDisplayEntry } from './UnitDisplayCatalog'
 import { Horizon } from '../debug/Horizon'
-
-// TODO make this settable more easily
-const debugFlags = Object.freeze({
-  showPaths: false,
-  showHorizons: false,
-  showCones: false,
-  showTerrainArrows: true,
-});
+import { debugFlags } from '../debug/flags'
 
 const cache = new ThreeCache();
 

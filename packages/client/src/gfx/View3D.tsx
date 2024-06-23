@@ -1,5 +1,6 @@
 import { ReactThreeFiber, Canvas, extend, useThree, useFrame } from '@react-three/fiber'
 import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties } from 'react'
+import { debugFlags } from '../debug/flags'
 
 import * as THREE from 'three';
 
@@ -65,7 +66,8 @@ export default function useShadowHelper(
 function MapSpotlight() {
     const lightRef = useRef<THREE.SpotLight>(null);
     // uncomment to enable
-    //useShadowHelper(lightRef);
+    if (debugFlags.showLightConeHelper)
+        useShadowHelper(lightRef);
 
     const { scene } = useThree();
 
@@ -79,6 +81,7 @@ function MapSpotlight() {
         lightRef.current.target = target;
     }, [lightRef]);
 
+    // TODO spotlight setting to allow time of day
     return (
         <group>
             <spotLight 
