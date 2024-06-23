@@ -74,10 +74,12 @@ describe('movement', () => {
             1
         );
 
-        for (let i = 0; i < 20 * 10; i++)
+        for (let i = 0; i < 10 * 10; i++) {
             tick(TICK_MS, game);
 
         expect(game.units[0].position.x).toBeGreaterThan(15);
+        expect(game.units[0].state.state).toBe('idle');
+        expect(game.units[0].state.action).toBe('Idle');
     });
 });
 

@@ -95,7 +95,7 @@ export const stopCommand = (ctx: CommandContext, _cmd: CommandStop) => {
 export const followCommand = (ctx: CommandContext, cmd: CommandFollow) => {
     const unit = ctx.unit;
     const moveResult = moveTowardsUnitById(unit, ctx.gm, cmd.target, UNIT_FOLLOW_DISTANCE, ctx.dt);
-    if (moveResult === 'Unreachable' || moveResult === 'TargetNonexistent') {
+    if (moveResult !== 'Moving') {
         clearCurrentCommand(unit);
     }
 }
