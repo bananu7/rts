@@ -132,6 +132,7 @@ describe('attack action', () => {
             game,
             1
         );
+        tick(TICK_MS, game);
 
         expect(game.units[0].state.state).toBe('idle');
         expect(game.units[0].state.action).toBe('Idle');

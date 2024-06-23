@@ -72,6 +72,9 @@ export const attackCommand = (ctx: CommandContext, cmd: CommandAttack) =>  {
         throw new ComponentMissingError("Attacker");
     }
 
+    if (ctx.unit.id === cmd.target)
+        throw new InvalidCommandError("Unit tried to attack itself");
+
     // target not existing is a common situation if the target got destroyed
     // after the command was made
     const target = g.units.find(u => u.id === cmd.target);
