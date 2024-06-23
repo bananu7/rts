@@ -6,6 +6,21 @@ import { createBasicGame, createOnePlayerState, spawnUnit, markRectangle } from 
 
 const TICK_MS = 50;
 
+// "replays"
+const fs = require('node:fs/promises');
+type ReplayFrame = {
+    units: Unit[],
+}
+type Replay = {
+    frames: ReplayFrame[],
+}
+function saveFrame(replay: Replay, game: Game) {
+    replay.frames.push({units: game.units});
+}
+async function saveReplay(replay: Replay, path: string) {
+    await fs.writeFile(path, JSON.stringify(replay));
+}
+
 describe('win condition', () => {
     test('BuildingElimination', () => {
         const game = createBasicGame({ winCondition: 'BuildingElimination'});
@@ -60,10 +75,17 @@ describe('movement', () => {
 
     test('follow-move to building', () => {
         const game = createBasicGame({}, 30);
+        const replay: Replay = { frames: [] };
+        saveFrame(replay, game);
+        const tck = () => {
+            tick(TICK_MS, game);
+            saveFrame(replay, game);
+        }
+
         spawnUnit(game, 1, "Harvester", {x: 2, y: 2});
         spawnUnit(game, 1, "Base", {x: 20, y: 5});
 
-        tick(TICK_MS, game);
+        tck();
 
         command({
                 command: { typ: 'Follow', target: 2 },
@@ -74,10 +96,17 @@ describe('movement', () => {
             1
         );
 
-        for (let i = 0; i < 20 * 10; i++)
-            tick(TICK_MS, game);
+        for (let i = 0; i < 10 * 10; i++) {
+            tck();
+        }
 
         expect(game.units[0].position.x).toBeGreaterThan(15);
+        //expect(game.units[0].state.state).toBe('idle');
+        //expect(game.units[0].state.action).toBe('Idle');
+
+        const path = expect.getState().currentTestName ?? "unknown" + ".replay";
+        console.log(`Saving replay to ${path}`);
+        saveReplay(replay, "test.replay");
     });
 });
 
