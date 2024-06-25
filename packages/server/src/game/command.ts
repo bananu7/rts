@@ -125,11 +125,10 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
 
         const resource = getResourceComponent(target);
         if (!resource) {
-            // TODO find other nearby resource
+            console.warn("Unit received a harvest command to something that's not a resource.");
             clearCurrentCommand(unit);
             return;
         }
-
 
         if (unitInteractionDistance(unit, target) > HARVESTING_DISTANCE) {
             // in case of displacement mid-harvesting, reset and retry
@@ -148,7 +147,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
                 }
             }
         } else {
-            if (!resourceAvailable(target)) {
+            if (!resourceAvailable(target.id, ctx)) {
                 // just wait
                 unit.state.action = 'Idle';
             }
@@ -192,9 +191,14 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
     }
 }
 
-function resourceAvailable(unit: Unit) {
-    // TODO implement
-    return true;
+function resourceAvailable(targetId: UnitId, ctx: CommandContext) {
+    // Check if any other harvester is competing for the same resource
+    return ctx.gm.game.units.filter(u => {
+        u.state.state === "active" &&
+        u.state.action === "Harvesting" &&
+        u.state.current.typ === "Harvest" &&
+        u.state.current.target === targetId
+    }).length > 0;
 }
 
 export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
