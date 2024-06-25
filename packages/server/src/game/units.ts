@@ -14,7 +14,7 @@ const UNIT_CATALOG : Catalog = {
         { type: 'Hp', maxHp: 50, hp: 50 },
         { type: 'Mover', speed: 10 },
         { type: 'Attacker', damage: 5, attackRate: 1000, range: 2, cooldown: 0 },
-        { type: 'Harvester', harvestingTime: 1000, harvestingValue: 20, harvestingProgress: 0 },
+        { type: 'Harvester', harvestingTime: 2000, harvestingValue: 8, harvestingProgress: 0 },
         { type: 'Builder', buildingsProduced: [
             { buildingType: 'Base', buildTime: 5000, buildCost: 400 },
             { buildingType: 'Barracks', buildTime: 5000, buildCost: 150},

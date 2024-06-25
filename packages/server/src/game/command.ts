@@ -147,21 +147,23 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
                 }
             }
         } else {
-            if (!resourceAvailable(target.id, ctx)) {
+            if (!resourceAvailableFor(ctx.unit.id, target.id, ctx)) {
                 // just wait
                 unit.state.action = 'Idle';
+                return;
             }
 
             unit.state.action = 'Harvesting'
             hc.harvestingProgress += dt;
 
             if (hc.harvestingProgress >= hc.harvestingTime) {
-                hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
-                resource.value -= HARVESTING_RESOURCE_COUNT;
+                hc.resourcesCarried = hc.harvestingValue;
+                resource.value -= hc.resourcesCarried;
 
                 // TODO - reset harvesting at any other action
                 // maybe i could use some "exit state function"?
                 hc.harvestingProgress = 0;
+                unit.state.action = 'Idle';
             }
         }
     } else {
@@ -191,14 +193,17 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
     }
 }
 
-function resourceAvailable(targetId: UnitId, ctx: CommandContext) {
-    // Check if any other harvester is competing for the same resource
-    return ctx.gm.game.units.filter(u => {
-        u.state.state === "active" &&
-        u.state.action === "Harvesting" &&
-        u.state.current.typ === "Harvest" &&
-        u.state.current.target === targetId
-    }).length > 0;
+function resourceAvailableFor(unitId: UnitId, targetId: UnitId, ctx: CommandContext) {
+    // Check if any other harvester is competing for the same resource    
+    const competingHarvesters = ctx.gm.game.units.filter(u =>
+        u.id !== unitId
+        && u.state.state === "active"
+        && u.state.action === "Harvesting"
+        && u.state.current.typ === "Harvest"
+        && u.state.current.target === targetId
+    );
+
+    return competingHarvesters.length === 0;
 }
 
 export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
