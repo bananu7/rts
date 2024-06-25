@@ -9,7 +9,7 @@ import {
 
 import { isBuildPlacementOk } from '../shared.js'
 
-import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent, getResourceComponent } from './components.js'
 import * as V from '../vector.js'
 
 import { moveTowardsUnit, moveToPointOrCancelCommand, moveTowardsUnitById, moveTowardsMapPosition } from './unit/movement.js'
@@ -113,15 +113,23 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
         throw new ComponentMissingError("Harvester");
     }
 
-    const target = g.units.find(u => u.id === cmd.target);
-    if (!target) {
-        // TODO find other nearby resource
-        clearCurrentCommand(unit);
-        return;
-    }
-
+    // If the unit doesn't have resources, we go into "obtain resources"
+    // branch, otherwise it's dropoff. We only check the target if we need to.
     if (!hc.resourcesCarried) {
-        // TODO - should resources use perimeter?
+        const target = g.units.find(u => u.id === cmd.target);
+        if (!target) {
+            // TODO find other nearby resource
+            clearCurrentCommand(unit);
+            return;
+        }
+
+        const resource = getResourceComponent(target);
+        if (!resource) {
+            // TODO find other nearby resource
+            clearCurrentCommand(unit);
+            return;
+        }
+
         switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
         case 'Unreachable':
             clearCurrentCommand(unit);
@@ -129,6 +137,8 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
         case 'ReachedTarget':
             if (hc.harvestingProgress >= hc.harvestingTime) {
                 hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
+                resource.value -= HARVESTING_RESOURCE_COUNT;
+
                 // TODO - reset harvesting at any other action
                 // maybe i could use some "exit state function"?
                 hc.harvestingProgress = 0;
@@ -139,7 +149,6 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             break;
         }
     } else {
-        // TODO include building&unit size in this distance
         const DROPOFF_DISTANCE = 1;
         // TODO cache the dropoff base
         // TODO - resource dropoff component
