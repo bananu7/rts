@@ -9,7 +9,7 @@ import {
 
 import { isBuildPlacementOk } from '../shared.js'
 
-import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent } from './components.js'
+import { getHpComponent, getMoveComponent, getAttackerComponent, getHarvesterComponent, getProducerComponent, getBuilderComponent, getVisionComponent, getBuildingComponent, getResourceComponent } from './components.js'
 import * as V from '../vector.js'
 
 import { moveTowardsUnit, moveToPointOrCancelCommand, moveTowardsUnitById, moveTowardsMapPosition } from './unit/movement.js'
@@ -17,7 +17,7 @@ import { clearCurrentCommand, stopMoving, becomeIdleAtCurrentPosition } from './
 import { detectNearbyEnemy, findClosestUnitBy, cancelProduction, aggro } from './unit/unit.js'
 import { HARVESTING_DISTANCE, HARVESTING_RESOURCE_COUNT, MAX_PLAYER_UNITS, UNIT_FOLLOW_DISTANCE } from './constants.js'
 import { createUnit, UnitData, getUnitDataByName } from './units.js'
-import { findClosestEmptyTile } from './util.js'
+import { findClosestEmptyTile, unitInteractionDistance } from './util.js'
 import { findPositionForProducedUnit } from './produce.js'
 import { buildPresenceAndBuildingMaps } from './presence.js'
 
@@ -113,33 +113,60 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
         throw new ComponentMissingError("Harvester");
     }
 
-    const target = g.units.find(u => u.id === cmd.target);
-    if (!target) {
-        // TODO find other nearby resource
-        clearCurrentCommand(unit);
-        return;
-    }
-
+    // If the unit doesn't have resources, we go into "obtain resources"
+    // branch, otherwise it's dropoff. We only check the target if we need to.
     if (!hc.resourcesCarried) {
-        // TODO - should resources use perimeter?
-        switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
-        case 'Unreachable':
+        const target = g.units.find(u => u.id === cmd.target);
+        if (!target) {
+            // TODO find other nearby resource
             clearCurrentCommand(unit);
-            break;
-        case 'ReachedTarget':
+            return;
+        }
+
+        const resource = getResourceComponent(target);
+        if (!resource) {
+            console.warn("Unit received a harvest command to something that's not a resource.");
+            clearCurrentCommand(unit);
+            return;
+        }
+
+        if (unitInteractionDistance(unit, target) > HARVESTING_DISTANCE) {
+            // in case of displacement mid-harvesting, reset and retry
+            if (unit.state.action === 'Harvesting') {
+                hc.harvestingProgress = 0;
+                unit.state.action = 'Idle';
+                return;
+            } else {
+                switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
+                    case 'Unreachable':
+                        clearCurrentCommand(unit);
+                        break;
+                    case 'ReachedTarget':
+                        unit.state.action = 'Idle';
+                        break;
+                }
+            }
+        } else {
+            if (!resourceAvailableFor(ctx.unit.id, target.id, ctx)) {
+                // just wait
+                unit.state.action = 'Idle';
+                return;
+            }
+
+            unit.state.action = 'Harvesting'
+            hc.harvestingProgress += dt;
+
             if (hc.harvestingProgress >= hc.harvestingTime) {
-                hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
+                hc.resourcesCarried = hc.harvestingValue;
+                resource.value -= hc.resourcesCarried;
+
                 // TODO - reset harvesting at any other action
                 // maybe i could use some "exit state function"?
                 hc.harvestingProgress = 0;
-            } else {
-                unit.state.action = 'Harvesting';
-                hc.harvestingProgress += dt;
+                unit.state.action = 'Idle';
             }
-            break;
         }
     } else {
-        // TODO include building&unit size in this distance
         const DROPOFF_DISTANCE = 1;
         // TODO cache the dropoff base
         // TODO - resource dropoff component
@@ -164,6 +191,19 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         }
     }
+}
+
+function resourceAvailableFor(unitId: UnitId, targetId: UnitId, ctx: CommandContext) {
+    // Check if any other harvester is competing for the same resource    
+    const competingHarvesters = ctx.gm.game.units.filter(u =>
+        u.id !== unitId
+        && u.state.state === "active"
+        && u.state.action === "Harvesting"
+        && u.state.current.typ === "Harvest"
+        && u.state.current.target === targetId
+    );
+
+    return competingHarvesters.length === 0;
 }
 
 export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
