@@ -114,6 +114,11 @@ export class Multiplayer {
         });
     }
 
+    public disconnect() {
+        console.log(`[Multiplayer] disconnecting channel`)
+        this.channel.close();
+    }
+
     async createMatch(): Promise<MatchCreateResponse> {
         const response = await fetch(HTTP_API_URL+'/create', {
             method: 'POST',

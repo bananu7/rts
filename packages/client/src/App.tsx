@@ -38,15 +38,30 @@ function App() {
     if (!username)
       return;
 
+    let abort = false;
+
     const setupMultiplayer = async () => {
+      console.log("[App] Setup multiplayer start");
       const multiplayer = await Multiplayer.new(username);
+
+      if (abort) {
+        console.log("[App] Setup multiplayer aborted");
+        return;
+      }
+
       setMultiplayer(multiplayer);
       const rejoinedCtrl = await multiplayer.setup({});
+
+      if (abort) {
+        console.log("[App] Setup multiplayer aborted");
+        return;
+      }
      
       if (rejoinedCtrl) {
         rejoinedCtrl.setOnLeaveMatch(cleanupOnLeave);
         setController(rejoinedCtrl);
       }
+      console.log("[App] Setup multiplayer end");
     }
 
     setupMultiplayer()
@@ -57,6 +72,13 @@ function App() {
     fetch(HTTP_API_URL + '/version')
     .then(res => res.text())
     .then(res => console.log("[App] Server version: " + res));
+
+    return () => {
+      if (multiplayer)
+        multiplayer.disconnect();
+      abort = true;
+      setController(null);
+    }
   }, []);
 
   const joinMatch = async (matchId: string) => {

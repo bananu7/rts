@@ -22,6 +22,8 @@ export function createBasicGame(override: Partial<Game>, mapSize?: number): Game
 
     const board = {
         map: createTestMap(mapSize),
+        playerStartLocations: [],
+        neutralSpawns: [],
     };
 
     const defaultGame: Game = {

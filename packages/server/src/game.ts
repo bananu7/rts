@@ -19,8 +19,8 @@ import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util
 import { updateUnit } from './game/unit_update.js'
 import { buildPresenceAndBuildingMaps } from './game/presence.js'
 
-export function newGame(matchId: string, map: GameMap): Game {
-    const units = createStartingUnits();
+export function newGame(matchId: string, board: Board): Game {
+    const units = createStartingUnits(2, board);
     return {
         matchId,
         state: {id: 'Lobby'},
@@ -28,9 +28,7 @@ export function newGame(matchId: string, map: GameMap): Game {
         // TODO factor number of players in creation
         // TODO handle disconnect separately from elimination
         players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
-        board: {
-            map: map,
-        },
+        board,
         units,
         lastUnitId: units.length,
         winCondition: 'BuildingElimination',

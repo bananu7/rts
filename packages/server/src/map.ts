@@ -1,4 +1,4 @@
-import { GameMap } from './types'
+import { GameMap, Board } from './types'
 import fs from 'fs'
 import PNG from 'pngjs'
 
@@ -6,7 +6,7 @@ type Symmetry = "mirror_x" | "mirror_y" | "mirror_xy" | "none";
 
 const mapPathPrefix = "assets/";
 
-export async function getMap(path: string): Promise<GameMap> {
+export async function getMap(path: string): Promise<Board> {
     const mapMetadata = JSON.parse(fs.readFileSync(path, 'utf8'));
     const gm = await getMapImageData(mapPathPrefix + mapMetadata.imagePath);
 
@@ -18,7 +18,11 @@ export async function getMap(path: string): Promise<GameMap> {
         throw new Error("Map is not symmetric according to spec");
     }
 
-    return gm;
+    return {
+        map: gm,
+        playerStartLocations: mapMetadata.playerStartLocations,
+        neutralSpawns: mapMetadata.neutralSpawns,
+    }
 }
 
 function checkSymmetry(gm: GameMap, symmetry: Symmetry): boolean {
