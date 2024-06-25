@@ -17,7 +17,7 @@ import { clearCurrentCommand, stopMoving, becomeIdleAtCurrentPosition } from './
 import { detectNearbyEnemy, findClosestUnitBy, cancelProduction, aggro } from './unit/unit.js'
 import { HARVESTING_DISTANCE, HARVESTING_RESOURCE_COUNT, MAX_PLAYER_UNITS, UNIT_FOLLOW_DISTANCE } from './constants.js'
 import { createUnit, UnitData, getUnitDataByName } from './units.js'
-import { findClosestEmptyTile } from './util.js'
+import { findClosestEmptyTile, unitInteractionDistance } from './util.js'
 import { findPositionForProducedUnit } from './produce.js'
 import { buildPresenceAndBuildingMaps } from './presence.js'
 
@@ -130,11 +130,32 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         }
 
-        switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
-        case 'Unreachable':
-            clearCurrentCommand(unit);
-            break;
-        case 'ReachedTarget':
+
+        if (unitInteractionDistance(unit, target) > HARVESTING_DISTANCE) {
+            // in case of displacement mid-harvesting, reset and retry
+            if (unit.state.action === 'Harvesting') {
+                hc.harvestingProgress = 0;
+                unit.state.action = 'Idle';
+                return;
+            } else {
+                switch(moveTowardsUnit(unit, target, HARVESTING_DISTANCE, ctx.gm, dt)) {
+                    case 'Unreachable':
+                        clearCurrentCommand(unit);
+                        break;
+                    case 'ReachedTarget':
+                        unit.state.action = 'Idle';
+                        break;
+                }
+            }
+        } else {
+            if (!resourceAvailable(target)) {
+                // just wait
+                unit.state.action = 'Idle';
+            }
+
+            unit.state.action = 'Harvesting'
+            hc.harvestingProgress += dt;
+
             if (hc.harvestingProgress >= hc.harvestingTime) {
                 hc.resourcesCarried = HARVESTING_RESOURCE_COUNT;
                 resource.value -= HARVESTING_RESOURCE_COUNT;
@@ -142,11 +163,7 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
                 // TODO - reset harvesting at any other action
                 // maybe i could use some "exit state function"?
                 hc.harvestingProgress = 0;
-            } else {
-                unit.state.action = 'Harvesting';
-                hc.harvestingProgress += dt;
             }
-            break;
         }
     } else {
         const DROPOFF_DISTANCE = 1;
@@ -173,6 +190,11 @@ export const harvestCommand = (ctx: CommandContext, cmd: CommandHarvest) => {
             return;
         }
     }
+}
+
+function resourceAvailable(unit: Unit) {
+    // TODO implement
+    return true;
 }
 
 export const produceCommand = (ctx: CommandContext, cmd: CommandProduce) =>  {
