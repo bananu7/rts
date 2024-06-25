@@ -71,7 +71,7 @@ function tileTypeToHeight(tileType: number): number {
 
     case 1:
     default:
-        return 0.8 + Math.random() * 0.7 - correction;
+        return 0.8 + Math.random() * 4.7 - correction;
     }
 }
 
@@ -120,6 +120,10 @@ export function Map3D(props: Map3DProps) {
         const mat4Pos = new THREE.Matrix4();
         const vec3Color = new THREE.Color();
 
+        const tilePosition = new THREE.Vector3();
+        const tileQ = new THREE.Quaternion();
+        const tileScale = new THREE.Vector3(1, 1, 1);
+
         for (let y = 0; y < h; y++){
             for (let x = 0; x < w; x++) {
                 const ix = y*props.map.w+x;
@@ -129,7 +133,14 @@ export function Map3D(props: Map3DProps) {
                 const height = tileTypeToHeight(tileType);
 
                 // TODO - make sure that everything matches with that corrective offset
-                mat4Pos.makeTranslation(x * xSize + 0.5, height, y * ySize + 0.5); // TODO -1 to move them down because of their height
+                mat4Pos.makeTranslation(x * xSize + 0.5, height-9, y * ySize + 0.5); // TODO -1 to move them down because of their height
+                /*
+
+                tilePosition.set(x * xSize + 0.5, -1, y * ySize + 0.5);
+                tileScale.y = height;
+                mat4Pos.compose(tilePosition, tileQ, tileScale); // TODO -1 to move them down because of their heigh
+
+                */
 
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);
@@ -163,9 +174,10 @@ export function Map3D(props: Map3DProps) {
                 ref={ref}
                 args={[undefined, undefined, w*h]}
                 receiveShadow
+                castShadow
             >
                 {/*<planeGeometry args={[xSize, ySize]} />*/}
-                <boxGeometry args={[xSize, 2, ySize]} />
+                <boxGeometry args={[xSize, 20, ySize]} />
                 <meshStandardMaterial />
             </instancedMesh>
         </group>
