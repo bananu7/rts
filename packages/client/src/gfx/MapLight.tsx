@@ -9,7 +9,7 @@ export type MapLightProps = {
 }
 
 export function MapLight(props: MapLightProps) {
-    const lightRef = useRef<THREE.SpotLight>(null);
+    const lightRef = useRef<THREE.DirectionalLight>(null);
     if (debugFlags.showLightConeHelper)
         useShadowHelper(lightRef);
 
@@ -31,8 +31,6 @@ export function MapLight(props: MapLightProps) {
                 ref={lightRef}
                 // TODO time of day
                 position={[400, 180, 90]}
-                distance={0}
-                decay={0}
                 intensity={3}
                 color={0xffffff}
 
