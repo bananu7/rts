@@ -4,12 +4,12 @@ import * as THREE from 'three';
 
 import { debugFlags } from '../debug/flags'
 
-export type MapSpotlightProps = {
+export type MapLightProps = {
     target: THREE.Vector3,
 }
 
-export function MapSpotlight(props: MapSpotlightProps) {
-    const lightRef = useRef<THREE.SpotLight>(null);
+export function MapLight(props: MapLightProps) {
+    const lightRef = useRef<THREE.DirectionalLight>(null);
     if (debugFlags.showLightConeHelper)
         useShadowHelper(lightRef);
 
@@ -25,23 +25,26 @@ export function MapSpotlight(props: MapSpotlightProps) {
         lightRef.current.target = target;
     }, [lightRef]);
 
-    // TODO spotlight setting to allow time of day
     return (
         <group>
-            <spotLight 
+            <directionalLight 
                 ref={lightRef}
+                // TODO time of day
                 position={[400, 180, 90]}
-                angle={0.16}
-                distance={0}
-                decay={0}
-                intensity={4}
+                intensity={3}
                 color={0xffffff}
 
                 castShadow
-                shadow-camera-near={300}
+                shadow-camera-near={100}
                 shadow-camera-far={500}
                 shadow-mapSize-height={1024}
                 shadow-mapSize-width={1024}
+
+                shadow-camera-bottom={props.target.x}
+                shadow-camera-top={-props.target.x}
+                shadow-camera-left={-props.target.z}
+                shadow-camera-right={props.target.z}
+
                 shadow-bias={-0.002}
             />
         </group>
