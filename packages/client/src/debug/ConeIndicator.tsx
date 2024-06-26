@@ -1,5 +1,8 @@
 import { ThreeCache } from '../gfx/ThreeCache'
 import * as THREE from 'three';
+
+import { UnitAction } from '@bananu7-rts/server/src/types'
+
 const cache = new ThreeCache();
 
 const coneGeometry = new THREE.ConeGeometry(0.5, 2, 8);

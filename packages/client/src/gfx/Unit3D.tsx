@@ -16,6 +16,7 @@ import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
 import { UnitDisplayEntry } from './UnitDisplayCatalog'
+import { Projectile } from './Projectile'
 import { Horizon } from '../debug/Horizon'
 import { ConeIndicator } from '../debug/ConeIndicator'
 import { debugFlags } from '../debug/flags'
@@ -126,33 +127,13 @@ export function Unit3D(props: Unit3DProps) {
 
     const action = props.unit.state.action;
 
-    const projectileTarget = new THREE.Vector3(50, 0, 50);
-    const projectilePosition = new THREE.Vector3(props.unit.position.x, 5, props.unit.position.y);
-    const projectileRef = useRef<THREE.Mesh>(null);
-    useFrame((s, dt) => {
-        if(!projectileRef.current)
-            return;
-
-        if (projectileRef.current.position.y > 10) {
-            projectileRef.current.position.x = props.unit.position.x
-            projectileRef.current.position.y = 0;
-            projectileRef.current.position.z = props.unit.position.y;
-        } else {
-            projectileRef.current.position.y += dt * 5;
-        }
-    });
-
     return (
         <group>
             { debugFlags.showPaths && 
                 props.selected && debugPath &&
                 <Line3D points={[new THREE.Vector3(props.unit.position.x, 1.1, props.unit.position.y), ...debugPath]} />
             }
-            <mesh
-                ref={projectileRef}
-                material={cache.getBasicMaterial(0xeeeeee)}
-                geometry={cache.getCylinderGeometry(1.0)}
-            />
+            <Projectile position={props.unit.position}/>
             <group
                 ref={unitGroupRef}
                 position={[0, 1, 0]}
