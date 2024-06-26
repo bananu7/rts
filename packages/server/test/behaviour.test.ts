@@ -287,6 +287,38 @@ describe('harvest action', () => {
         expect(game.units[1].state.action).toBe('Moving');
         expect(game.players[0].resources).toBe(8);
     });
+
+    test('compete for one resource', () => {
+        const game = createBasicGame({}, 40);
+
+        spawnUnit(game, 0, "ResourceNode", {x: 15, y: 15});
+        // the first one is closer
+        spawnUnit(game, 1, "Harvester", {x: 10, y: 14 }); // id 2
+        spawnUnit(game, 1, "Harvester", {x: 25, y: 16 }); // id 3
+
+        command({
+                command: { typ: 'Harvest', target: 1 },
+                unitIds: [2, 3],
+                shift: false,
+            },
+            game,
+            1
+        );
+
+        for (let i = 0; i < 2 * 10; i++) {
+            tick(TICK_MS, game);
+        }
+
+        expect(game.units[1].state.action).toBe('Harvesting');
+        expect(game.units[2].state.action).toBe('Idle');
+
+        for (let i = 0; i < 4 * 10; i++) {
+            tick(TICK_MS, game);
+        }
+
+        expect(game.units[2].state.action).toBe('Harvesting');
+        expect(game.units[1].state.action).toBe('Idle');
+    });
 });
 
 describe('build action', () => {

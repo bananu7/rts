@@ -1,6 +1,6 @@
 import { 
     Unit,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Resource, Component
 } from '../types'
 
 export const getHpComponent = (unit: Unit) => {
@@ -34,3 +34,7 @@ export const getVisionComponent = (unit: Unit) => {
 export const getBuildingComponent = (unit: Unit) => {
     return unit.components.find(c => c.type === 'Building') as Building;
 };
+
+export const getResourceComponent = (unit: Unit) => {
+    return unit.components.find(c => c.type === 'Resource') as Resource;
+}
