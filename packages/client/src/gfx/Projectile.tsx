@@ -8,7 +8,8 @@ import { ThreeCache } from './ThreeCache'
 const cache = new ThreeCache();
 
 export type ProjectileProps = {
-    position: Position
+    position: Position,
+    attackRate: number, // TODO this is just flight time?
 }
 
 export function Projectile(props: ProjectileProps) {
@@ -22,8 +23,10 @@ export function Projectile(props: ProjectileProps) {
         if(!projectileRef.current)
             return;
 
+        const attackRate = props.attackRate;
         const range = 20;
-        const y = parabolaHeight(range, 10, tRef.current);
+        const e = tRef.current * (1000/attackRate);
+        const y = parabolaHeight(range, 10, e);
 
         if (tRef.current === 0) {
             projectileRef.current.position.x = props.position.x
@@ -31,10 +34,10 @@ export function Projectile(props: ProjectileProps) {
         }
 
         projectileRef.current.position.y = y;
-        projectileRef.current.position.x = props.position.x + tRef.current * range;
+        projectileRef.current.position.x = props.position.x + e * range;
 
         tRef.current += dt;
-        if (tRef.current > 1)
+        if (tRef.current > attackRate / 1000)
             tRef.current = 0;
     });
 

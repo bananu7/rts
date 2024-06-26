@@ -10,6 +10,8 @@ import {
 import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitAction } from '@bananu7-rts/server/src/types'
+import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
+
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
@@ -133,7 +135,9 @@ export function Unit3D(props: Unit3DProps) {
                 props.selected && debugPath &&
                 <Line3D points={[new THREE.Vector3(props.unit.position.x, 1.1, props.unit.position.y), ...debugPath]} />
             }
-            <Projectile position={props.unit.position}/>
+            { action === "Attacking" && 
+              <Projectile position={props.unit.position} attackRate={getAttackerComponent(props.unit).attackRate}/>
+            }
             <group
                 ref={unitGroupRef}
                 position={[0, 1, 0]}
