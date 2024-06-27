@@ -10,7 +10,6 @@ import {
 import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, UnitAction } from '@bananu7-rts/server/src/types'
-import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
 
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
@@ -18,7 +17,6 @@ import { Map3D, Box } from './Map3D'
 import { ThreeCache } from './ThreeCache'
 import { FileModel } from './FileModel'
 import { UnitDisplayEntry } from './UnitDisplayCatalog'
-import { Projectile } from './Projectile'
 import { Horizon } from '../debug/Horizon'
 import { ConeIndicator } from '../debug/ConeIndicator'
 import { debugFlags } from '../debug/flags'
@@ -128,26 +126,12 @@ export function Unit3D(props: Unit3DProps) {
     });
 
     const action = props.unit.state.action;
-    const ac = getAttackerComponent(props.unit);
-    const targetPos = {x:0, y:0};
-    if (props.unit.state.state === "active" && props.unit.state.current.typ === "Attack") {
-        const target = units.find(u => u.id === props.unit.state.current.target);
-        targetPos.x = target.position.x;
-        targetPos.y = target.position.y;
-    }
 
     return (
         <group>
             { debugFlags.showPaths && 
                 props.selected && debugPath &&
                 <Line3D points={[new THREE.Vector3(props.unit.position.x, 1.1, props.unit.position.y), ...debugPath]} />
-            }
-            { ac && action === "Attacking" && 
-                <Projectile
-                    position={props.unit.position}
-                    target={targetPos}
-                    attackRate={ac.attackRate}
-                />
             }
             <group
                 ref={unitGroupRef}
