@@ -9,6 +9,7 @@ const cache = new ThreeCache();
 
 export type ProjectileProps = {
     position: Position,
+    target: Position,
     attackRate: number, // TODO this is just flight time?
 }
 
@@ -33,8 +34,11 @@ export function Projectile(props: ProjectileProps) {
             projectileRef.current.position.z = props.position.y;
         }
 
+        const startPos = new THREE.Vector3(props.position.x, 0, props.position.y);
+        const targetPos = new THREE.Vector3(props.target.x, 0, props.target.y);
+
+        projectileRef.current.position.lerpVectors(startPos, targetPos, e);
         projectileRef.current.position.y = y;
-        projectileRef.current.position.x = props.position.x + e * range;
 
         tRef.current += dt;
         if (tRef.current > attackRate / 1000)

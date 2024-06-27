@@ -128,6 +128,13 @@ export function Unit3D(props: Unit3DProps) {
     });
 
     const action = props.unit.state.action;
+    const ac = getAttackerComponent(props.unit);
+    const targetPos = {x:0, y:0};
+    if (props.unit.state.state === "active" && props.unit.state.current.typ === "Attack") {
+        const target = units.find(u => u.id === props.unit.state.current.target);
+        targetPos.x = target.position.x;
+        targetPos.y = target.position.y;
+    }
 
     return (
         <group>
@@ -135,8 +142,12 @@ export function Unit3D(props: Unit3DProps) {
                 props.selected && debugPath &&
                 <Line3D points={[new THREE.Vector3(props.unit.position.x, 1.1, props.unit.position.y), ...debugPath]} />
             }
-            { action === "Attacking" && 
-              <Projectile position={props.unit.position} attackRate={getAttackerComponent(props.unit).attackRate}/>
+            { ac && action === "Attacking" && 
+                <Projectile
+                    position={props.unit.position}
+                    target={targetPos}
+                    attackRate={ac.attackRate}
+                />
             }
             <group
                 ref={unitGroupRef}
