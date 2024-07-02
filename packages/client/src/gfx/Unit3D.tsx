@@ -122,7 +122,7 @@ export function Unit3D(props: Unit3DProps) {
     })();
 
     const debugPath = props.unit.debug?.pathToNext?.map((a: any) => {
-        return new THREE.Vector3(a.x, 1, a.y);
+        return new THREE.Vector3(a.x, 1.2, a.y);
     });
 
     const action = props.unit.state.action;

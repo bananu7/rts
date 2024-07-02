@@ -3,7 +3,7 @@ import { Suspense, useRef, useEffect, useLayoutEffect, useState, CSSProperties }
 
 import * as THREE from 'three';
 
-import { MapSpotlight } from './MapSpotlight'
+import { MapLight } from './MapLight'
 import { MapControls } from './MapControls'
 import { Stats } from './Stats'
 import { Position} from '@bananu7-rts/server/src/types'
@@ -98,10 +98,10 @@ export function View3D(props: Props) {
                     onPointerMissed={ props.onPointerMissed }
                     dpr={1}
                 >
-                    <color attach="background" args={[0x11aa11]} />
+                    <color attach="background" args={[0x111111]} />
                     <CameraControls minPan={minPan} maxPan={maxPan} startTarget={startTarget} />
                     <ambientLight args={[0xffffff, 2]} />
-                    <MapSpotlight target={middleOfTheMap}/>
+                    <MapLight target={middleOfTheMap}/>
                     {props.children}
                     <Stats />
                 </Canvas>
