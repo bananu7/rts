@@ -56,7 +56,7 @@ export function MapBorder(props: MapBorderProps) {
                     const color = tileTypeToColor(tileType, vec3Color);
 
                     // outline darker
-                    vec3Color.g *= Math.abs(f(x,y));
+                    vec3Color.g *= Math.min(f(x,y), 1.0);
 
                     const height = tileTypeToHeight(tileType);
 
@@ -72,22 +72,34 @@ export function MapBorder(props: MapBorderProps) {
 
         // TODO this code is pretty unreadable, but at least it's only called once
 
+        const noise = new Simple1DNoise();
+        noise.setAmplitude(1)
+        noise.setScale(0.05)
+
+        const fadeoff = (f: number, noiseVar: number) => {
+            return Math.pow(f, 2) * (1 + Math.pow(noise.getVal(noiseVar), 2));
+        }
+
         let off = 0;
         //top
-        off += createRectangle(off, 0, -borderSize, w, 0, (x,y) => y/borderSize);
+        off += createRectangle(off, 0, -borderSize, w, 0, (x,y) => fadeoff(y/borderSize, x));
         //bottom
-        off += createRectangle(off, 0, h, w, h+borderSize, (x,y) => (borderSize-y)/borderSize);
+        off += createRectangle(off, 0, h, w, h+borderSize, (x,y) => fadeoff((borderSize-y)/borderSize, x));
         // left
-        off += createRectangle(off, -borderSize, 0, 0, h, (x,y) => x/borderSize);
+        off += createRectangle(off, -borderSize, 0, 0, h, (x,y) => fadeoff(x/borderSize, y));
         //right
-        off += createRectangle(off, w, 0, w+borderSize, h, (x,y) => (borderSize-x)/borderSize);
+        off += createRectangle(off, w, 0, w+borderSize, h, (x,y) => fadeoff((borderSize-x)/borderSize, y));
 
         // top-left
         off += createRectangle(off, -borderSize, -borderSize, 0, 0,
             (x,y) => {
                 const xi = borderSize-x;
                 const yi = borderSize-y;
-                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+
+                const r = Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+                const a = Math.atan2(y, x);
+
+                return fadeoff(r, a);
             }
         );
 
@@ -96,7 +108,11 @@ export function MapBorder(props: MapBorderProps) {
             (x,y) => {
                 const xi = x;
                 const yi = borderSize-y;
-                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+
+                const r = Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+                const a = Math.atan2(y, x);
+
+                return fadeoff(r, a);
             }
         );
 
@@ -105,7 +121,11 @@ export function MapBorder(props: MapBorderProps) {
             (x,y) => {
                 const xi = borderSize-x;
                 const yi = y;
-                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+
+                const r = Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+                const a = Math.atan2(y, x);
+
+                return fadeoff(r, a);
             }
         );
 
@@ -114,7 +134,11 @@ export function MapBorder(props: MapBorderProps) {
             (x,y) => {
                 const xi = x;
                 const yi = y;
-                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+
+                const r = Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+                const a = Math.atan2(y, x);
+
+                return fadeoff(r, a);
             }
         );
         
@@ -134,4 +158,51 @@ export function MapBorder(props: MapBorderProps) {
             <meshStandardMaterial />
         </instancedMesh>
     );
+}
+
+
+const MAX_VERTICES = 256;
+class Simple1DNoise {
+    vertices: number;
+    mask: number;
+    amplitude = 1;
+    scale = 1;
+
+    r: number[] = [];
+
+    constructor(vertices: number = MAX_VERTICES) {
+        this.vertices = vertices;
+        this.mask = vertices - 1;
+
+        for (let i = 0; i < this.vertices; ++i) {
+            this.r.push(Math.random());
+        }
+    }
+
+    getVal(x: number): number {
+        const scaledX = x * this.scale;
+        const xFloor = Math.floor(scaledX);
+        const t = scaledX - xFloor;
+        const tRemapSmoothstep = t * t * ( 3 - 2 * t );
+
+        /// Modulo using &
+        const xMin = xFloor & this.mask;
+        const xMax = ( xMin + 1 ) & this.mask;
+
+        const y = Simple1DNoise.lerp( this.r[ xMin ], this.r[ xMax ], tRemapSmoothstep );
+
+        return y * this.amplitude;
+    };
+
+    private static lerp(a: number, b: number, t: number): number {
+        return a * ( 1 - t ) + b * t;
+    };
+
+    setAmplitude(newAmplitude: number) {
+        this.amplitude = newAmplitude;
+    }
+
+    setScale(newScale: number) {
+        this.scale = newScale;
+    }
 }
