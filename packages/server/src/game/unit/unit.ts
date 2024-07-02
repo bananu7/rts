@@ -92,7 +92,14 @@ export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, targe
         unit.state.action = 'Attacking';
         const targetPos = getUnitReferencePosition(target);
         unit.direction = V.angleFromTo(unit.position, targetPos);
-        attemptDamage(ac, target);
+
+        // depending on the attacker type, either fire a projectile or deal direct damage
+        // TODO: windup
+        if (ac.kind === "projectile") {
+            fireProjectile(gm, unit.position, ac, target);
+        } else {
+            attemptDamage(ac, target);
+        }
     }
     // in any other case we can't do much else
 }

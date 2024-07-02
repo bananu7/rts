@@ -106,6 +106,7 @@ export type Attacker = {
     attackRate: Milliseconds,
     range: number,
     cooldown: Milliseconds,
+    kind: 'direct' | 'projectile',
 }
 export type Mover = {
     type: 'Mover',
