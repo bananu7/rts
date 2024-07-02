@@ -45,10 +45,10 @@ export function MapLight(props: MapLightProps) {
                 shadow-camera-left={-props.target.z}
                 shadow-camera-right={props.target.z}
 
-                shadow-bias={-0.002}
+                shadow-bias={-0.00052}
             />
         </group>
-     )   
+    )
 }
 
 
