@@ -136,6 +136,7 @@ export function MapBorder(props: MapBorderProps) {
                 const yi = y;
 
                 const r = Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+                // TODO: lerp between w and h
                 const a = Math.atan2(y, x);
 
                 return fadeoff(r, a);
