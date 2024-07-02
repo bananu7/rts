@@ -11,7 +11,7 @@ export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Co
 
     let factor = 0.0;
 
-    const include = (x,y,f) => {
+    const include = (x: number, y: number, f: number) => {
         if (x < 0 || y < 0 || x >= map.w || y >= map.h)
             return;
 
@@ -19,20 +19,19 @@ export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Co
             factor += f;
     };
 
-    include(x-1, y, 0.2);
-    include(x+1, y, 0.2);
-    include(x, y-1, 0.2);
-    include(x, y+1, 0.2);
+    const kernel: number[][] = [
+        [0.10, 0.15, 0.15, 0.15, 0.10],
+        [0.15, 0.10, 0.10, 0.10, 0.15],
+        [0.15, 0.10, 0.00, 0.10, 0.15],
+        [0.15, 0.10, 0.10, 0.10, 0.15],
+        [0.10, 0.15, 0.15, 0.15, 0.10]
+    ];
 
-    include(x-1, y-1, 0.2);
-    include(x+1, y-1, 0.2);
-    include(x-1, y+1, 0.2);
-    include(x+1, y+1, 0.2);
-
-    include(x-2, y, 0.15);
-    include(x+2, y, 0.15);
-    include(x, y-2, 0.15);
-    include(x, y+2, 0.15);
+    for (let dx = 0; dx < 5; dx++) {
+        for (let dy = 0; dy < 5; dy++) {
+            include(x + dx-2, y + dy-2, kernel[dy][dx]);
+        }
+    }
 
 
     factor = Math.min(factor, 1.0);
