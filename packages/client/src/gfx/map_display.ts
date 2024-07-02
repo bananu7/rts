@@ -39,7 +39,6 @@ export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Co
     tileTypeToColor(tileType, vec3Color);
     if (tileType == 0) {
         vec3Color.r = vec3Color.g * factor;
-        //vec3Color.g *= 1 - factor * 0.5;
     }
 }
 
