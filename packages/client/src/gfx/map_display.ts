@@ -8,7 +8,22 @@ export function explode(map: GameMap, x: number, y: number): number {
 export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Color) {
     const ix = explode(map, x, y);
     const tileType = map.tiles[ix];
-    return tileTypeToColor(tileType, vec3Color);
+
+    let factor = 0.0;
+    if (x > 0 && map.tiles[explode(map,x-1,y)] > 0)
+        factor += 0.2;
+    if (x < map.w && map.tiles[explode(map,x+1,y)] > 0)
+        factor += 0.2;
+    if (y > 0 && map.tiles[explode(map,x,y-1)] > 0)
+        factor += 0.2;
+    if (y > 0 && map.tiles[explode(map,x,y+1)] > 0)
+        factor += 0.2;
+
+    tileTypeToColor(tileType, vec3Color);
+    if (tileType == 0) {
+        vec3Color.r += factor;
+        //vec3Color.g *= 1 - factor * 0.5;
+    }
 }
 
 export function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
