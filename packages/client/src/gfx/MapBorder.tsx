@@ -16,12 +16,12 @@ export function MapBorder(props: MapBorderProps) {
 
     /*
 
-    AAAAAA
+    XAAAAY
     CMMMMD
     CMMMMD
     CMMMMD
     CMMMMD
-    BBBBBB
+    ZBBBBW
 
     */
 
@@ -40,11 +40,11 @@ export function MapBorder(props: MapBorderProps) {
         const tileType = 0;
 
         const createRectangle = (
-            off:number,
-            x0:number,
-            y0:number,
-            x1:number,
-            y1:number,
+            off: number,
+            x0: number,
+            y0: number,
+            x1: number,
+            y1: number,
             f: (x: number, y:number) => number
         ) => {
             if (!ref.current)
@@ -70,6 +70,8 @@ export function MapBorder(props: MapBorderProps) {
             return (y1-y0) * (x1-x0);
         };
 
+        // TODO this code is pretty unreadable, but at least it's only called once
+
         let off = 0;
         //top
         off += createRectangle(off, 0, -borderSize, w, 0, (x,y) => y/borderSize);
@@ -85,6 +87,33 @@ export function MapBorder(props: MapBorderProps) {
             (x,y) => {
                 const xi = borderSize-x;
                 const yi = borderSize-y;
+                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+            }
+        );
+
+        // top-right
+        off += createRectangle(off, w, -borderSize, w+borderSize, 0,
+            (x,y) => {
+                const xi = x;
+                const yi = borderSize-y;
+                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+            }
+        );
+
+        // bottom-left
+        off += createRectangle(off, -borderSize, h, 0, h+borderSize,
+            (x,y) => {
+                const xi = borderSize-x;
+                const yi = y;
+                return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
+            }
+        );
+
+        // bottom-right
+        off += createRectangle(off, w, h, w+borderSize, h+borderSize,
+            (x,y) => {
+                const xi = x;
+                const yi = y;
                 return Math.max(1 - Math.sqrt(xi*xi+yi*yi)/Math.sqrt(borderSize*borderSize), 0);
             }
         );
