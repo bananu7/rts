@@ -98,7 +98,7 @@ export function View3D(props: Props) {
                     onPointerMissed={ props.onPointerMissed }
                     dpr={1}
                 >
-                    <color attach="background" args={[0x11aa11]} />
+                    <color attach="background" args={[0x111111]} />
                     <CameraControls minPan={minPan} maxPan={maxPan} startTarget={startTarget} />
                     <ambientLight args={[0xffffff, 2]} />
                     <MapLight target={middleOfTheMap}/>

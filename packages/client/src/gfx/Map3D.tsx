@@ -11,6 +11,8 @@ import * as THREE from 'three';
 import { Board, Unit, GameMap, UnitId, Position } from '@bananu7-rts/server/src/types'
 
 import { SelectionBox } from './SelectionBox'
+import { mapColor, mapHeight, explode } from './map_display'
+import { MapBorder } from './MapBorder'
 
 type Click = (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
 type RawClick = (e: ThreeEvent<MouseEvent>) => void;
@@ -23,58 +25,6 @@ type Map3DProps = {
 
     pointerMove: (p: {x: number, y: number}) => void;
 }
-
-function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
-    const isPassable = tileType === 0;    
-
-    switch (tileType) {
-        case 0: {
-            const color = 0x11aa11;
-            vec3Color.set(color);
-            const f = 0.06;
-            vec3Color.r += (Math.random() - 0.5) * f;
-            vec3Color.g += (Math.random() - 0.5) * f;
-            vec3Color.b += (Math.random() - 0.5) * f;
-            break;
-        }
-
-        case 2: {
-            const color = 0x3377cc;
-            vec3Color.set(color);
-            const f = 0.06;
-            vec3Color.r += (Math.random() - 0.5) * f;
-            vec3Color.g += (Math.random() - 0.5) * f;
-            vec3Color.b += (Math.random() - 0.5) * f;
-            break;
-        }
-
-        case 1:
-        default: {
-            const color = 0x888888;
-            vec3Color.set(color);
-            const d = (Math.random() - 0.5) * 0.1;
-            vec3Color.r += d;
-            vec3Color.g += d;
-            vec3Color.b += d;
-        }
-    }
-}
-
-function tileTypeToHeight(tileType: number): number {
-    const correction = 0.01;
-    switch (tileType) {
-    case 0:
-        return 0 - correction;
-
-    case 2:
-        return -0.5 - Math.random() * 0.7 - correction
-
-    case 1:
-    default:
-        return 0.8 + Math.random() * 0.7 - correction;
-    }
-}
-
 
 export function Map3D(props: Map3DProps) {
     // movement
@@ -109,9 +59,6 @@ export function Map3D(props: Map3DProps) {
     const w = props.map.w;
     const h = props.map.h;
 
-    const xSize = 1;
-    const ySize = 1;
-
     const ref = useRef<THREE.InstancedMesh>(null);
     useLayoutEffect(() => {
         if (!ref.current)
@@ -122,15 +69,13 @@ export function Map3D(props: Map3DProps) {
 
         for (let y = 0; y < h; y++){
             for (let x = 0; x < w; x++) {
-                const ix = y*props.map.w+x;
-
-                const tileType = props.map.tiles[ix];
-                const color = tileTypeToColor(tileType, vec3Color);
-                const height = tileTypeToHeight(tileType);
+                const color = mapColor(props.map, x, y, vec3Color);
+                const height = mapHeight(props.map, x, y);
 
                 // TODO - make sure that everything matches with that corrective offset
-                mat4Pos.makeTranslation(x * xSize + 0.5, height, y * ySize + 0.5); // TODO -1 to move them down because of their height
+                mat4Pos.makeTranslation(x + 0.5, height-9, y + 0.5); // TODO -1 to move them down because of their height
 
+                const ix = explode(props.map, x, y);
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);
             }
@@ -150,9 +95,9 @@ export function Map3D(props: Map3DProps) {
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
                 onPointerMove={pointerMove}
-                position={[0.5*w, 0, ySize*0.5*h]}
+                position={[0.5*w, 0, 0.5*h]}
             >
-                <boxGeometry args={[xSize*w*2, 1, ySize*h*2]} />
+                <boxGeometry args={[w*2, 1, h*2]} />
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
@@ -163,11 +108,14 @@ export function Map3D(props: Map3DProps) {
                 ref={ref}
                 args={[undefined, undefined, w*h]}
                 receiveShadow
+                castShadow
             >
-                {/*<planeGeometry args={[xSize, ySize]} />*/}
-                <boxGeometry args={[xSize, 2, ySize]} />
+                {/*<planeGeometry args={[1, 1]} />*/}
+                <boxGeometry args={[1, 20, 1]} />
                 <meshStandardMaterial />
             </instancedMesh>
+
+            <MapBorder w={w} h={h} />
         </group>
     );
 }
