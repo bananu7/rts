@@ -10,18 +10,36 @@ export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Co
     const tileType = map.tiles[ix];
 
     let factor = 0.0;
-    if (x > 0 && map.tiles[explode(map,x-1,y)] > 0)
-        factor += 0.2;
-    if (x < map.w && map.tiles[explode(map,x+1,y)] > 0)
-        factor += 0.2;
-    if (y > 0 && map.tiles[explode(map,x,y-1)] > 0)
-        factor += 0.2;
-    if (y > 0 && map.tiles[explode(map,x,y+1)] > 0)
-        factor += 0.2;
+
+    const include = (x,y,f) => {
+        if (x < 0 || y < 0 || x >= map.w || y >= map.h)
+            return;
+
+        if (map.tiles[explode(map,x,y)] > 0)
+            factor += f;
+    };
+
+    include(x-1, y, 0.2);
+    include(x+1, y, 0.2);
+    include(x, y-1, 0.2);
+    include(x, y+1, 0.2);
+
+    include(x-1, y-1, 0.2);
+    include(x+1, y-1, 0.2);
+    include(x-1, y+1, 0.2);
+    include(x+1, y+1, 0.2);
+
+    include(x-2, y, 0.15);
+    include(x+2, y, 0.15);
+    include(x, y-2, 0.15);
+    include(x, y+2, 0.15);
+
+
+    factor = Math.min(factor, 1.0);
 
     tileTypeToColor(tileType, vec3Color);
     if (tileType == 0) {
-        vec3Color.r += factor;
+        vec3Color.r = vec3Color.g * factor;
         //vec3Color.g *= 1 - factor * 0.5;
     }
 }
