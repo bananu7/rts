@@ -169,9 +169,9 @@ export type Vision = {
 // Internal Game stuff
 export type TilePos = { x: number, y: number }
 
-export type PlayerIndex = number
-export type UserId = string
-
+export type PlayerIndex = number;
+export type UserId = string;
+export type ProjectileId = number;
 
 export type UnitAction = 'Moving'|'Attacking'|'Harvesting'|'Idle'|'Producing'|'Building';
 
@@ -219,6 +219,14 @@ export type PlayerState = {
 }
 
 export type WinCondition = 'BuildingElimination'|'OneLeft';
+
+
+export type Projectile = {
+    id: ProjectileId,
+    damage: number,
+    target: Position, // TODO - projectiles targeting units
+    origin: Position,
+}
 
 export type Game = {
     // uuid: UUID, TODO
