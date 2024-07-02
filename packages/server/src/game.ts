@@ -21,13 +21,14 @@ import { buildPresenceAndBuildingMaps } from './game/presence.js'
 
 export function newGame(matchId: string, board: Board): Game {
     const units = createStartingUnits(2, board);
+    const startingResources = 150;
     return {
         matchId,
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
         // TODO handle disconnect separately from elimination
-        players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
+        players: [{resources: startingResources, stillInGame: true}, {resources: startingResources, stillInGame: true}],
         board,
         units,
         lastUnitId: units.length,

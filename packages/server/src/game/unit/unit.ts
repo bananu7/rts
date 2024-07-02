@@ -75,6 +75,12 @@ const attemptDamage = (ac: Attacker, target: Unit) => {
     }
 }
 
+function fireProjectile(gm: GameWithPresenceCache, ac: Attacker, target: Unit | Position) {
+    gm.projectiles.push({
+        id: ++gm.lastProjectileId,
+    })
+}
+
 export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, target: Unit, dt: Milliseconds) => {
     // first let the movement system do its thing
     const movementTolerance = ac.range - ATTACK_RANGE_COMPENSATION;
