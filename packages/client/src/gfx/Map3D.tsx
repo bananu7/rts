@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { Board, Unit, GameMap, UnitId, Position } from '@bananu7-rts/server/src/types'
 
 import { SelectionBox } from './SelectionBox'
-import { tileTypeToColor, tileTypeToHeight } from './map_display'
+import { mapColor, mapHeight, explode } from './map_display'
 import { MapBorder } from './MapBorder'
 
 type Click = (originalEvent: ThreeEvent<MouseEvent>, p: Position, button: number, shift: boolean) => void;
@@ -67,18 +67,15 @@ export function Map3D(props: Map3DProps) {
         const mat4Pos = new THREE.Matrix4();
         const vec3Color = new THREE.Color();
 
-
         for (let y = 0; y < h; y++){
             for (let x = 0; x < w; x++) {
-                const ix = y*props.map.w+x;
-
-                const tileType = props.map.tiles[ix];
-                const color = tileTypeToColor(tileType, vec3Color);
-                const height = tileTypeToHeight(tileType);
+                const color = mapColor(props.map, x, y, vec3Color);
+                const height = mapHeight(props.map, x, y);
 
                 // TODO - make sure that everything matches with that corrective offset
                 mat4Pos.makeTranslation(x + 0.5, height-9, y + 0.5); // TODO -1 to move them down because of their height
 
+                const ix = explode(props.map, x, y);
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);
             }

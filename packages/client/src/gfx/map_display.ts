@@ -1,4 +1,15 @@
 import * as THREE from 'three';
+import { GameMap } from '@bananu7-rts/server/src/types'
+
+export function explode(map: GameMap, x: number, y: number): number {
+    return y*map.w+x;
+}
+
+export function mapColor(map: GameMap, x: number, y: number, vec3Color: THREE.Color) {
+    const ix = explode(map, x, y);
+    const tileType = map.tiles[ix];
+    return tileTypeToColor(tileType, vec3Color);
+}
 
 export function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
     const isPassable = tileType === 0;    
@@ -34,6 +45,13 @@ export function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
             vec3Color.b += d;
         }
     }
+}
+
+
+export function mapHeight(map: GameMap, x: number, y: number): number {
+    const ix = explode(map, x, y);
+    const tileType = map.tiles[ix];
+    return tileTypeToHeight(tileType);
 }
 
 export function tileTypeToHeight(tileType: number): number {
