@@ -31,7 +31,9 @@ export function newGame(matchId: string, board: Board): Game {
         players: [{resources: startingResources, stillInGame: true}, {resources: startingResources, stillInGame: true}],
         board,
         units,
+        projectiles: [],
         lastUnitId: units.length,
+        lastProjectileId: 1,
         winCondition: 'BuildingElimination',
     }
 }

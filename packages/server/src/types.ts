@@ -238,7 +238,9 @@ export type Game = {
     players: PlayerState[],
     tickNumber: number,
     units: Unit[],
+    projectiles: Projectile[],
     lastUnitId: number,
+    lastProjectileId: number,
 }
 
 export type GameMap = {

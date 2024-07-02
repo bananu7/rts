@@ -1,6 +1,6 @@
 import { 
     Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position
 } from '../../types'
 
 import * as V from '../../vector.js'
@@ -75,9 +75,12 @@ const attemptDamage = (ac: Attacker, target: Unit) => {
     }
 }
 
-function fireProjectile(gm: GameWithPresenceCache, ac: Attacker, target: Unit | Position) {
-    gm.projectiles.push({
-        id: ++gm.lastProjectileId,
+function fireProjectile(gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: Unit | Position) {
+    gm.game.projectiles.push({
+        id: ++gm.game.lastProjectileId,
+        damage: ac.damage,
+        target: "position" in target ? target.position : target,
+        origin,
     })
 }
 
