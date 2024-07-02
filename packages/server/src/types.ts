@@ -91,6 +91,7 @@ export type UpdatePacket = {
     tickNumber: number,
     units: Unit[],
     player: PlayerState,
+    projectiles: Projectile[],
 }
 
 // Components

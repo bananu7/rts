@@ -64,14 +64,21 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     return target;
 }
 
-const attemptDamage = (ac: Attacker, target: Unit) => {
-    if (ac.cooldown === 0) {
-        // TODO - attack cooldown
+const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: Unit) => {
+    if (ac.cooldown !== 0) 
+        return;
+    
+    ac.cooldown = ac.attackRate;
+
+    // depending on the attacker type, either fire a projectile or deal direct damage
+    // TODO: windup
+    if (ac.kind === "projectile") {
+        fireProjectile(gm, origin, ac, target);
+    } else {
         const hp = getHpComponent(target);
         if (hp) {
             hp.hp -= ac.damage;
         }
-        ac.cooldown = ac.attackRate;
     }
 }
 
@@ -80,7 +87,7 @@ function fireProjectile(gm: GameWithPresenceCache, origin: Position, ac: Attacke
         id: ++gm.game.lastProjectileId,
         damage: ac.damage,
         target: "position" in target ? target.position : target,
-        origin,
+        origin: {x: origin.x, y: origin.y },
     })
 }
 
@@ -93,13 +100,7 @@ export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, targe
         const targetPos = getUnitReferencePosition(target);
         unit.direction = V.angleFromTo(unit.position, targetPos);
 
-        // depending on the attacker type, either fire a projectile or deal direct damage
-        // TODO: windup
-        if (ac.kind === "projectile") {
-            fireProjectile(gm, unit.position, ac, target);
-        } else {
-            attemptDamage(ac, target);
-        }
+        attemptDamage(gm, unit.position, ac, target);
     }
     // in any other case we can't do much else
 }

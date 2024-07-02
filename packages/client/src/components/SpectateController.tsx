@@ -191,6 +191,7 @@ export function SpectateController(props: SpectateControllerProps) {
               board={matchMetadata.board}
               playerIndex={0} // TODO - spectator has no player index
               units={lastUpdatePacket ? lastUpdatePacket.units : []}
+              projectiles={lastUpdatePacket ? lastUpdatePacket.projectiles : []}
               selectedUnits={selectedUnits}
               selectedCommand={undefined} // the board needs selected command to show e.g. build preview
               select={boardSelectUnits}

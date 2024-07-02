@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, TilePos, Building } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos, Building, Projectile } from '@bananu7-rts/server/src/types'
 import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
 import { notEmpty } from '@bananu7-rts/server/src/tsutil'
 import { SelectionCircle } from './SelectionCircle'
@@ -18,7 +18,7 @@ import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
 import { Building3D } from './Building3D'
 import { BuildPreview } from './BuildPreview'
-import { Projectile } from './Projectile'
+import { Projectile3D } from './Projectile3D'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedCommand } from '../game/SelectedCommand'
@@ -28,6 +28,7 @@ export interface Props {
     board: Board;
     playerIndex: number;
     units: Unit[];
+    projectiles: Projectile[],
     selectedUnits: Set<UnitId>;
     selectedCommand: SelectedCommand | undefined;
 
@@ -117,34 +118,20 @@ export function Board3D(props: Props) {
                 selectInBox={selectInBox}
                 pointerMove={setPointer}
             />
-            <Projectiles units={props.units} />
+            <Projectiles projectiles={props.projectiles} />
             { units }
             { buildPreview }
         </group>
     );
 }
 
-function Projectiles(props: { units: Unit[] }) {
-    const projectiles = props.units.map(unit => {
-        const ac = getAttackerComponent(unit);
-        if (unit.state.state !== "active"
-            || unit.state.current.typ !== "Attack"
-            || unit.state.action !== "Attacking"
-        ) {
-            return undefined;
-        }
-
-        const targetId = unit.state.current.target;
-        const target = props.units.find(u => u.id === targetId);
-
-        if (!target)
-            return undefined;
-
+function Projectiles(props: { projectiles: Projectile[] }) {
+    const projectiles = props.projectiles.map(projectile => {
         return (
-            <Projectile
-                position={unit.position}
-                target={target.position}
-                attackRate={ac.attackRate}
+            <Projectile3D
+                position={projectile.origin}
+                target={projectile.target}
+                attackRate={500}
             />
         )
 

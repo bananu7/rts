@@ -13,7 +13,7 @@ export type ProjectileProps = {
     attackRate: number, // TODO this is just flight time?
 }
 
-export function Projectile(props: ProjectileProps) {
+export function Projectile3D(props: ProjectileProps) {
     const projectileTarget = new THREE.Vector3(50, 0, 50);
     const projectilePosition = new THREE.Vector3(props.position.x, 5, props.position.y);
     const projectileRef = useRef<THREE.Mesh>(null);

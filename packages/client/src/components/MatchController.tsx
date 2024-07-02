@@ -350,6 +350,7 @@ export function MatchController(props: MatchControllerProps) {
               board={matchMetadata.board}
               playerIndex={props.ctrl.getPlayerIndex()}
               units={lastUpdatePacket ? lastUpdatePacket.units : []}
+              projectiles={lastUpdatePacket ? lastUpdatePacket.projectiles : []}
               selectedUnits={selectedUnits}
               selectedCommand={selectedCommand}
               select={boardSelectUnits}
