@@ -61,7 +61,7 @@ function tileTypeToColor(tileType: number, vec3Color: THREE.Color) {
 }
 
 function tileTypeToHeight(tileType: number): number {
-    const correction = 0.01;
+    const correction = 0.001;
     switch (tileType) {
     case 0:
         return 0 - correction;
@@ -109,9 +109,6 @@ export function Map3D(props: Map3DProps) {
     const w = props.map.w;
     const h = props.map.h;
 
-    const xSize = 1;
-    const ySize = 1;
-
     const ref = useRef<THREE.InstancedMesh>(null);
     useLayoutEffect(() => {
         if (!ref.current)
@@ -120,9 +117,6 @@ export function Map3D(props: Map3DProps) {
         const mat4Pos = new THREE.Matrix4();
         const vec3Color = new THREE.Color();
 
-        const tilePosition = new THREE.Vector3();
-        const tileQ = new THREE.Quaternion();
-        const tileScale = new THREE.Vector3(1, 1, 1);
 
         for (let y = 0; y < h; y++){
             for (let x = 0; x < w; x++) {
@@ -133,14 +127,7 @@ export function Map3D(props: Map3DProps) {
                 const height = tileTypeToHeight(tileType);
 
                 // TODO - make sure that everything matches with that corrective offset
-                mat4Pos.makeTranslation(x * xSize + 0.5, height-9, y * ySize + 0.5); // TODO -1 to move them down because of their height
-                /*
-
-                tilePosition.set(x * xSize + 0.5, -1, y * ySize + 0.5);
-                tileScale.y = height;
-                mat4Pos.compose(tilePosition, tileQ, tileScale); // TODO -1 to move them down because of their heigh
-
-                */
+                mat4Pos.makeTranslation(x + 0.5, height-9, y + 0.5); // TODO -1 to move them down because of their height
 
                 ref.current.setMatrixAt(ix, mat4Pos);
                 ref.current.setColorAt(ix, vec3Color);
@@ -161,9 +148,9 @@ export function Map3D(props: Map3DProps) {
                 onPointerDown={pointerDown}
                 onPointerUp={pointerUp}
                 onPointerMove={pointerMove}
-                position={[0.5*w, 0, ySize*0.5*h]}
+                position={[0.5*w, 0, 0.5*h]}
             >
-                <boxGeometry args={[xSize*w*2, 1, ySize*h*2]} />
+                <boxGeometry args={[w*2, 1, h*2]} />
                 <meshBasicMaterial opacity={0} transparent={true} />
             </mesh>
 
@@ -176,8 +163,8 @@ export function Map3D(props: Map3DProps) {
                 receiveShadow
                 castShadow
             >
-                {/*<planeGeometry args={[xSize, ySize]} />*/}
-                <boxGeometry args={[xSize, 20, ySize]} />
+                {/*<planeGeometry args={[1, 1]} />*/}
+                <boxGeometry args={[1, 20, 1]} />
                 <meshStandardMaterial />
             </instancedMesh>
         </group>
