@@ -30,8 +30,10 @@ export function Projectile3D(props: ProjectileProps) {
             return;
 
         flightTimeLeft.current -= dt * 1000;
-        if (flightTimeLeft.current <= 0)
+        if (flightTimeLeft.current <= 0) {
+            projectileRef.current.visible = false;
             return;
+        }
 
         const range = 20;
         const e = 1 - (flightTimeLeft.current / props.flightTime);
