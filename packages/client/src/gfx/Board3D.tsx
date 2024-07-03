@@ -136,9 +136,11 @@ function Projectiles(props: { projectiles: Projectile[], units: Unit[] }) {
 
         return (
             <Projectile3D
-                position={projectile.origin}
+                key={projectile.id}
+                origin={projectile.origin}
                 target={target}
-                attackRate={500}
+                flightTime={projectile.flightTime}
+                flightTimeLeft={projectile.flightTimeLeft}
             />
         )
 

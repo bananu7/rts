@@ -2,47 +2,43 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three';
 
-import { Position } from '@bananu7-rts/server/src/types'
+import { Position, Milliseconds } from '@bananu7-rts/server/src/types'
 import { ThreeCache } from './ThreeCache'
 
 const cache = new ThreeCache();
 
 export type ProjectileProps = {
-    position: Position,
+    origin: Position,
     target: Position,
-    attackRate: number, // TODO this is just flight time?
+    flightTime: Milliseconds,
+    flightTimeLeft: Milliseconds,
 }
 
 export function Projectile3D(props: ProjectileProps) {
-    const projectileTarget = new THREE.Vector3(50, 0, 50);
-    const projectilePosition = new THREE.Vector3(props.position.x, 5, props.position.y);
+    const projectilePosition = new THREE.Vector3(props.origin.x, 5, props.origin.y);
     const projectileRef = useRef<THREE.Mesh>(null);
 
-    const tRef = useRef<number>(0);
+    const startPos = new THREE.Vector3(props.origin.x, 0, props.origin.y);
+    const targetPos = new THREE.Vector3(props.target.x, 0, props.target.y);
+
+    const flightTimeLeft = useRef<number>(props.flightTimeLeft);
+
+    // if(time_since_fire *  projectile_speed > distance(target, shot_location)) hit(target, projectile);
 
     useFrame((s, dt) => {
         if(!projectileRef.current)
             return;
 
-        const attackRate = props.attackRate;
+        flightTimeLeft.current -= dt * 1000;
+        if (flightTimeLeft.current <= 0)
+            return;
+
         const range = 20;
-        const e = tRef.current * (1000/attackRate);
+        const e = 1 - (flightTimeLeft.current / props.flightTime);
         const y = parabolaHeight(range, 10, e);
-
-        if (tRef.current === 0) {
-            projectileRef.current.position.x = props.position.x
-            projectileRef.current.position.z = props.position.y;
-        }
-
-        const startPos = new THREE.Vector3(props.position.x, 0, props.position.y);
-        const targetPos = new THREE.Vector3(props.target.x, 0, props.target.y);
 
         projectileRef.current.position.lerpVectors(startPos, targetPos, e);
         projectileRef.current.position.y = y;
-
-        tRef.current += dt;
-        if (tRef.current > attackRate / 1000)
-            tRef.current = 0;
     });
 
     return (

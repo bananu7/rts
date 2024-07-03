@@ -64,7 +64,7 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     return target;
 }
 
-const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: Unit) => {
+const attemptDamage = (gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: Unit) => {
     if (ac.cooldown !== 0) 
         return;
     
@@ -75,10 +75,10 @@ const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker
     if (ac.kind === "projectile") {
         const projectileTarget: ProjectileTarget = {
             type: "positionTarget",
-            position: target.position,
+            position: getUnitReferencePosition(target),
         };
 
-        fireProjectile(gm, origin, ac, projectileTarget);
+        fireProjectile(gm, unit, ac, projectileTarget);
     } else {
         const hp = getHpComponent(target);
         if (hp) {
@@ -87,13 +87,20 @@ const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker
     }
 }
 
-function fireProjectile(gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: ProjectileTarget) {
+function fireProjectile(gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: ProjectileTarget) {
+    const projectileSpeed = 10; // units per s // TODO ac.projectileSpeed, but that'd require a separate RangedAttacker component
+    const distanceToTarget = target.type === "positionTarget" 
+        ? V.distance(getUnitReferencePosition(unit), target.position)
+        : 0 // TODO target units// unitInteractionDistance(unit, );
+    const flightTime: Milliseconds = (distanceToTarget / projectileSpeed) * 1000;
+
     gm.game.projectiles.push({
         id: ++gm.game.lastProjectileId,
         damage: ac.damage,
         target,
-        origin: {x: origin.x, y: origin.y },
-        speed: 100, // TODO ac.projectileSpeed, but that'd require a separate RangedAttacker component
+        origin: {x: unit.position.x, y: unit.position.y },
+        flightTime: flightTime,
+        flightTimeLeft: flightTime,
     })
 }
 
@@ -106,7 +113,7 @@ export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, targe
         const targetPos = getUnitReferencePosition(target);
         unit.direction = V.angleFromTo(unit.position, targetPos);
 
-        attemptDamage(gm, unit.position, ac, target);
+        attemptDamage(gm, unit, ac, target);
     }
     // in any other case we can't do much else
 }

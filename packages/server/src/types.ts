@@ -236,7 +236,8 @@ export type Projectile = {
     damage: number,
     target: ProjectileTarget,
     origin: Position,
-    speed: number,
+    flightTime: Milliseconds,
+    flightTimeLeft: Milliseconds,
 }
 
 export type Game = {

@@ -211,6 +211,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             }
 
             g.tickNumber += 1;
+            updateProjectiles(dt, g);
             updateUnits(dt, g);
             break;
         }
@@ -277,6 +278,12 @@ function updateUnits(dt: Milliseconds, g: Game) {
         
         return hp.hp > 0;
     });
+}
+
+function updateProjectiles(dt: Milliseconds, g: Game) {
+    for (const projectile of g.projectiles) {
+        projectile.flightTimeLeft -= dt;
+    }
 }
 
 
