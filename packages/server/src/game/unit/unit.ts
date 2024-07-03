@@ -1,6 +1,6 @@
 import { 
     Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position, ProjectileTarget
 } from '../../types'
 
 import * as V from '../../vector.js'
@@ -73,7 +73,12 @@ const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker
     // depending on the attacker type, either fire a projectile or deal direct damage
     // TODO: windup
     if (ac.kind === "projectile") {
-        fireProjectile(gm, origin, ac, target);
+        const projectileTarget: ProjectileTarget = {
+            type: "positionTarget",
+            position: target.position,
+        };
+
+        fireProjectile(gm, origin, ac, projectileTarget);
     } else {
         const hp = getHpComponent(target);
         if (hp) {
@@ -82,12 +87,13 @@ const attemptDamage = (gm: GameWithPresenceCache, origin: Position, ac: Attacker
     }
 }
 
-function fireProjectile(gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: Unit | Position) {
+function fireProjectile(gm: GameWithPresenceCache, origin: Position, ac: Attacker, target: ProjectileTarget) {
     gm.game.projectiles.push({
         id: ++gm.game.lastProjectileId,
         damage: ac.damage,
-        target: "position" in target ? target.position : target,
+        target,
         origin: {x: origin.x, y: origin.y },
+        speed: 100, // TODO ac.projectileSpeed, but that'd require a separate RangedAttacker component
     })
 }
 

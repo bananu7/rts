@@ -223,11 +223,20 @@ export type PlayerState = {
 export type WinCondition = 'BuildingElimination'|'OneLeft';
 
 
+export type ProjectileTarget = {
+    type: "unitTarget",
+    unitId: UnitId,
+} | {
+    type: "positionTarget",
+    position: Position,
+}
+
 export type Projectile = {
     id: ProjectileId,
     damage: number,
-    target: Position, // TODO - projectiles targeting units
+    target: ProjectileTarget,
     origin: Position,
+    speed: number,
 }
 
 export type Game = {

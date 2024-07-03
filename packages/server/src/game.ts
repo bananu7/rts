@@ -21,7 +21,7 @@ import { buildPresenceAndBuildingMaps } from './game/presence.js'
 
 export function newGame(matchId: string, board: Board): Game {
     const units = createStartingUnits(2, board);
-    const startingResources = 150;
+    const startingResources = 1500;
     return {
         matchId,
         state: {id: 'Lobby'},

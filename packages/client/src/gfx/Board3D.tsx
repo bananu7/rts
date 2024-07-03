@@ -9,7 +9,7 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, TilePos, Building, Projectile } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos, Building, Projectile, ProjectileTarget } from '@bananu7-rts/server/src/types'
 import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
 import { notEmpty } from '@bananu7-rts/server/src/tsutil'
 import { SelectionCircle } from './SelectionCircle'
@@ -118,19 +118,26 @@ export function Board3D(props: Props) {
                 selectInBox={selectInBox}
                 pointerMove={setPointer}
             />
-            <Projectiles projectiles={props.projectiles} />
+            <Projectiles projectiles={props.projectiles} units={props.units} />
             { units }
             { buildPreview }
         </group>
     );
 }
 
-function Projectiles(props: { projectiles: Projectile[] }) {
+function Projectiles(props: { projectiles: Projectile[], units: Unit[] }) { 
     const projectiles = props.projectiles.map(projectile => {
+        // TODO how to display projectiles trying to reach units that don't exist anymore?
+
+        const target = getPositionFromProjectileTarget(projectile.target, props.units);
+        if (!target) {
+            return null;
+        }
+
         return (
             <Projectile3D
                 position={projectile.origin}
-                target={projectile.target}
+                target={target}
                 attackRate={500}
             />
         )
@@ -142,3 +149,12 @@ function Projectiles(props: { projectiles: Projectile[] }) {
     </group>)
 }
 
+function getPositionFromProjectileTarget(target: ProjectileTarget, units: Unit[]): Position | undefined {
+    if (target.type === "positionTarget") {
+        return target.position;
+    } else {
+        const targetUnit = units.find(u => u.id === target.unitId);
+        return targetUnit ? targetUnit.position : undefined;
+    }
+}
+            
