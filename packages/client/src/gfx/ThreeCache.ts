@@ -29,6 +29,20 @@ export class ThreeCache {
             return geometry;
         }
     }
+
+    spheres: Map<number, THREE.CylinderGeometry> = new Map();
+    getSphereGeometry(radius: number) {
+        const cached = this.spheres.get(radius);
+        if (cached) {
+            return cached;
+        } else {
+            const widthSegments = 24;
+            const heightSegments = 8;
+            const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
+            this.spheres.set(radius, geometry);
+            return geometry;
+        }
+    }
     
     standardMaterials: Map<number, THREE.MeshStandardMaterial> = new Map();
     getStandardMaterial(color: number) {

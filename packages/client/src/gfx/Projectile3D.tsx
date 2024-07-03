@@ -46,8 +46,8 @@ export function Projectile3D(props: ProjectileProps) {
     return (
         <mesh
             ref={projectileRef}
-            material={cache.getBasicMaterial(0xeeeeee)}
-            geometry={cache.getCylinderGeometry(1.0)}
+            material={cache.getStandardMaterial(0xaaaaaa)}
+            geometry={cache.getSphereGeometry(1.0)}
         />
     );
 }
