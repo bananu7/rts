@@ -7,7 +7,6 @@ const cache = new ThreeCache();
 
 const coneGeometry = new THREE.ConeGeometry(0.5, 2, 8);
 export function ConeIndicator(props: {action: UnitAction, smoothing: boolean}) {
-    // TODO - this will be replaced with animations etc
     let indicatorColor = 0xeeeeee;
     if (props.action === 'Moving')
         indicatorColor = 0x55ff55;
