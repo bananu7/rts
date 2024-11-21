@@ -1,7 +1,7 @@
 import {
     Milliseconds, Position,
     Board,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
+    GameMap, Game, GameWithPresenceCache, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Command, CommandFollow, CommandAttack, CommandMove, CommandAttackMove, CommandStop, CommandHarvest, CommandProduce, CommandBuild,
     PlayerState, UnitProductionCapability, BuildCapability
@@ -212,8 +212,11 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             }
 
             g.tickNumber += 1;
-            updateProjectiles(dt, g);
-            updateUnits(dt, g);
+
+            const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
+            const gm = {game: g, presence, buildings};
+            updateProjectiles(dt, gm);
+            updateUnits(dt, gm);
             break;
         }
     }
@@ -257,22 +260,19 @@ export function endGame(g: Game) {
     });
 }
 
-function updateUnits(dt: Milliseconds, g: Game) {
-    // Build a unit presence map
-    const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
-
+function updateUnits(dt: Milliseconds, gm: GameWithPresenceCache) {
     // calculate updates and velocities
-    for (const unit of g.units) {
-        updateUnit(dt, { game: g, presence, buildings }, unit);
+    for (const unit of gm.game.units) {
+        updateUnit(dt, gm, unit);
     }
     // move everything at once
-    for (const unit of g.units) {
+    for (const unit of gm.game.units) {
         V.vecAdd(unit.position, unit.velocity);
         unit.velocity.x = 0;
         unit.velocity.y = 0;
     }
 
-    g.units = g.units.filter(u => {
+    gm.game.units = gm.game.units.filter(u => {
         const hp = getHpComponent(u);
         if (!hp)
             return true; // units with no HP live forever
@@ -281,16 +281,16 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
-function updateProjectiles(dt: Milliseconds, g: Game) {
-    for (const projectile of g.projectiles) {
+function updateProjectiles(dt: Milliseconds, gm: GameWithPresenceCache) {
+    for (const projectile of gm.game.projectiles) {
         projectile.flightTimeLeft -= dt;
 
         if (projectile.flightTimeLeft <= 0) {
-            resolveProjectile(g, projectile);
+            resolveProjectile(gm, projectile);
         }
     }
 
-    g.projectiles = g.projectiles.filter(p => p.flightTimeLeft > 0);
+    gm.game.projectiles = gm.game.projectiles.filter(p => p.flightTimeLeft > 0);
 }
 
 function eliminated(g: Game): PlayerIndex[] {
