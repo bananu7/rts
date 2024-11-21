@@ -1,6 +1,6 @@
 import { 
     Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position, ProjectileTarget
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position, ProjectileTarget, Projectile
 } from '../../types'
 
 import * as V from '../../vector.js'
@@ -80,10 +80,14 @@ const attemptDamage = (gm: GameWithPresenceCache, unit: Unit, ac: Attacker, targ
 
         fireProjectile(gm, unit, ac, projectileTarget);
     } else {
-        const hp = getHpComponent(target);
-        if (hp) {
-            hp.hp -= ac.damage;
-        }
+        applyDamage(target, ac.damage);
+    }
+}
+
+const applyDamage = (target: Unit, damage: number) => {
+    const hp = getHpComponent(target);
+    if (hp) {
+        hp.hp -= damage;
     }
 }
 
@@ -156,4 +160,32 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
     }
 
     return true;
+}
+
+export const resolveProjectile  = (gm: GameWithPresenceCache, p: Projectile) => {
+    switch (p.target.type) {
+        case 'unitTarget':
+            const tid = p.target.unitId
+            const targetUnit = gm.game.units.find(u => u.id === tid);
+            if (!targetUnit) {
+                break; // the unit might have died/decomposed already, it's fine
+            }
+
+            applyDamage(targetUnit, p.damage);
+
+            break;
+        case 'positionTarget':
+            const position = p.target.position;
+            // TODO: splash radius configure
+            const PROJECTILE_SPLASH_RADIUS = 5.0;
+            // TODO use presence cache for query
+            // TODO I have no helper for unit-area queries
+            /*
+            const unitsHit = gm.game.units.filter(u => unitInteractionDistance(position, u) < PROJECTILE_SPLASH_RADIUS);
+
+            for (const u of unitsHit) {
+                applyDamage(u, p.damage);
+            }*/
+            break;
+    }
 }

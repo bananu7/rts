@@ -18,6 +18,7 @@ import { findPositionForProducedUnit } from './game/produce.js'
 import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util.js'
 import { updateUnit } from './game/unit_update.js'
 import { buildPresenceAndBuildingMaps } from './game/presence.js'
+import { resolveProjectile } from './game/unit/unit.js'
 
 export function newGame(matchId: string, board: Board): Game {
     const units = createStartingUnits(2, board);
@@ -283,9 +284,14 @@ function updateUnits(dt: Milliseconds, g: Game) {
 function updateProjectiles(dt: Milliseconds, g: Game) {
     for (const projectile of g.projectiles) {
         projectile.flightTimeLeft -= dt;
-    }
-}
 
+        if (projectile.flightTimeLeft <= 0) {
+            resolveProjectile(g, projectile);
+        }
+    }
+
+    g.projectiles = g.projectiles.filter(p => p.flightTimeLeft > 0);
+}
 
 function eliminated(g: Game): PlayerIndex[] {
     const isBuilding = (u: Unit) => !!u.components.find(c => c.type === 'Building');
