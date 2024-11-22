@@ -1,4 +1,4 @@
-import { 
+import {
     Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position, ProjectileTarget, Projectile
 } from '../../types'
@@ -22,14 +22,6 @@ export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     }
 }
 
-const getUnitReferencePositionById = (unit: Unit, units: Unit[], targetId: UnitId) => {
-    const target = units.find(u => u.id === targetId); // TODO Map
-    if (target)
-        return getUnitReferencePosition(target);
-    else
-        return;
-}
-
 // TODO - presence cache
 export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boolean) => {
     const unitsFiltered = units.filter(p);
@@ -39,7 +31,7 @@ export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boo
     }
 
     unitsFiltered.sort((a: Unit, b: Unit) => unitInteractionDistance(unit, a) - unitInteractionDistance(unit, b));
-    
+
     return unitsFiltered[0];
 }
 
@@ -50,7 +42,7 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     }
 
     // TODO query range for optimizations
-    const target = findClosestUnitBy(unit, units, u => 
+    const target = findClosestUnitBy(unit, units, u =>
         u.owner !== unit.owner &&
         u.owner !== 0
     );
@@ -65,9 +57,9 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
 }
 
 const attemptDamage = (gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: Unit) => {
-    if (ac.cooldown !== 0) 
+    if (ac.cooldown !== 0)
         return;
-    
+
     ac.cooldown = ac.attackRate;
 
     // depending on the attacker type, either fire a projectile or deal direct damage
@@ -91,11 +83,24 @@ const applyDamage = (target: Unit, damage: number) => {
     }
 }
 
+const computeProjectileDistance = (gm: GameWithPresenceCache, unit: Unit, target: ProjectileTarget): number | undefined => {
+    if (target.type === "positionTarget") {
+        return V.distance(getUnitReferencePosition(unit), target.position)
+    } else {
+        const targetUnit = gm.game.units.find(u => u.id == target.unitId);
+        if (!targetUnit)
+            return undefined;
+        return V.distance(getUnitReferencePosition(unit), getUnitReferencePosition(targetUnit));
+    }
+}
+
 function fireProjectile(gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: ProjectileTarget) {
     const projectileSpeed = 10; // units per s // TODO ac.projectileSpeed, but that'd require a separate RangedAttacker component
-    const distanceToTarget = target.type === "positionTarget" 
-        ? V.distance(getUnitReferencePosition(unit), target.position)
-        : 0 // TODO target units// unitInteractionDistance(unit, );
+    const distanceToTarget = computeProjectileDistance(gm, unit, target);
+    if (!distanceToTarget){
+        console.warn("[game] Trying to fire a projectile at a target that doesn't exist.");
+        return;
+    }
     const flightTime: Milliseconds = (distanceToTarget / projectileSpeed) * 1000;
 
     gm.game.projectiles.push({
@@ -143,7 +148,7 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
         return true;
     }
 
-    const target = detectNearbyEnemy(unit, gm.game.units); 
+    const target = detectNearbyEnemy(unit, gm.game.units);
     if (!target) {
         // try to return to the idle position;
         // if it's close enough, it shouldn't start moving at all
