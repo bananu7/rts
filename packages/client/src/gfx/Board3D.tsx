@@ -11,6 +11,7 @@ import * as THREE from 'three';
 
 import { Board, Unit, GameMap, UnitId, Position, TilePos, Building, Projectile, ProjectileTarget } from '@bananu7-rts/server/src/types'
 import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
+import { getUnitReferencePosition } from '@bananu7-rts/server/src/game/util'
 import { notEmpty } from '@bananu7-rts/server/src/tsutil'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
@@ -125,7 +126,7 @@ export function Board3D(props: Props) {
     );
 }
 
-function Projectiles(props: { projectiles: Projectile[], units: Unit[] }) { 
+function Projectiles(props: { projectiles: Projectile[], units: Unit[] }) {
     const projectiles = props.projectiles.map(projectile => {
         // TODO how to display projectiles trying to reach units that don't exist anymore?
 
@@ -156,7 +157,7 @@ function getPositionFromProjectileTarget(target: ProjectileTarget, units: Unit[]
         return target.position;
     } else {
         const targetUnit = units.find(u => u.id === target.unitId);
-        return targetUnit ? targetUnit.position : undefined;
+        return targetUnit ? getUnitReferencePosition(targetUnit) : undefined;
     }
 }
-            
+            
