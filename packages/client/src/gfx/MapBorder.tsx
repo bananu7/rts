@@ -127,7 +127,7 @@ export function MapBorder(props: MapBorderProps) {
         <instancedMesh
             name="Map border mesh"
             ref={ref}
-            args={[undefined, undefined, w*h]}
+            args={[undefined, undefined, borderTilesCount]}
             receiveShadow
         >
             <boxGeometry args={[1, 20, 1]} />
