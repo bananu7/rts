@@ -33,7 +33,9 @@ export function createBasicGame(override: Partial<Game>, mapSize?: number): Game
         players: [createOnePlayerState(), createOnePlayerState()],
         board,
         units,
+        projectiles: [],
         lastUnitId: units.length,
+        lastProjectileId: 1,
         winCondition: 'OneLeft',
     };
 

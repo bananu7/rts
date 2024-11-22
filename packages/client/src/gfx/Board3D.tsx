@@ -9,13 +9,17 @@ import {
 
 import * as THREE from 'three';
 
-import { Board, Unit, GameMap, UnitId, Position, TilePos, Building } from '@bananu7-rts/server/src/types'
+import { Board, Unit, GameMap, UnitId, Position, TilePos, Building, Projectile, ProjectileTarget } from '@bananu7-rts/server/src/types'
+import { getAttackerComponent } from '@bananu7-rts/server/src/game/components'
+import { getUnitReferencePosition } from '@bananu7-rts/server/src/game/util'
+import { notEmpty } from '@bananu7-rts/server/src/tsutil'
 import { SelectionCircle } from './SelectionCircle'
 import { Line3D } from './Line3D'
 import { Map3D, Box } from './Map3D'
 import { Unit3D } from './Unit3D'
 import { Building3D } from './Building3D'
 import { BuildPreview } from './BuildPreview'
+import { Projectile3D } from './Projectile3D'
 import { UNIT_DISPLAY_CATALOG, BuildingDisplayEntry } from './UnitDisplayCatalog'
 
 import { SelectedCommand } from '../game/SelectedCommand'
@@ -25,6 +29,7 @@ export interface Props {
     board: Board;
     playerIndex: number;
     units: Unit[];
+    projectiles: Projectile[],
     selectedUnits: Set<UnitId>;
     selectedCommand: SelectedCommand | undefined;
 
@@ -114,8 +119,45 @@ export function Board3D(props: Props) {
                 selectInBox={selectInBox}
                 pointerMove={setPointer}
             />
+            <Projectiles projectiles={props.projectiles} units={props.units} />
             { units }
             { buildPreview }
         </group>
     );
 }
+
+function Projectiles(props: { projectiles: Projectile[], units: Unit[] }) {
+    const projectiles = props.projectiles.map(projectile => {
+        // TODO how to display projectiles trying to reach units that don't exist anymore?
+
+        const target = getPositionFromProjectileTarget(projectile.target, props.units);
+        if (!target) {
+            return null;
+        }
+
+        return (
+            <Projectile3D
+                key={projectile.id}
+                origin={projectile.origin}
+                target={target}
+                flightTime={projectile.flightTime}
+                flightTimeLeft={projectile.flightTimeLeft}
+            />
+        )
+
+    }).filter(notEmpty);
+
+    return (<group name="Projectiles">
+        { projectiles }
+    </group>)
+}
+
+function getPositionFromProjectileTarget(target: ProjectileTarget, units: Unit[]): Position | undefined {
+    if (target.type === "positionTarget") {
+        return target.position;
+    } else {
+        const targetUnit = units.find(u => u.id === target.unitId);
+        return targetUnit ? getUnitReferencePosition(targetUnit) : undefined;
+    }
+}
+            

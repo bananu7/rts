@@ -27,7 +27,7 @@ export function MapLight(props: MapLightProps) {
 
     return (
         <group>
-            <directionalLight 
+            <directionalLight
                 ref={lightRef}
                 // TODO time of day
                 position={[400, 180, 90]}
@@ -60,8 +60,9 @@ export default function useShadowHelper(
 
     useEffect(() => {
         if (!ref.current) return;
+        if (!ref.current.shadow) return;
 
-        helper.current = new THREE.CameraHelper(ref.current?.shadow.camera);
+        helper.current = new THREE.CameraHelper(ref.current.shadow.camera);
         if (helper.current) {
             scene.add(helper.current);
         }

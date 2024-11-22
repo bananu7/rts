@@ -119,7 +119,7 @@ export function willAcceptCommand(unit: Unit, command: Command) {
     // TODO maybe this should be better streamlined, like in a dictionary
     // of required components for each command?
     switch(command.typ) {
-    case 'Move': 
+    case 'Move':
         if (!getMoveComponent(unit))
             return false;
         break;
@@ -144,10 +144,9 @@ export function willAcceptCommand(unit: Unit, command: Command) {
 }
 
 export function getUnitReferencePosition(target: Unit): Position {
-    // For regular units, their position is in the middle
-    // For buildings, it's the top-left corner
+    // Effectively "middle" of the unit
     const bc = getBuildingComponent(target);
-    
+
     if (!bc) {
         return { x: target.position.x, y: target.position.y };
     } else {

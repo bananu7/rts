@@ -1,6 +1,6 @@
-import { 
+import {
     Unit, UnitId, Milliseconds, PlayerState, GameWithPresenceCache,
-    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component
+    Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building, Component, Position, ProjectileTarget, Projectile
 } from '../../types'
 
 import * as V from '../../vector.js'
@@ -22,14 +22,6 @@ export const cancelProduction = (unit: Unit, owner: PlayerState) => {
     }
 }
 
-const getUnitReferencePositionById = (unit: Unit, units: Unit[], targetId: UnitId) => {
-    const target = units.find(u => u.id === targetId); // TODO Map
-    if (target)
-        return getUnitReferencePosition(target);
-    else
-        return;
-}
-
 // TODO - presence cache
 export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boolean) => {
     const unitsFiltered = units.filter(p);
@@ -39,7 +31,7 @@ export const findClosestUnitBy = (unit: Unit, units: Unit[], p: (u: Unit) => boo
     }
 
     unitsFiltered.sort((a: Unit, b: Unit) => unitInteractionDistance(unit, a) - unitInteractionDistance(unit, b));
-    
+
     return unitsFiltered[0];
 }
 
@@ -50,7 +42,7 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     }
 
     // TODO query range for optimizations
-    const target = findClosestUnitBy(unit, units, u => 
+    const target = findClosestUnitBy(unit, units, u =>
         u.owner !== unit.owner &&
         u.owner !== 0
     );
@@ -64,15 +56,68 @@ export const detectNearbyEnemy = (unit: Unit, units: Unit[]) => {
     return target;
 }
 
-const attemptDamage = (ac: Attacker, target: Unit) => {
-    if (ac.cooldown === 0) {
-        // TODO - attack cooldown
-        const hp = getHpComponent(target);
-        if (hp) {
-            hp.hp -= ac.damage;
-        }
-        ac.cooldown = ac.attackRate;
+const attemptDamage = (gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: Unit) => {
+    if (ac.cooldown !== 0)
+        return;
+
+    ac.cooldown = ac.attackRate;
+
+    // depending on the attacker type, either fire a projectile or deal direct damage
+    // TODO: windup
+    if (ac.kind === "projectile") {
+        // TODO allow both types of projectiles
+        /*
+        const projectileTarget: ProjectileTarget = {
+            type: "positionTarget",
+            position: getUnitReferencePosition(target),
+        };
+        */
+        const projectileTarget: ProjectileTarget = {
+            type: "unitTarget",
+            unitId: target.id,
+        };
+
+        fireProjectile(gm, unit, ac, projectileTarget);
+    } else {
+        applyDamage(target, ac.damage);
     }
+}
+
+const applyDamage = (target: Unit, damage: number) => {
+    const hp = getHpComponent(target);
+    if (hp) {
+        hp.hp -= damage;
+    }
+}
+
+const computeProjectileDistance = (gm: GameWithPresenceCache, unit: Unit, target: ProjectileTarget): number | undefined => {
+    if (target.type === "positionTarget") {
+        return V.distance(getUnitReferencePosition(unit), target.position)
+    } else {
+        const targetUnit = gm.game.units.find(u => u.id == target.unitId);
+        if (!targetUnit)
+            return undefined;
+        return V.distance(getUnitReferencePosition(unit), getUnitReferencePosition(targetUnit));
+    }
+}
+
+function fireProjectile(gm: GameWithPresenceCache, unit: Unit, ac: Attacker, target: ProjectileTarget) {
+    const projectileSpeed = 10; // units per s // TODO ac.projectileSpeed, but that'd require a separate RangedAttacker component
+    const distanceToTarget = computeProjectileDistance(gm, unit, target);
+    if (!distanceToTarget){
+        console.warn("[game] Trying to fire a projectile at a target that doesn't exist.");
+        return;
+    }
+    const flightTime: Milliseconds = (distanceToTarget / projectileSpeed) * 1000;
+
+    gm.game.projectiles.push({
+        id: ++gm.game.lastProjectileId,
+        damage: ac.damage,
+        target,
+        origin: {x: unit.position.x, y: unit.position.y },
+        flightTime: flightTime,
+        flightTimeLeft: flightTime,
+    })
 }
 
 export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, target: Unit, dt: Milliseconds) => {
@@ -83,7 +128,8 @@ export const aggro = (unit: Unit, gm: GameWithPresenceCache, ac: Attacker, targe
         unit.state.action = 'Attacking';
         const targetPos = getUnitReferencePosition(target);
         unit.direction = V.angleFromTo(unit.position, targetPos);
-        attemptDamage(ac, target);
+
+        attemptDamage(gm, unit, ac, target);
     }
     // in any other case we can't do much else
 }
@@ -109,7 +155,7 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
         return true;
     }
 
-    const target = detectNearbyEnemy(unit, gm.game.units); 
+    const target = detectNearbyEnemy(unit, gm.game.units);
     if (!target) {
         // try to return to the idle position;
         // if it's close enough, it shouldn't start moving at all
@@ -126,4 +172,32 @@ export const idle = (unit: Unit, gm: GameWithPresenceCache, dt: Milliseconds): b
     }
 
     return true;
+}
+
+export const resolveProjectile  = (gm: GameWithPresenceCache, p: Projectile) => {
+    switch (p.target.type) {
+        case 'unitTarget':
+            const tid = p.target.unitId
+            const targetUnit = gm.game.units.find(u => u.id === tid);
+            if (!targetUnit) {
+                break; // the unit might have died/decomposed already, it's fine
+            }
+
+            applyDamage(targetUnit, p.damage);
+
+            break;
+        case 'positionTarget':
+            const position = p.target.position;
+            // TODO: splash radius configure
+            const PROJECTILE_SPLASH_RADIUS = 5.0;
+            // TODO use presence cache for query
+            // TODO I have no helper for unit-area queries
+            /*
+            const unitsHit = gm.game.units.filter(u => unitInteractionDistance(position, u) < PROJECTILE_SPLASH_RADIUS);
+
+            for (const u of unitsHit) {
+                applyDamage(u, p.damage);
+            }*/
+            break;
+    }
 }

@@ -91,6 +91,7 @@ export type UpdatePacket = {
     tickNumber: number,
     units: Unit[],
     player: PlayerState,
+    projectiles: Projectile[],
 }
 
 // Components
@@ -106,6 +107,7 @@ export type Attacker = {
     attackRate: Milliseconds,
     range: number,
     cooldown: Milliseconds,
+    kind: 'direct' | 'projectile',
 }
 export type Mover = {
     type: 'Mover',
@@ -169,9 +171,9 @@ export type Vision = {
 // Internal Game stuff
 export type TilePos = { x: number, y: number }
 
-export type PlayerIndex = number
-export type UserId = string
-
+export type PlayerIndex = number;
+export type UserId = string;
+export type ProjectileId = number;
 
 export type UnitAction = 'Moving'|'Attacking'|'Harvesting'|'Idle'|'Producing'|'Building';
 
@@ -220,6 +222,24 @@ export type PlayerState = {
 
 export type WinCondition = 'BuildingElimination'|'OneLeft';
 
+
+export type ProjectileTarget = {
+    type: "unitTarget",
+    unitId: UnitId,
+} | {
+    type: "positionTarget",
+    position: Position,
+}
+
+export type Projectile = {
+    id: ProjectileId,
+    damage: number,
+    target: ProjectileTarget,
+    origin: Position,
+    flightTime: Milliseconds,
+    flightTimeLeft: Milliseconds,
+}
+
 export type Game = {
     // uuid: UUID, TODO
     readonly matchId: MatchId,
@@ -230,7 +250,9 @@ export type Game = {
     players: PlayerState[],
     tickNumber: number,
     units: Unit[],
+    projectiles: Projectile[],
     lastUnitId: number,
+    lastProjectileId: number,
 }
 
 export type GameMap = {

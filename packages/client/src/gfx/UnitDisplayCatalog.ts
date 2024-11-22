@@ -37,6 +37,11 @@ export const UNIT_DISPLAY_CATALOG : UnitDisplayCatalog = {
     }),
     'Trooper': () => ({
         isBuilding: false,
+        modelPath: 'peasant_1.glb',
+        selectorSize: 1,
+    }),
+    'Catapult': () => ({
+        isBuilding: false,
         modelPath: 'catapult.glb',
         selectorSize: 2.5,
     }),

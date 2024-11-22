@@ -51,7 +51,7 @@ type MatchControllerProps = {
 export function MatchController(props: MatchControllerProps) {
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [msgs, setMsgs] = useState([] as string[]);
- 
+
   const [lastUpdatePacket, setLastUpdatePacket] = useState<UpdatePacket | null>(null);
 
   const [messages, setMessages] = useState<string[]>([]);
@@ -137,12 +137,14 @@ export function MatchController(props: MatchControllerProps) {
       } else if (selectedCommand.command === 'Build') {
         // Only send one harvester to build
         // TODO send the closest one
+        // TODO frontend shouldn't be making this decision!!!
+        const chosenBuilderId = selectedUnits.keys().next().value!; // there's always at least one basing on the check above
         const gridPos = clampToGrid(p);
 
         const buildingSize = getBuildingSizeFromBuildingName(selectedCommand.building);
         const emptyForBuilding = mapEmptyForBuilding(matchMetadata.board.map, {size: buildingSize, type: 'Building'}, gridPos);
         if (emptyForBuilding) {
-          props.ctrl.buildCommand([selectedUnits.keys().next().value], selectedCommand.building, gridPos, shift);
+          props.ctrl.buildCommand([chosenBuilderId], selectedCommand.building, gridPos, shift);
         } else {
           console.log("[MatchController] trying to build in an invalid location")
         }
@@ -186,7 +188,7 @@ export function MatchController(props: MatchControllerProps) {
             }
             else {
               units.add(targetId);
-            } 
+            }
             return units;
           });
         } else {
@@ -278,12 +280,12 @@ export function MatchController(props: MatchControllerProps) {
       }
 
       { /* TODO move to Lobby */ }
-      { lastUpdatePacket && 
+      { lastUpdatePacket &&
         lastUpdatePacket.state.id === 'Precount' &&
         <PrecountCounter count={lastUpdatePacket.state.count} />
       }
 
-      { lastUpdatePacket && 
+      { lastUpdatePacket &&
         lastUpdatePacket.state.id === 'Lobby' &&
         matchMetadata &&
         <Lobby
@@ -292,7 +294,7 @@ export function MatchController(props: MatchControllerProps) {
         />
       }
 
-      { lastUpdatePacket && 
+      { lastUpdatePacket &&
         lastUpdatePacket.state.id === 'Paused' &&
         <div className="card">
           <span>Game paused</span>
@@ -350,6 +352,7 @@ export function MatchController(props: MatchControllerProps) {
               board={matchMetadata.board}
               playerIndex={props.ctrl.getPlayerIndex()}
               units={lastUpdatePacket ? lastUpdatePacket.units : []}
+              projectiles={lastUpdatePacket ? lastUpdatePacket.projectiles : []}
               selectedUnits={selectedUnits}
               selectedCommand={selectedCommand}
               select={boardSelectUnits}

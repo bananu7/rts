@@ -1,7 +1,7 @@
 import {
     Milliseconds, Position,
     Board,
-    GameMap, Game, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
+    GameMap, Game, GameWithPresenceCache, PlayerIndex, Unit, UnitId, Component, CommandPacket, UpdatePacket, PresenceMap, BuildingMap, TilePos, 
     Hp, Mover, Attacker, Harvester, ProductionFacility, Builder, Vision, Building,
     Command, CommandFollow, CommandAttack, CommandMove, CommandAttackMove, CommandStop, CommandHarvest, CommandProduce, CommandBuild,
     PlayerState, UnitProductionCapability, BuildCapability
@@ -18,19 +18,23 @@ import { findPositionForProducedUnit } from './game/produce.js'
 import { spiral, willAcceptCommand, getUnitReferencePosition } from './game/util.js'
 import { updateUnit } from './game/unit_update.js'
 import { buildPresenceAndBuildingMaps } from './game/presence.js'
+import { resolveProjectile } from './game/unit/unit.js'
 
 export function newGame(matchId: string, board: Board): Game {
     const units = createStartingUnits(2, board);
+    const startingResources = 1500;
     return {
         matchId,
         state: {id: 'Lobby'},
         tickNumber: 0,
         // TODO factor number of players in creation
         // TODO handle disconnect separately from elimination
-        players: [{resources: 50, stillInGame: true}, {resources: 50, stillInGame: true}],
+        players: [{resources: startingResources, stillInGame: true}, {resources: startingResources, stillInGame: true}],
         board,
         units,
+        projectiles: [],
         lastUnitId: units.length,
+        lastProjectileId: 1,
         winCondition: 'BuildingElimination',
     }
 }
@@ -208,7 +212,11 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             }
 
             g.tickNumber += 1;
-            updateUnits(dt, g);
+
+            const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
+            const gm = {game: g, presence, buildings};
+            updateProjectiles(dt, gm);
+            updateUnits(dt, gm);
             break;
         }
     }
@@ -235,6 +243,7 @@ export function tick(dt: Milliseconds, g: Game): UpdatePacket[] {
             units: unitUpdates,
             player: p,
             state: g.state,
+            projectiles: g.projectiles,
         }
     });
 }
@@ -251,22 +260,19 @@ export function endGame(g: Game) {
     });
 }
 
-function updateUnits(dt: Milliseconds, g: Game) {
-    // Build a unit presence map
-    const [presence, buildings] = buildPresenceAndBuildingMaps(g.units, g.board);
-
+function updateUnits(dt: Milliseconds, gm: GameWithPresenceCache) {
     // calculate updates and velocities
-    for (const unit of g.units) {
-        updateUnit(dt, { game: g, presence, buildings }, unit);
+    for (const unit of gm.game.units) {
+        updateUnit(dt, gm, unit);
     }
     // move everything at once
-    for (const unit of g.units) {
+    for (const unit of gm.game.units) {
         V.vecAdd(unit.position, unit.velocity);
         unit.velocity.x = 0;
         unit.velocity.y = 0;
     }
 
-    g.units = g.units.filter(u => {
+    gm.game.units = gm.game.units.filter(u => {
         const hp = getHpComponent(u);
         if (!hp)
             return true; // units with no HP live forever
@@ -275,6 +281,17 @@ function updateUnits(dt: Milliseconds, g: Game) {
     });
 }
 
+function updateProjectiles(dt: Milliseconds, gm: GameWithPresenceCache) {
+    for (const projectile of gm.game.projectiles) {
+        projectile.flightTimeLeft -= dt;
+
+        if (projectile.flightTimeLeft <= 0) {
+            resolveProjectile(gm, projectile);
+        }
+    }
+
+    gm.game.projectiles = gm.game.projectiles.filter(p => p.flightTimeLeft > 0);
+}
 
 function eliminated(g: Game): PlayerIndex[] {
     const isBuilding = (u: Unit) => !!u.components.find(c => c.type === 'Building');

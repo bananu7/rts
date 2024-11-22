@@ -116,8 +116,8 @@ export function CommandPalette(props: Props) {
             Produce {up.unitType}
             <span className="tooltip">
                 <strong>{up.unitType}</strong>
-                <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span>
                 <span style={{float:"right"}}>{time}🕑</span>
+                <span style={{float:"right", color: canAfford?"white":"red"}}>{cost}💰</span> 
                 <br /><br/>
                 This excellent unit will serve you well, and I
                 would tell you how but the tooltip data isn't
