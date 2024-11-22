@@ -89,7 +89,6 @@ export function View3D(props: Props) {
                         position: startCameraPosition,
                     }}
                     gl={{
-                        physicallyCorrectLights: true,
                         pixelRatio: window.devicePixelRatio,
                     }}
                     linear={true}

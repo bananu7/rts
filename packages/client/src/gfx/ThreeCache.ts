@@ -30,7 +30,7 @@ export class ThreeCache {
         }
     }
 
-    spheres: Map<number, THREE.CylinderGeometry> = new Map();
+    spheres: Map<number, THREE.SphereGeometry> = new Map();
     getSphereGeometry(radius: number) {
         const cached = this.spheres.get(radius);
         if (cached) {
@@ -43,7 +43,7 @@ export class ThreeCache {
             return geometry;
         }
     }
-    
+
     standardMaterials: Map<number, THREE.MeshStandardMaterial> = new Map();
     getStandardMaterial(color: number) {
         const cached = this.standardMaterials.get(color);
