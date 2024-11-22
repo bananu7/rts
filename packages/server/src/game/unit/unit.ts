@@ -65,9 +65,16 @@ const attemptDamage = (gm: GameWithPresenceCache, unit: Unit, ac: Attacker, targ
     // depending on the attacker type, either fire a projectile or deal direct damage
     // TODO: windup
     if (ac.kind === "projectile") {
+        // TODO allow both types of projectiles
+        /*
         const projectileTarget: ProjectileTarget = {
             type: "positionTarget",
             position: getUnitReferencePosition(target),
+        };
+        */
+        const projectileTarget: ProjectileTarget = {
+            type: "unitTarget",
+            unitId: target.id,
         };
 
         fireProjectile(gm, unit, ac, projectileTarget);

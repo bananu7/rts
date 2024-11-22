@@ -1,5 +1,5 @@
 import { tick, command } from '../../src/game.js'
-import { Game, PlayerState, Unit, GameMap, Position, TilePos, Harvester } from '../../src/types'
+import { Game, PlayerState, Unit, GameMap, Position, TilePos, Hp } from '../../src/types'
 import { expect, test, describe } from 'vitest'
 
 import { createBasicGame, createOnePlayerState, spawnUnit, markRectangle } from '../util.js'
@@ -94,5 +94,30 @@ describe('attack action', () => {
 
         expect(game.units[0].state.state).toBe('idle');
         expect(game.units[0].state.action).toBe('Idle');
+    });
+
+    test("attack flow with a projectile unit", () => {
+        const game = createBasicGame({});
+        spawnUnit(game, 1, "Catapult", {x: 4, y: 10});
+        spawnUnit(game, 2, "Trooper", {x: 10, y: 10});
+
+        command({
+                command: { typ: 'Attack', target: 2, },
+                unitIds: [1],
+                shift: false,
+            },
+            game,
+            1
+        );
+        tick(TICK_MS, game);
+
+        expect(game.units[0].state.state).toBe('active');
+
+        const hp = game.units[1].components.filter(c => c.type == "Hp")[0] as Hp;
+        expect(hp.hp).toBe(hp.maxHp);
+        for (let i = 0; i < 5 * 10; i++) {
+            tick(TICK_MS, game);
+        }
+        expect(hp.hp).toBeLessThan(hp.maxHp);
     });
 })
